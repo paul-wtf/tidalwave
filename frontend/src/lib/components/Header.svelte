@@ -63,7 +63,7 @@
     text-decoration: none;
     letter-spacing: -0.02em;
   }
-  /* Tide mark: a small solid teal square, echoing the favicon monogram. */
+  /* Tide mark: a small solid square in the accent, echoing the favicon monogram. */
   .mark {
     width: 0.7rem;
     height: 0.7rem;

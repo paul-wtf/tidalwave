@@ -39,7 +39,7 @@
     color: var(--text);
   }
   button.active {
-    background: var(--accent);
+    background: var(--accent-text);
     color: var(--accent-contrast);
   }
 </style>

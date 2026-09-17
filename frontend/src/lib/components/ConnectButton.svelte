@@ -7,7 +7,7 @@
 <style>
   .connect {
     display: inline-block;
-    background: var(--accent);
+    background: var(--accent-text);
     color: var(--accent-contrast);
     font-weight: 700;
     padding: 0.8rem 1.6rem;

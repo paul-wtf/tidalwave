@@ -65,7 +65,7 @@
     transition: color var(--dur-fast) var(--ease-out);
   }
   .all:hover {
-    color: var(--accent);
+    color: var(--accent-text);
   }
   ol {
     list-style: none;
@@ -151,6 +151,6 @@
     transition: color var(--dur-fast) var(--ease-out);
   }
   .more:hover {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 </style>

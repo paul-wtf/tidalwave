@@ -60,7 +60,7 @@
     background: var(--surface1);
   }
   button:focus-visible {
-    box-shadow: 0 0 0 2px var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-text);
   }
   button:disabled {
     opacity: 0.6;

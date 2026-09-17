@@ -98,6 +98,6 @@
     transition: color var(--dur-fast) var(--ease-out);
   }
   .more:hover {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 </style>

@@ -129,7 +129,7 @@
     background: var(--surface1);
   }
   select:focus-visible {
-    box-shadow: 0 0 0 2px var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-text);
   }
   .areachart {
     position: relative;
@@ -148,7 +148,7 @@
     height: 100%;
   }
   /* Fill is set inline via the per-instance <linearGradient> above — the one
-     gradient exception in the zen system: a vertical teal fade under the
+     gradient exception in the zen system: a vertical accent fade under the
      trend line (see .areachart's <defs>). */
   .line {
     fill: none;

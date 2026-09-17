@@ -2,7 +2,7 @@
  * tidalwave — Zen Token-System
  *
  * Same design language as paul.wtf and the rest of the app family: opaque
- * Catppuccin surfaces, zero decorative borders, teal as the single accent
+ * Catppuccin surfaces, zero decorative borders, mauve as the single accent
  * (sky reserved for the listening clock — the one natural "special element"
  * in this app), JetBrains Mono everywhere, soft shadow only on free-floating
  * cards.
@@ -91,9 +91,10 @@
   /* Both reach ≥4.5:1 on crust/mantle/base here — the mocha ladder has
      enough range to keep a two-step hierarchy safe. */
 
-  --accent: #94e2d5;
+  --accent: #cba6f7;
+  --accent-text: var(--accent);
   --accent-contrast: var(--crust);
-  --accent-soft: rgba(148, 226, 213, 0.25);
+  --accent-soft: rgba(203, 166, 247, 0.25);
   --accent-cyan: #89dceb;
 
   --success: #a6e3a1;
@@ -102,9 +103,9 @@
   --error-soft: rgba(243, 139, 168, 0.16);
 
   /* "Wallpaper": firewatch ridgelines, same recipe as paul.wtf — near-tonal
-     hill silhouettes over the crust plus a pale teal moon. Copied
-     character-for-character from homepage tokens.css. */
-  --wallpaper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' preserveAspectRatio='xMidYMax slice'><circle cx='1190' cy='300' r='110' fill='%2394e2d5' opacity='0.05'/><circle cx='1190' cy='300' r='72' fill='%2394e2d5' opacity='0.07'/><path d='M0 560 L140 480 L300 545 L470 430 L640 530 L820 455 L990 540 L1160 470 L1330 550 L1470 500 L1600 555 L1600 900 L0 900 Z' fill='%231c2030' opacity='0.55'/><path d='M0 640 L180 560 L340 625 L520 540 L720 630 L900 560 L1090 645 L1280 575 L1440 640 L1600 590 L1600 900 L0 900 Z' fill='%23181d29' opacity='0.8'/><path d='M0 730 L200 655 L380 715 L580 640 L790 725 L1000 660 L1210 730 L1420 670 L1600 720 L1600 900 L0 900 Z' fill='%23131622'/><path d='M0 810 L240 750 L460 800 L700 740 L950 805 L1200 750 L1430 800 L1600 765 L1600 900 L0 900 Z' fill='%230d0d15'/></svg>");
+     hill silhouettes over the crust plus a pale moon in the accent. The
+     paths are copied character-for-character from homepage tokens.css. */
+  --wallpaper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' preserveAspectRatio='xMidYMax slice'><circle cx='1190' cy='300' r='110' fill='%23cba6f7' opacity='0.05'/><circle cx='1190' cy='300' r='72' fill='%23cba6f7' opacity='0.07'/><path d='M0 560 L140 480 L300 545 L470 430 L640 530 L820 455 L990 540 L1160 470 L1330 550 L1470 500 L1600 555 L1600 900 L0 900 Z' fill='%231c2030' opacity='0.55'/><path d='M0 640 L180 560 L340 625 L520 540 L720 630 L900 560 L1090 645 L1280 575 L1440 640 L1600 590 L1600 900 L0 900 Z' fill='%23181d29' opacity='0.8'/><path d='M0 730 L200 655 L380 715 L580 640 L790 725 L1000 660 L1210 730 L1420 670 L1600 720 L1600 900 L0 900 Z' fill='%23131622'/><path d='M0 810 L240 750 L460 800 L700 740 L950 805 L1200 750 L1430 800 L1600 765 L1600 900 L0 900 Z' fill='%230d0d15'/></svg>");
 
   color-scheme: dark;
 
@@ -152,9 +153,15 @@
   --text-muted: var(--subtext1);
   --text-dim: var(--subtext1);
 
-  --accent: #179299;
+  --accent: #8839ef;
+  /* Latte Mauve is drawn for surfaces: as text it reaches 4.09:1 on crust
+     and 4.45:1 on mantle. This is the same hue darkened until it clears
+     4.5:1 everywhere content sits (crust 4.63 / mantle 5.04 / base 5.42).
+     Charts, bars and the header mark keep --accent; anything read, or a
+     fill carrying text, or a focus ring, takes --accent-text. */
+  --accent-text: #7e28ee;
   --accent-contrast: var(--base);
-  --accent-soft: rgba(23, 146, 153, 0.18);
+  --accent-soft: rgba(136, 57, 239, 0.18);
   --accent-cyan: #04a5e5;
 
   --success: #40a02b;
@@ -163,9 +170,9 @@
   --error-soft: rgba(210, 15, 57, 0.1);
 
   /* Same ridgeline paths as Mocha, recoloured per the zen style guide
-     Nachtrag: teal moon at low light-mode opacity, hills back-to-front
+     Nachtrag: accent moon at low light-mode opacity, hills back-to-front
      from pale blue-grey to a slightly deeper opaque grey-blue. */
-  --wallpaper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' preserveAspectRatio='xMidYMax slice'><circle cx='1190' cy='300' r='110' fill='%23179299' opacity='0.06'/><circle cx='1190' cy='300' r='72' fill='%23179299' opacity='0.08'/><path d='M0 560 L140 480 L300 545 L470 430 L640 530 L820 455 L990 540 L1160 470 L1330 550 L1470 500 L1600 555 L1600 900 L0 900 Z' fill='%23d3d8e2' opacity='0.55'/><path d='M0 640 L180 560 L340 625 L520 540 L720 630 L900 560 L1090 645 L1280 575 L1440 640 L1600 590 L1600 900 L0 900 Z' fill='%23c9cfdc' opacity='0.8'/><path d='M0 730 L200 655 L380 715 L580 640 L790 725 L1000 660 L1210 730 L1420 670 L1600 720 L1600 900 L0 900 Z' fill='%23bfc6d4'/><path d='M0 810 L240 750 L460 800 L700 740 L950 805 L1200 750 L1430 800 L1600 765 L1600 900 L0 900 Z' fill='%23b0b7c7'/></svg>");
+  --wallpaper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' preserveAspectRatio='xMidYMax slice'><circle cx='1190' cy='300' r='110' fill='%238839ef' opacity='0.06'/><circle cx='1190' cy='300' r='72' fill='%238839ef' opacity='0.08'/><path d='M0 560 L140 480 L300 545 L470 430 L640 530 L820 455 L990 540 L1160 470 L1330 550 L1470 500 L1600 555 L1600 900 L0 900 Z' fill='%23d3d8e2' opacity='0.55'/><path d='M0 640 L180 560 L340 625 L520 540 L720 630 L900 560 L1090 645 L1280 575 L1440 640 L1600 590 L1600 900 L0 900 Z' fill='%23c9cfdc' opacity='0.8'/><path d='M0 730 L200 655 L380 715 L580 640 L790 725 L1000 660 L1210 730 L1420 670 L1600 720 L1600 900 L0 900 Z' fill='%23bfc6d4'/><path d='M0 810 L240 750 L460 800 L700 740 L950 805 L1200 750 L1430 800 L1600 765 L1600 900 L0 900 Z' fill='%23b0b7c7'/></svg>");
 
   color-scheme: light;
 
@@ -226,13 +233,13 @@ body::before {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
   border-radius: var(--r-xs);
 }
 
 ::selection {
-  background: var(--accent);
+  background: var(--accent-text);
   color: var(--accent-contrast);
 }
 
