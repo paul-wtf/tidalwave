@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -40,6 +41,9 @@ async def ingest_one_user(
             await session.flush()
             return "disconnected"
         log.exception("ingest failed for %s", user.lastfm_username)
+        return "error"
+    except httpx.HTTPError as e:
+        log.warning("ingest failed for %s: Last.fm unreachable (%s)", user.lastfm_username, e)
         return "error"
 
 

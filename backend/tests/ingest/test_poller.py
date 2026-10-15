@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+import httpx
 from sqlalchemy import select
 
 from tidalwave.auth.service import upsert_user_from_session
@@ -13,12 +14,12 @@ class FakeClient:
     """Fake Last.fm client for tests.
 
     ``by_user`` maps username -> RecentTracksPage to return on success.
-    ``errors`` maps username -> LastfmError to raise instead (optional).
+    ``errors`` maps username -> exception to raise instead (optional).
     """
 
     def __init__(self, by_user, errors=None):
         self.by_user = by_user
-        self.errors: dict[str, LastfmError] = errors or {}
+        self.errors: dict[str, Exception] = errors or {}
 
     async def get_recent_tracks(self, username, *, from_ts=None, page=1, limit=200, session_key=None):
         if username in self.errors:
@@ -149,3 +150,20 @@ async def test_ingest_one_user_logs_transient_error_with_traceback(db_session, c
     rec = next(r for r in caplog.records if r.name == "tidalwave.ingest.poller")
     assert rec.levelno == logging.ERROR
     assert rec.exc_info is not None  # traceback retained for unexpected errors
+
+
+async def test_poll_isolates_lastfm_being_unavailable(db_session):
+    await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_user_from_session(db_session, "boom", "sk", mode="open", allowlist=[])
+    request = httpx.Request("GET", "https://ws.audioscrobbler.com/2.0/")
+    unavailable = httpx.HTTPStatusError(
+        "503 Service Unavailable", request=request, response=httpx.Response(503, request=request)
+    )
+    client = FakeClient({"alice": _page(1000)}, errors={"boom": unavailable})
+
+    report = await poll_all_users(db_session, client)
+
+    assert report["alice"] == 1
+    assert report["boom"] == "error"
+    boom = (await db_session.execute(select(User).where(User.lastfm_username == "boom"))).scalar_one()
+    assert boom.disconnected is False
