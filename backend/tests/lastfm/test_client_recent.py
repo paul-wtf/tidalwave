@@ -89,3 +89,12 @@ async def test_recent_tracks_unsigned_when_no_session_key(client):
     params = dict(httpx.QueryParams(route.calls.last.request.url.query))
     assert "sk" not in params
     assert "api_sig" not in params
+
+
+@respx.mock
+async def test_unavailable_with_html_body_raises_http_status_error(client):
+    respx.get("https://ws.audioscrobbler.com/2.0/").respond(
+        503, text="<html><body>Service Unavailable</body></html>"
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        await client.get_recent_tracks("alice", session_key="SK", page=1)

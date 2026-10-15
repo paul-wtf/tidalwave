@@ -38,7 +38,11 @@ class LastfmClient:
         if signed:
             q["api_sig"] = sign({**params, "api_key": self._key}, secret=self._secret)
         resp = await self._http.get(_API, params=q)
-        data = resp.json()
+        try:
+            data = resp.json()
+        except ValueError:
+            resp.raise_for_status()
+            raise
         if "error" in data:
             raise LastfmError(int(data["error"]), data.get("message", ""))
         resp.raise_for_status()
