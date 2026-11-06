@@ -104,3 +104,118 @@ async def test_shared_paths_unchanged(api, db_session):
     for path in ("top-artists", "top-tracks", "top-albums", "clock", "weekday", "history",
                  "metrics-over-time", "recent", "summary"):
         assert (await client.get(f"/shared/{token}/{path}")).status_code == 200, path
+
+
+async def test_create_share_with_label_and_range(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    resp = await client.post(
+        "/shares",
+        headers=_auth_header(user.id),
+        json={
+            "label": "Summer",
+            "range_from": "2026-06-01T00:00:00Z",
+            "range_to": "2026-09-01T00:00:00Z",
+        },
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["label"] == "Summer"
+    assert body["range_from"].startswith("2026-06-01T00:00:00")
+    assert body["range_to"].startswith("2026-09-01T00:00:00")
+    assert body["created_at"]
+    assert len(body["share_token"]) > 20
+
+
+async def test_create_share_from_local_dates_uses_owner_timezone(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    user.timezone = "Europe/Berlin"
+    await db_session.flush()
+    resp = await client.post(
+        "/shares",
+        headers=_auth_header(user.id),
+        json={"start": "2026-10-01", "end": "2026-11-01"},
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert datetime.fromisoformat(body["range_from"]) == datetime(2026, 9, 30, 22, tzinfo=UTC)
+    assert datetime.fromisoformat(body["range_to"]) == datetime(2026, 10, 31, 23, tzinfo=UTC)
+
+
+async def test_create_share_start_without_end_freezes_end_at_now(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    before = datetime.now(UTC)
+    resp = await client.post(
+        "/shares", headers=_auth_header(user.id), json={"start": "2026-01-01"}
+    )
+    assert resp.status_code == 201
+    end = datetime.fromisoformat(resp.json()["range_to"])
+    assert before <= end <= datetime.now(UTC)
+
+
+async def test_create_share_without_body_still_works(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    resp = await client.post("/shares", headers=_auth_header(user.id))
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["label"] is None
+    assert body["range_from"] is None
+    assert body["range_to"] is None
+    assert body["share_token"]
+
+
+async def test_create_share_rejects_inverted_range(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    for payload in (
+        {"range_from": "2026-02-01T00:00:00Z", "range_to": "2026-01-01T00:00:00Z"},
+        {"range_from": "2026-02-01T00:00:00Z", "range_to": "2026-02-01T00:00:00Z"},
+        {"start": "2026-02-01", "end": "2026-01-01"},
+    ):
+        resp = await client.post("/shares", headers=_auth_header(user.id), json=payload)
+        assert resp.status_code == 422, payload
+
+
+async def test_create_share_rejects_mixed_forms(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    resp = await client.post(
+        "/shares",
+        headers=_auth_header(user.id),
+        json={"range_from": "2026-01-01T00:00:00Z", "start": "2026-01-01"},
+    )
+    assert resp.status_code == 422
+
+
+async def test_list_shares_excludes_revoked_and_other_users(api, db_session):
+    client, app = api
+    alice = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    bob = await upsert_user_from_session(db_session, "bob", "sk2", mode="open", allowlist=[])
+    first = (await client.post(
+        "/shares", headers=_auth_header(alice.id), json={"label": "first"}
+    )).json()
+    second = (await client.post(
+        "/shares", headers=_auth_header(alice.id), json={"label": "second"}
+    )).json()
+    revoked = (await client.post(
+        "/shares", headers=_auth_header(alice.id), json={"label": "gone"}
+    )).json()
+    await client.delete(f"/shares/{revoked['share_token']}", headers=_auth_header(alice.id))
+    await client.post("/shares", headers=_auth_header(bob.id), json={"label": "bobs"})
+
+    resp = await client.get("/shares", headers=_auth_header(alice.id))
+    assert resp.status_code == 200
+    assert [s["share_token"] for s in resp.json()] == [
+        second["share_token"], first["share_token"],
+    ]
+    assert set(resp.json()[0]) == {
+        "share_token", "label", "range_from", "range_to", "created_at",
+    }
+
+
+async def test_list_shares_requires_login(api):
+    client, app = api
+    assert (await client.get("/shares")).status_code == 401
