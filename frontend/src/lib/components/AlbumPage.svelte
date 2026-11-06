@@ -6,7 +6,7 @@
   import { auth } from '$lib/stores/auth';
   import { loadDetail } from '$lib/detailLoader';
   import { rangeQuery } from '$lib/stores/range';
-  import { formatCount, formatDuration, formatLocalDate } from '$lib/format';
+  import { formatCount, durationStat, formatLongDate } from '$lib/format';
   import { artistHref } from '$lib/links';
   import { trackItems, type ListItem } from '$lib/listItems';
   import DetailHeader from './DetailHeader.svelte';
@@ -18,7 +18,7 @@
   const base = $derived(token ? `/s/${token}` : '');
   const artistName = $derived($page.url.searchParams.get('artist') ?? '');
   const albumName = $derived($page.url.searchParams.get('album') ?? '');
-  const tz = $derived(token ? 'UTC' : ($auth.user?.timezone ?? 'UTC'));
+  const tz = $derived(token ? null : ($auth.user?.timezone ?? 'UTC'));
 
   let detail = $state<AlbumDetail | null>(null);
   let metrics = $state<MetricPoint[]>([]);
@@ -61,16 +61,16 @@
 {:else if error}
   <p class="msg">Could not load this page. Please try again.</p>
 {:else if detail}
-  <div class="page">
+  <div class="dashboard">
     <DetailHeader
       title={detail.album}
       query={`${detail.artist} ${detail.album}`}
       image={detail.image_url}
       stats={[
         { label: 'Listens', value: formatCount(detail.listens) },
-        { label: 'Time listened', value: formatDuration(detail.seconds) },
-        { label: 'First listen', value: formatLocalDate(detail.first_listen, tz) },
-        { label: 'Last listen', value: formatLocalDate(detail.last_listen, tz) }
+        { label: 'Time listened', ...durationStat(detail.listens, detail.seconds) },
+        { label: 'First listen', value: formatLongDate(detail.first_listen, tz), compact: true },
+        { label: 'Last listen', value: formatLongDate(detail.last_listen, tz), compact: true }
       ]}
     >
       {#snippet links()}
@@ -83,11 +83,6 @@
 {/if}
 
 <style>
-  .page {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
   .msg {
     max-width: 1180px;
     margin: 0 auto;

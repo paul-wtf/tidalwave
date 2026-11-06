@@ -2,7 +2,7 @@
   import type { Records } from '$lib/api/client';
   import { formatCount, formatDuration, formatLocalDate } from '$lib/format';
 
-  let { records, tz = 'UTC' }: { records: Records; tz?: string } = $props();
+  let { records, tz = 'UTC' }: { records: Records; tz?: string | null } = $props();
 
   const days = (n: number) => `${formatCount(n)} ${n === 1 ? 'day' : 'days'}`;
   const listens = (n: number) => `${formatCount(n)} ${n === 1 ? 'listen' : 'listens'}`;
@@ -17,7 +17,9 @@
       out.push({
         label: 'Longest session',
         value: listens(se.listens),
-        detail: `${formatLocalDate(se.start, tz)}, ${formatDuration(se.seconds)}`
+        detail: se.seconds > 0
+          ? `${formatLocalDate(se.start, tz)}, ${formatDuration(se.seconds)}`
+          : formatLocalDate(se.start, tz)
       });
     }
     return out;

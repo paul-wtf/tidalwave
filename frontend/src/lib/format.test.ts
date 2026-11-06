@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { weekdayName, formatRelative, formatLocalDate } from './format';
+import { weekdayName, formatRelative, formatLocalDate, formatLongDate, formatDateTime } from './format';
 
 describe('weekdayName', () => {
   it('maps index 0 to Monday and 6 to Sunday', () => {
@@ -39,5 +39,22 @@ describe('formatLocalDate', () => {
   });
   it('rolls back in a zone behind UTC', () => {
     expect(formatLocalDate('2026-11-06T02:00:00Z', 'America/New_York')).toBe('2026-11-05');
+  });
+});
+
+describe('owner wall time', () => {
+  const berlin = '2024-11-08T00:30:00+01:00';
+  it('takes the date from the string when no timezone is given', () => {
+    expect(formatLocalDate(berlin, null)).toBe('2024-11-08');
+    expect(formatLongDate(berlin, null)).toBe('8 Nov 2024');
+  });
+  it('formats a human date in the given timezone', () => {
+    expect(formatLongDate('2024-11-07T23:30:00Z', 'UTC')).toBe('7 Nov 2024');
+    expect(formatLongDate('2024-11-07T23:30:00Z', 'Europe/Berlin')).toBe('8 Nov 2024');
+  });
+  it('formats date and time in the given timezone, or from the wall time', () => {
+    expect(formatDateTime('2024-11-07T23:30:00Z', 'Europe/Berlin')).toMatch(/8 Nov.*00:30|Nov 8.*(12:30 AM|00:30)/);
+    expect(formatDateTime('2024-11-07T23:30:00Z', 'UTC')).toMatch(/7 Nov.*23:30|Nov 7.*(11:30 PM|23:30)/);
+    expect(formatDateTime(berlin, null)).toMatch(/8 Nov.*00:30|Nov 8.*(12:30 AM|00:30)/);
   });
 });

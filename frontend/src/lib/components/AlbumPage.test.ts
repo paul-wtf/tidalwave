@@ -39,8 +39,8 @@ describe('AlbumPage', () => {
     await waitFor(() => expect(heading()).toHaveTextContent('Discovery'));
     expect(screen.getByText('1,234')).toBeInTheDocument();
     expect(screen.getByText('2h 0m')).toBeInTheDocument();
-    expect(screen.getByText('2019-03-01')).toBeInTheDocument();
-    expect(screen.getByText('2026-11-06')).toBeInTheDocument();
+    expect(screen.getByText('1 Mar 2019')).toBeInTheDocument();
+    expect(screen.getByText('6 Nov 2026')).toBeInTheDocument();
   });
 
   it('lists its tracks and links to the artist', async () => {
@@ -49,6 +49,31 @@ describe('AlbumPage', () => {
     await waitFor(() => expect(section('Tracks').getByText('Aerodynamic — Daft Punk')).toBeInTheDocument());
     expect(calls.some((c) => c.startsWith('/stats/top-tracks?') && c.includes('album=Discovery'))).toBe(true);
     expect(screen.getByRole('link', { name: 'Daft Punk' })).toHaveAttribute('href', '/artist?artist=Daft+Punk');
+  });
+
+  it('shows a dash while durations resolve', async () => {
+    mockApi({ ...routes('/stats'), '/stats/album': { ...detail('Discovery'), seconds: 0 } });
+    render(AlbumPage);
+    await waitFor(() => expect(heading()).toBeInTheDocument());
+    expect(screen.queryByText('0s')).toBeNull();
+    expect(screen.getByText('resolving durations…')).toBeInTheDocument();
+  });
+
+  it('shows the owner\'s local date in share mode', async () => {
+    mockApi({
+      ...routes('/shared/tok'),
+      '/shared/tok/album': { ...detail('Discovery'), first_listen: '2024-11-08T00:30:00+01:00', last_listen: '2024-11-08T00:30:00+01:00' }
+    });
+    render(AlbumPage, { token: 'tok' });
+    await waitFor(() => expect(heading()).toBeInTheDocument());
+    expect(screen.getAllByText('8 Nov 2024')).toHaveLength(2);
+  });
+
+  it('uses the dashboard container', async () => {
+    mockApi(routes('/stats'));
+    const { container } = render(AlbumPage);
+    await waitFor(() => expect(heading()).toBeInTheDocument());
+    expect(container.querySelector('.dashboard')).not.toBeNull();
   });
 
   it('shows the not-found text on 404', async () => {

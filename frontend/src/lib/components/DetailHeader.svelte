@@ -8,7 +8,7 @@
     title: string;
     query: string;
     image: string | null | undefined;
-    stats: { label: string; value: string }[];
+    stats: { label: string; value: string; sub?: string; compact?: boolean }[];
     links?: Snippet;
   } = $props();
 </script>
@@ -24,7 +24,7 @@
   </div>
   <div class="stats">
     {#each stats as s (s.label)}
-      <StatCard label={s.label} value={s.value} />
+      <StatCard label={s.label} value={s.value} sub={s.sub} compact={s.compact} />
     {/each}
   </div>
 </header>
@@ -62,9 +62,9 @@
   .links :global(a:hover) {
     color: var(--accent-text);
   }
-  .stats {
+  .head .stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
     gap: 1rem;
   }
 </style>

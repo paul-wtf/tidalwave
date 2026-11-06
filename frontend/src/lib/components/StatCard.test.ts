@@ -37,3 +37,14 @@ describe('StatCard delta', () => {
     expect(screen.queryByText(/vs\. previous/)).toBeNull();
   });
 });
+
+describe('StatCard compact', () => {
+  it('marks text values as compact', () => {
+    render(StatCard, { label: 'First listen', value: '7 Nov 2024', compact: true });
+    expect(screen.getByText('7 Nov 2024')).toHaveClass('compact');
+  });
+  it('is not compact by default', () => {
+    render(StatCard, { label: 'Songs', value: '10' });
+    expect(screen.getByText('10')).not.toHaveClass('compact');
+  });
+});

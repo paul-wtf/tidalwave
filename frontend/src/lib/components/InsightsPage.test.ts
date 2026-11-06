@@ -39,12 +39,20 @@ describe('InsightsPage', () => {
     }
   });
 
-  it('hides discoveries and skips the request for all time', async () => {
+  it('uses the dashboard container', async () => {
+    mockApi(routes('/stats'));
+    const { container } = render(InsightsPage);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Discoveries' })).toBeInTheDocument());
+    expect(container.querySelector('.dashboard')).not.toBeNull();
+  });
+
+  it('asks for a range instead of discoveries and skips the request for all time', async () => {
     range.set({ kind: 'rolling', key: 'all' });
     const { calls } = mockApi(routes('/stats'));
     render(InsightsPage);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Listening heatmap' })).toBeInTheDocument());
-    expect(screen.queryByRole('heading', { name: 'Discoveries' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Discoveries' })).toBeInTheDocument();
+    expect(screen.getByText('Pick a range to see discoveries.')).toBeInTheDocument();
     expect(calls.some((c) => c.includes('discoveries'))).toBe(false);
   });
 

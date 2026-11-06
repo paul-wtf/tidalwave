@@ -15,7 +15,7 @@
   let { token }: { token?: string } = $props();
 
   const base = $derived(token ? `/s/${token}` : '');
-  const tz = $derived(token ? 'UTC' : ($auth.user?.timezone ?? 'UTC'));
+  const tz = $derived(token ? null : ($auth.user?.timezone ?? 'UTC'));
   const allTime = $derived(!token && $range.kind === 'rolling' && $range.key === 'all');
 
   let onThisDay = $state<OnThisDayYear[]>([]);
@@ -48,21 +48,33 @@
 {#if error}
   <p class="msg">Could not load this page. Please try again.</p>
 {:else if records && heatmap}
-  <div class="page">
+  <div class="dashboard">
     <OnThisDay years={onThisDay} {base} />
     <Records {records} {tz} />
     <Heatmap {heatmap} />
-    {#if discoveries}
+    {#if allTime}
+      <section class="glass">
+        <h2>Discoveries</h2>
+        <p class="empty">Pick a range to see discoveries.</p>
+      </section>
+    {:else if discoveries}
       <Discoveries {discoveries} {base} {tz} />
     {/if}
   </div>
 {/if}
 
 <style>
-  .page {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+  section {
+    padding: 1.4rem 1.5rem;
+  }
+  h2 {
+    font-size: 1.35rem;
+    color: var(--text);
+    margin: 0 0 1rem;
+  }
+  .empty {
+    color: var(--text-dim);
+    margin: 0;
   }
   .msg {
     max-width: 1180px;

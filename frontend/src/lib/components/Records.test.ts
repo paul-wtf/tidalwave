@@ -39,6 +39,22 @@ describe('Records', () => {
     expect(screen.getByText('2026-10-06, 10m')).toBeInTheDocument();
   });
 
+  it('omits the duration while it is unknown', () => {
+    render(Records, {
+      records: { ...empty, longest_session: { start: '2026-10-05T10:00:00Z', listens: 5, seconds: 0 } }
+    });
+    expect(screen.getByText('2026-10-05')).toBeInTheDocument();
+    expect(screen.queryByText(/0s/)).toBeNull();
+  });
+
+  it('takes the session day from the owner wall time when no timezone is given', () => {
+    render(Records, {
+      records: { ...empty, longest_session: { start: '2026-10-06T00:30:00+02:00', listens: 5, seconds: 600 } },
+      tz: null
+    });
+    expect(screen.getByText('2026-10-06, 10m')).toBeInTheDocument();
+  });
+
   it('shows the empty state when nothing is recorded', () => {
     render(Records, { records: empty });
     expect(screen.getByText('No records in this range yet.')).toBeInTheDocument();

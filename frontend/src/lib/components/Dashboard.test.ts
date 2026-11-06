@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
 import Dashboard from './Dashboard.svelte';
 import { mockApi } from '$lib/test/mockApi';
+import { auth } from '$lib/stores/auth';
 
 describe('Dashboard', () => {
   it('loads and renders the headline stats and top lists', async () => {
@@ -106,6 +107,24 @@ describe('Dashboard', () => {
     render(Dashboard, { token: 'tok' });
     const link = await screen.findByRole('link', { name: 'Daft Punk' });
     expect(link.getAttribute('href')!.startsWith('/s/tok/artist?')).toBe(true);
-    expect(screen.getByText('Unknown album — Daft Punk').closest('a')).toBeNull();
+    expect(screen.getByText('Unknown album — Daft Punk').closest('a')).toHaveAttribute(
+      'href', '/s/tok/artist?artist=Daft+Punk');
+  });
+
+  it("labels the clock with the user's timezone, and with local time in share mode", async () => {
+    auth.set({
+      user: { username: 'p', is_admin: false, timezone: 'Europe/Berlin', disconnected: false, last_synced_at: null, last_played_at: null },
+      loading: false
+    });
+    const summary = { total_listens: 1, distinct_artists: 1, distinct_tracks: 1, distinct_albums: 1, total_seconds: 60 };
+    mockApi({ ...rest, '/stats/summary': summary, '/shared/tok/summary': summary,
+      '/shared/tok/metrics-over-time': [], '/shared/tok/top-artists': [], '/shared/tok/top-tracks': [],
+      '/shared/tok/top-albums': [], '/shared/tok/clock': new Array(24).fill(0),
+      '/shared/tok/weekday': new Array(7).fill(0), '/shared/tok/recent': [] });
+    const own = render(Dashboard);
+    await waitFor(() => expect(screen.getByText('By hour (Europe/Berlin)')).toBeInTheDocument());
+    own.unmount();
+    render(Dashboard, { token: 'tok' });
+    await waitFor(() => expect(screen.getByText('By hour (local time)')).toBeInTheDocument());
   });
 });

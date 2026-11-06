@@ -7,7 +7,7 @@
   import { auth } from '$lib/stores/auth';
   import { loadDetail } from '$lib/detailLoader';
   import { rangeQuery } from '$lib/stores/range';
-  import { formatCount, formatDuration, formatLocalDate } from '$lib/format';
+  import { formatCount, durationStat, formatLongDate } from '$lib/format';
   import { artistHref, albumHref } from '$lib/links';
   import DetailHeader from './DetailHeader.svelte';
   import AreaTrend from './AreaTrend.svelte';
@@ -18,7 +18,7 @@
   const base = $derived(token ? `/s/${token}` : '');
   const artistName = $derived($page.url.searchParams.get('artist') ?? '');
   const trackName = $derived($page.url.searchParams.get('track') ?? '');
-  const tz = $derived(token ? 'UTC' : ($auth.user?.timezone ?? 'UTC'));
+  const tz = $derived(token ? null : ($auth.user?.timezone ?? 'UTC'));
 
   let detail = $state<TrackDetail | null>(null);
   let metrics = $state<MetricPoint[]>([]);
@@ -60,16 +60,16 @@
 {:else if error}
   <p class="msg">Could not load this page. Please try again.</p>
 {:else if detail}
-  <div class="page">
+  <div class="dashboard">
     <DetailHeader
       title={detail.track}
       query={`${detail.artist} ${detail.track}`}
       image={detail.image_url}
       stats={[
         { label: 'Listens', value: formatCount(detail.listens) },
-        { label: 'Time listened', value: formatDuration(detail.seconds) },
-        { label: 'First listen', value: formatLocalDate(detail.first_listen, tz) },
-        { label: 'Last listen', value: formatLocalDate(detail.last_listen, tz) }
+        { label: 'Time listened', ...durationStat(detail.listens, detail.seconds) },
+        { label: 'First listen', value: formatLongDate(detail.first_listen, tz), compact: true },
+        { label: 'Last listen', value: formatLongDate(detail.last_listen, tz), compact: true }
       ]}
     >
       {#snippet links()}
@@ -80,16 +80,11 @@
       {/snippet}
     </DetailHeader>
     <AreaTrend title="Listens over time" points={trend} />
-    <RecentList items={recent} {base} />
+    <RecentList items={recent} {base} {tz} />
   </div>
 {/if}
 
 <style>
-  .page {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
   .msg {
     max-width: 1180px;
     margin: 0 auto;

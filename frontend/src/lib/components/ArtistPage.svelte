@@ -7,7 +7,7 @@
   import { auth } from '$lib/stores/auth';
   import { loadDetail } from '$lib/detailLoader';
   import { rangeQuery } from '$lib/stores/range';
-  import { formatCount, formatDuration, formatLocalDate } from '$lib/format';
+  import { formatCount, durationStat, formatLongDate } from '$lib/format';
   import { trackItems, albumItems, type ListItem } from '$lib/listItems';
   import DetailHeader from './DetailHeader.svelte';
   import AreaTrend from './AreaTrend.svelte';
@@ -18,7 +18,7 @@
 
   const base = $derived(token ? `/s/${token}` : '');
   const name = $derived($page.url.searchParams.get('artist') ?? '');
-  const tz = $derived(token ? 'UTC' : ($auth.user?.timezone ?? 'UTC'));
+  const tz = $derived(token ? null : ($auth.user?.timezone ?? 'UTC'));
 
   let detail = $state<ArtistDetail | null>(null);
   let metrics = $state<MetricPoint[]>([]);
@@ -65,39 +65,29 @@
 {:else if error}
   <p class="msg">Could not load this page. Please try again.</p>
 {:else if detail}
-  <div class="page">
+  <div class="dashboard">
     <DetailHeader
       title={detail.artist}
       query={detail.artist}
       image={detail.image_url}
       stats={[
         { label: 'Listens', value: formatCount(detail.listens) },
-        { label: 'Time listened', value: formatDuration(detail.seconds) },
+        { label: 'Time listened', ...durationStat(detail.listens, detail.seconds) },
         { label: 'Rank', value: detail.rank == null ? '–' : `#${formatCount(detail.rank)}` },
-        { label: 'First listen', value: formatLocalDate(detail.first_listen, tz) },
-        { label: 'Last listen', value: formatLocalDate(detail.last_listen, tz) }
+        { label: 'First listen', value: formatLongDate(detail.first_listen, tz), compact: true },
+        { label: 'Last listen', value: formatLongDate(detail.last_listen, tz), compact: true }
       ]}
     />
     <AreaTrend title="Listens over time" points={trend} />
-    <div class="row">
+    <div class="row charts">
       <TopList title="Top Tracks" items={tracks} />
       <TopList title="Top Albums" items={albums} covers={true} />
     </div>
-    <RecentList items={recent} {base} />
+    <RecentList items={recent} {base} {tz} />
   </div>
 {/if}
 
 <style>
-  .page {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-  .row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
-    gap: 1.5rem;
-  }
   .msg {
     max-width: 1180px;
     margin: 0 auto;

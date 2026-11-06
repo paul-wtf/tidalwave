@@ -3,7 +3,8 @@
   import type { RecentItem } from '$lib/api/client';
   import { artistHref, trackHref } from '$lib/links';
   import Cover from './Cover.svelte';
-  let { items, initial = 6, base = '' }: { items: RecentItem[]; initial?: number; base?: string } = $props();
+  let { items, initial = 6, base = '', tz = 'UTC' }:
+    { items: RecentItem[]; initial?: number; base?: string; tz?: string | null } = $props();
 
   let expanded = $state(false);
   const visible = $derived(expanded ? items : items.slice(0, initial));
@@ -20,7 +21,7 @@
           <span class="cover"><Cover src={item.image_url} alt="" size={40} /></span>
           <a class="track" href={trackHref(base, item.artist, item.track)}>{item.track}</a>
           <a class="artist" href={artistHref(base, item.artist)}>{item.artist}</a>
-          <time>{formatDateTime(item.played_at)}</time>
+          <time>{formatDateTime(item.played_at, tz)}</time>
         </li>
       {/each}
     </ul>

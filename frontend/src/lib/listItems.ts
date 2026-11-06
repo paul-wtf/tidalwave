@@ -24,7 +24,7 @@ export const trackItems = (rows: TrackCount[], base: string): ListItem[] =>
 export const albumItems = (rows: AlbumCount[], base: string): ListItem[] =>
   rows.map((r) => ({
     label: `${r.album ?? 'Unknown album'} — ${r.artist}`, count: r.count,
-    query: r.album ?? undefined,
-    href: r.album == null ? undefined : albumHref(base, r.artist, r.album),
+    query: r.album ?? r.artist,
+    href: r.album == null ? artistHref(base, r.artist) : albumHref(base, r.artist, r.album),
     image: r.image_url
   }));

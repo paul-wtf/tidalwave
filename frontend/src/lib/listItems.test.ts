@@ -2,11 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { artistItems, trackItems, albumItems } from './listItems';
 
 describe('listItems', () => {
-  it('gives an album without a title no link', () => {
+  it('links an album without a title to its artist', () => {
     const [item] = albumItems([{ album: null, artist: 'Daft Punk', count: 3, image_url: null }], '');
     expect(item.label).toBe('Unknown album — Daft Punk');
-    expect(item.href).toBeUndefined();
-    expect(item.query).toBeUndefined();
+    expect(item.href).toBe('/artist?artist=Daft+Punk');
+    expect(item.query).toBe('Daft Punk');
+  });
+
+  it('keeps the share prefix on the artist link of an unknown album', () => {
+    const [item] = albumItems([{ album: null, artist: 'AC/DC', count: 1, image_url: null }], '/s/tok');
+    expect(item.href).toBe('/s/tok/artist?artist=AC%2FDC');
   });
 
   it('links named albums with artist and album', () => {

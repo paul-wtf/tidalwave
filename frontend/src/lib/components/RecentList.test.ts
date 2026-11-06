@@ -25,3 +25,15 @@ describe('RecentList links', () => {
     expect(container.querySelector('img')).toHaveAttribute('src', 'https://img/o.png');
   });
 });
+
+describe('RecentList time zone', () => {
+  const item = { track: 'Nightcall', artist: 'Kavinsky', album: 'OutRun', played_at: '2024-11-07T23:30:00Z' };
+  it('formats the time in the given timezone', () => {
+    render(RecentList, { props: { items: [item], tz: 'Europe/Berlin' } });
+    expect(document.querySelector('time')!.textContent).toMatch(/8 Nov.*00:30|Nov 8.*(12:30 AM|00:30)/);
+  });
+  it('shows the wall time of the string when no timezone is given', () => {
+    render(RecentList, { props: { items: [{ ...item, played_at: '2024-11-08T00:30:00+01:00' }], tz: null } });
+    expect(document.querySelector('time')!.textContent).toMatch(/8 Nov.*00:30|Nov 8.*(12:30 AM|00:30)/);
+  });
+});

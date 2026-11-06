@@ -39,8 +39,8 @@ describe('TrackPage', () => {
     await waitFor(() => expect(heading()).toHaveTextContent('Aerodynamic'));
     expect(screen.getByText('1,234')).toBeInTheDocument();
     expect(screen.getByText('2h 0m')).toBeInTheDocument();
-    expect(screen.getByText('2019-03-01')).toBeInTheDocument();
-    expect(screen.getByText('2026-11-06')).toBeInTheDocument();
+    expect(screen.getByText('1 Mar 2019')).toBeInTheDocument();
+    expect(screen.getByText('6 Nov 2026')).toBeInTheDocument();
   });
 
   it('shows recent plays and links to the artist and album', async () => {
@@ -51,6 +51,31 @@ describe('TrackPage', () => {
       'href', '/artist?artist=Daft+Punk');
     expect(within(heading().closest('header')!).getByRole('link', { name: 'Discovery' })).toHaveAttribute(
       'href', '/album?artist=Daft+Punk&album=Discovery');
+  });
+
+  it('shows a dash while durations resolve', async () => {
+    mockApi({ ...routes('/stats'), '/stats/track': { ...detail('Aerodynamic'), seconds: 0 } });
+    render(TrackPage);
+    await waitFor(() => expect(heading()).toBeInTheDocument());
+    expect(screen.queryByText('0s')).toBeNull();
+    expect(screen.getByText('resolving durations…')).toBeInTheDocument();
+  });
+
+  it('shows the owner\'s local date in share mode', async () => {
+    mockApi({
+      ...routes('/shared/tok'),
+      '/shared/tok/track': { ...detail('Aerodynamic'), first_listen: '2024-11-08T00:30:00+01:00', last_listen: '2024-11-08T00:30:00+01:00' }
+    });
+    render(TrackPage, { token: 'tok' });
+    await waitFor(() => expect(heading()).toBeInTheDocument());
+    expect(screen.getAllByText('8 Nov 2024')).toHaveLength(2);
+  });
+
+  it('uses the dashboard container', async () => {
+    mockApi(routes('/stats'));
+    const { container } = render(TrackPage);
+    await waitFor(() => expect(heading()).toBeInTheDocument());
+    expect(container.querySelector('.dashboard')).not.toBeNull();
   });
 
   it('shows the not-found text on 404', async () => {

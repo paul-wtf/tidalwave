@@ -4,7 +4,7 @@
     type Summary, type MetricPoint, type RecentItem,
     type ArtistCount, type TrackCount, type AlbumCount
   } from '$lib/api/client';
-  import { loadMe } from '$lib/stores/auth';
+  import { auth, loadMe } from '$lib/stores/auth';
   import { rangeQuery } from '$lib/stores/range';
   import { formatCount, formatDuration } from '$lib/format';
   import { artistItems, trackItems, albumItems, type ListItem } from '$lib/listItems';
@@ -35,6 +35,7 @@
   let error = $state(false);
 
   const base = $derived(token ? `/s/${token}` : '');
+  const tz = $derived(token ? null : ($auth.user?.timezone ?? 'UTC'));
 
   function apply(
     s: Summary, m: MetricPoint[], ar: ArtistCount[], tr: TrackCount[], al: AlbumCount[],
@@ -104,7 +105,7 @@
       <AreaTrend title="Artists over time" points={artistsTrend} />
     </div>
     <div class="row charts">
-      <ListeningClock {hours} />
+      <ListeningClock {hours} {tz} />
       <WeekdayChart {days} />
     </div>
     <div class="row tops">
@@ -112,7 +113,7 @@
       <TopList title="Top Tracks" items={tracks} href="{base}/tracks" />
       <TopList title="Top Albums" items={albums} href="{base}/albums" covers={true} />
     </div>
-    <RecentList items={recent} {base} />
+    <RecentList items={recent} {base} {tz} />
   </div>
 {/if}
 

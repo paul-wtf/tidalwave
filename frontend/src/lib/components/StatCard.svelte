@@ -1,6 +1,6 @@
 <script lang="ts">
-  let { label, value, sub, delta }:
-    { label: string; value: string; sub?: string; delta?: number | null } = $props();
+  let { label, value, sub, delta, compact = false }:
+    { label: string; value: string; sub?: string; delta?: number | null; compact?: boolean } = $props();
 
   const pct = $derived(delta == null ? null : Math.round(delta * 100));
   const dir = $derived(pct == null ? null : pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat');
@@ -16,7 +16,7 @@
 </script>
 
 <div class="stat glass">
-  <span class="value">{value}</span>
+  <span class="value" class:compact>{value}</span>
   <span class="label">{label}</span>
   {#if dir}<span class="delta {dir}" aria-label={aria}>{text} vs. previous</span>{/if}
   {#if sub}<span class="sub">{sub}</span>{/if}
@@ -37,6 +37,11 @@
     letter-spacing: -0.02em;
     color: var(--text);
     font-variant-numeric: tabular-nums;
+  }
+  .value.compact {
+    font-size: clamp(1.15rem, 2.4vw, 1.4rem);
+    line-height: 1.2;
+    white-space: nowrap;
   }
   .label {
     font-family: var(--font-mono);

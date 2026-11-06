@@ -39,8 +39,8 @@ describe('ArtistPage', () => {
     await waitFor(() => expect(heading()).toHaveTextContent('Daft Punk'));
     expect(screen.getByText('1,234')).toBeInTheDocument();
     expect(screen.getByText('2h 0m')).toBeInTheDocument();
-    expect(screen.getByText('2019-03-01')).toBeInTheDocument();
-    expect(screen.getByText('2026-11-06')).toBeInTheDocument();
+    expect(screen.getByText('1 Mar 2019')).toBeInTheDocument();
+    expect(screen.getByText('6 Nov 2026')).toBeInTheDocument();
   });
 
   it('lists top tracks, top albums and recent plays in their sections', async () => {
@@ -52,6 +52,31 @@ describe('ArtistPage', () => {
     expect(section('Recent').getByText('One More Time')).toBeInTheDocument();
     expect(section('Top Tracks').getByRole('link', { name: 'Aerodynamic — Daft Punk' })).toHaveAttribute(
       'href', '/track?artist=Daft+Punk&track=Aerodynamic');
+  });
+
+  it('shows a dash while durations resolve', async () => {
+    mockApi({ ...routes('/stats'), '/stats/artist': { ...detail('Daft Punk'), seconds: 0 } });
+    render(ArtistPage);
+    await waitFor(() => expect(heading()).toHaveTextContent('Daft Punk'));
+    expect(screen.queryByText('0s')).toBeNull();
+    expect(screen.getByText('resolving durations…')).toBeInTheDocument();
+  });
+
+  it('shows the owner\'s local date in share mode', async () => {
+    mockApi({
+      ...routes('/shared/tok'),
+      '/shared/tok/artist': { ...detail('Daft Punk'), first_listen: '2024-11-08T00:30:00+01:00', last_listen: '2024-11-08T00:30:00+01:00' }
+    });
+    render(ArtistPage, { token: 'tok' });
+    await waitFor(() => expect(heading()).toHaveTextContent('Daft Punk'));
+    expect(screen.getAllByText('8 Nov 2024')).toHaveLength(2);
+  });
+
+  it('uses the dashboard container', async () => {
+    mockApi(routes('/stats'));
+    const { container } = render(ArtistPage);
+    await waitFor(() => expect(heading()).toBeInTheDocument());
+    expect(container.querySelector('.dashboard')).not.toBeNull();
   });
 
   it('shows the not-found text on 404', async () => {
