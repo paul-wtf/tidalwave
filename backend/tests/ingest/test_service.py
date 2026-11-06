@@ -56,3 +56,16 @@ async def test_ingest_uses_from_ts_after_first_run(db_session):
     await ingest_user(db_session, client2, user)
     # second run should request from just after the last stored timestamp (1000 + 1)
     assert client2.calls[0][1] == 1001
+
+
+async def test_ingest_without_new_scrobbles_still_marks_synced(db_session):
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    client = FakeClient({1: RecentTracksPage((), page=1, total_pages=1)})
+
+    inserted = await ingest_user(db_session, client, user)
+
+    assert inserted == 0
+    state = await get_sync_state(db_session, user.id)
+    assert state is not None
+    assert state.last_synced_at is not None
+    assert state.last_played_at is None

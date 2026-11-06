@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { api, ApiError, type MetricPoint } from '$lib/api/client';
+  import { statsApi, ApiError, type MetricPoint } from '$lib/api/client';
   import { loadMe } from '$lib/stores/auth';
-  import { range, sinceFor, bucketFor } from '$lib/stores/range';
+  import { rangeQuery } from '$lib/stores/range';
+  import { artistItems, trackItems, albumItems, type ListItem } from '$lib/listItems';
   import TopList from './TopList.svelte';
   import AreaTrend from './AreaTrend.svelte';
 
@@ -12,38 +13,29 @@
   const TITLES = { artists: 'Top Artists', tracks: 'Top Tracks', albums: 'Top Albums' };
   const TRENDS = { artists: 'Artists over time', tracks: 'Listens over time', albums: 'Albums over time' };
 
-  let items = $state<{ label: string; count: number; query?: string }[]>([]);
+  let items = $state<ListItem[]>([]);
+  const base = $derived(token ? `/s/${token}` : '');
   let metrics = $state<MetricPoint[]>([]);
   let error = $state(false);
 
   $effect(() => {
     const shared = token != null;
-    const params = shared ? undefined : { since: sinceFor($range) };
-    const bucket = shared ? 'day' : bucketFor($range);
+    const client = statsApi(token);
+    const q = shared ? undefined : $rangeQuery;
+    const params = q?.params;
+    const bucket = q?.bucket ?? 'day';
     const k = kind;
     (async () => {
       try {
-        if (token != null) {
-          const metricsPromise = api.shared.metricsOverTime(token, bucket);
-          if (k === 'artists') {
-            items = (await api.shared.topArtists(token, 100)).map((r) => ({ label: r.artist, count: r.count, query: r.artist }));
-          } else if (k === 'tracks') {
-            items = (await api.shared.topTracks(token, 100)).map((r) => ({ label: `${r.track} — ${r.artist}`, count: r.count, query: `${r.artist} ${r.track}` }));
-          } else {
-            items = (await api.shared.topAlbums(token, 100)).map((r) => ({ label: r.album ?? 'Unknown album', count: r.count, query: r.album ?? undefined }));
-          }
-          metrics = await metricsPromise;
+        const metricsPromise = client.metricsOverTime(bucket, params);
+        if (k === 'artists') {
+          items = artistItems(await client.topArtists(100, params), base);
+        } else if (k === 'tracks') {
+          items = trackItems(await client.topTracks(100, params), base);
         } else {
-          const metricsPromise = api.metricsOverTime(bucket, params);
-          if (k === 'artists') {
-            items = (await api.topArtists(100, params)).map((r) => ({ label: r.artist, count: r.count, query: r.artist }));
-          } else if (k === 'tracks') {
-            items = (await api.topTracks(100, params)).map((r) => ({ label: `${r.track} — ${r.artist}`, count: r.count, query: `${r.artist} ${r.track}` }));
-          } else {
-            items = (await api.topAlbums(100, params)).map((r) => ({ label: r.album ?? 'Unknown album', count: r.count, query: r.album ?? undefined }));
-          }
-          metrics = await metricsPromise;
+          items = albumItems(await client.topAlbums(100, params), base);
         }
+        metrics = await metricsPromise;
         error = false;
       } catch (e) {
         if (!shared && e instanceof ApiError && e.status === 401) await loadMe();
@@ -65,7 +57,7 @@
 {:else}
   <div class="dashboard">
     <AreaTrend title={TRENDS[kind]} points={trend} />
-    <TopList title={TITLES[kind]} items={items} initial={1000} />
+    <TopList title={TITLES[kind]} items={items} initial={1000} covers={kind !== 'tracks'} />
   </div>
 {/if}
 

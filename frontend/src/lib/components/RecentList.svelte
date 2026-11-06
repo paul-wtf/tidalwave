@@ -1,7 +1,10 @@
 <script lang="ts">
   import { formatDateTime } from '$lib/format';
   import type { RecentItem } from '$lib/api/client';
-  let { items, initial = 6 }: { items: RecentItem[]; initial?: number } = $props();
+  import { artistHref, trackHref } from '$lib/links';
+  import Cover from './Cover.svelte';
+  let { items, initial = 6, base = '', tz = 'UTC' }:
+    { items: RecentItem[]; initial?: number; base?: string; tz?: string | null } = $props();
 
   let expanded = $state(false);
   const visible = $derived(expanded ? items : items.slice(0, initial));
@@ -15,9 +18,10 @@
     <ul>
       {#each visible as item (item.played_at + item.track)}
         <li>
-          <span class="track">{item.track}</span>
-          <span class="artist">{item.artist}</span>
-          <time>{formatDateTime(item.played_at)}</time>
+          <span class="cover"><Cover src={item.image_url} alt="" size={40} /></span>
+          <a class="track" href={trackHref(base, item.artist, item.track)}>{item.track}</a>
+          <a class="artist" href={artistHref(base, item.artist)}>{item.artist}</a>
+          <time>{formatDateTime(item.played_at, tz)}</time>
         </li>
       {/each}
     </ul>
@@ -47,8 +51,8 @@
   }
   li {
     display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-areas: 'track time' 'artist time';
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: 'cover track time' 'cover artist time';
     column-gap: 0.75rem;
     align-items: baseline;
     padding: 0.55rem 0.6rem;
@@ -59,6 +63,18 @@
   li:nth-child(odd) {
     background: var(--mantle);
   }
+  .cover {
+    grid-area: cover;
+    display: flex;
+    margin-right: 0.25rem;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--accent-text);
+  }
   .track {
     grid-area: track;
     overflow: hidden;
@@ -67,6 +83,8 @@
   }
   .artist {
     grid-area: artist;
+    justify-self: start;
+    max-width: 100%;
     color: var(--text-muted);
     font-size: 0.85rem;
   }

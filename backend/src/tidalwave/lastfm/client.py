@@ -9,6 +9,8 @@ from tidalwave.lastfm.signing import sign
 from tidalwave.models.domain import Scrobble
 
 _API = "https://ws.audioscrobbler.com/2.0/"
+_PLACEHOLDER_HASH = "2a96cbd8b46e442fc41c2b86b821562f"
+_NOT_FOUND = 6
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +102,31 @@ class LastfmClient:
             return None
         return ms // 1000 if ms > 0 else None
 
+    async def get_album_info(self, artist: str, album: str) -> str | None:
+        """Return the extralarge cover URL, or None if Last.fm has no usable one."""
+        try:
+            data = await self._call(
+                {"method": "album.getInfo", "artist": artist, "album": album},
+                signed=False,
+            )
+        except LastfmError as e:
+            if e.code == _NOT_FOUND:
+                return None
+            raise
+        return _extralarge(data.get("album", {}).get("image"))
+
+
+def _extralarge(images: object) -> str | None:
+    if not isinstance(images, list):
+        return None
+    for entry in images:
+        if isinstance(entry, dict) and entry.get("size") == "extralarge":
+            url = entry.get("#text") or None
+            if url is None or _PLACEHOLDER_HASH in url:
+                return None
+            return url
+    return None
+
 
 def _parse_recent_tracks(data: dict) -> RecentTracksPage:
     block = data["recenttracks"]
@@ -130,4 +157,5 @@ def _parse_track(t: dict) -> Scrobble:
         artist_mbid=t.get("artist", {}).get("mbid") or None,
         album_mbid=t.get("album", {}).get("mbid") or None,
         now_playing=now_playing,
+        image_url=_extralarge(t.get("image")),
     )

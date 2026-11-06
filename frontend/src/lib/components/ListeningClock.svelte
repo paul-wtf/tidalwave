@@ -1,11 +1,11 @@
 <script lang="ts">
-  let { hours }: { hours: number[] } = $props();
+  let { hours, tz = 'UTC' }: { hours: number[]; tz?: string | null } = $props();
   const total = $derived(hours.reduce((a, b) => a + b, 0));
   const max = $derived(Math.max(1, ...hours));
 </script>
 
 <figure class="glass" role="img" aria-label="Listens by hour of day">
-  <figcaption>By hour (UTC)</figcaption>
+  <figcaption>By hour ({tz ?? 'local time'})</figcaption>
   <div class="plot">
     <div class="yaxis" aria-hidden="true">
       <span>{max}</span>

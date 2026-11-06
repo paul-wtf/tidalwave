@@ -1,29 +1,86 @@
 from __future__ import annotations
 
 import secrets
-from typing import Literal
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.auth.session import current_user
 from tidalwave.deps import get_session
 from tidalwave.models.db import Share, User
-from tidalwave.stats import queries
+from tidalwave.stats.scope import resolve_range, user_tz
 
 router = APIRouter(tags=["share"])
 
 
+class ShareCreate(BaseModel):
+    label: str | None = Field(default=None, max_length=200)
+    range_from: datetime | None = None
+    range_to: datetime | None = None
+    start: date | None = None
+    end: date | None = None
+
+    @field_validator("label")
+    @classmethod
+    def _blank_label_is_none(cls, value: str | None) -> str | None:
+        return (value.strip() or None) if value is not None else None
+
+
+def _serialize(share: Share) -> dict:
+    return {
+        "share_token": share.share_token,
+        "label": share.label,
+        "range_from": share.range_from,
+        "range_to": share.range_to,
+        "created_at": share.created_at,
+    }
+
+
 @router.post("/shares", status_code=201)
 async def create_share(
+    body: ShareCreate | None = None,
     user: User = Depends(current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    token = secrets.token_urlsafe(32)
-    session.add(Share(share_token=token, user_id=user.id))
+    body = body or ShareCreate()
+    lo, hi = resolve_range(
+        user_tz(user),
+        since=body.range_from,
+        until=body.range_to,
+        start=body.start,
+        end=body.end,
+    )
+    if body.start is not None and hi is None:
+        hi = datetime.now(UTC)
+    if lo is not None and hi is not None and lo >= hi:
+        raise HTTPException(status_code=422, detail="Range start must be before its end")
+    share = Share(
+        share_token=secrets.token_urlsafe(32),
+        user_id=user.id,
+        label=body.label,
+        range_from=lo,
+        range_to=hi,
+    )
+    session.add(share)
     await session.flush()
-    return {"share_token": token}
+    await session.refresh(share)
+    return _serialize(share)
+
+
+@router.get("/shares")
+async def list_shares(
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[dict]:
+    rows = await session.execute(
+        select(Share)
+        .where(Share.user_id == user.id, Share.revoked_at.is_(None))
+        .order_by(Share.created_at.desc(), Share.id.desc())
+    )
+    return [_serialize(share) for share in rows.scalars()]
 
 
 @router.delete("/shares/{token}", status_code=204)
@@ -36,109 +93,4 @@ async def revoke_share(
         update(Share)
         .where(Share.share_token == token, Share.user_id == user.id, Share.revoked_at.is_(None))
         .values(revoked_at=func.now())
-    )
-
-
-async def _resolve_share(session: AsyncSession, token: str) -> Share:
-    share = (
-        await session.execute(
-            select(Share).where(Share.share_token == token, Share.revoked_at.is_(None))
-        )
-    ).scalar_one_or_none()
-    if share is None:
-        raise HTTPException(status_code=404, detail="Share not found")
-    return share
-
-
-@router.get("/shared/{token}/top-artists")
-async def shared_top_artists(
-    token: str, limit: int = 20, session: AsyncSession = Depends(get_session)
-) -> list[dict]:
-    share = await _resolve_share(session, token)
-    return await queries.top_artists(
-        session, share.user_id, limit=limit, since=share.range_from, until=share.range_to
-    )
-
-
-@router.get("/shared/{token}/summary")
-async def shared_summary(
-    token: str, session: AsyncSession = Depends(get_session)
-) -> dict:
-    share = await _resolve_share(session, token)
-    return await queries.summary_stats(
-        session, share.user_id, since=share.range_from, until=share.range_to
-    )
-
-
-@router.get("/shared/{token}/metrics-over-time")
-async def shared_metrics_over_time(
-    token: str,
-    bucket: Literal["day", "week", "month"] = "day",
-    session: AsyncSession = Depends(get_session),
-) -> list[dict]:
-    share = await _resolve_share(session, token)
-    return await queries.metrics_over_time(
-        session, share.user_id, bucket=bucket, since=share.range_from, until=share.range_to
-    )
-
-
-@router.get("/shared/{token}/top-tracks")
-async def shared_top_tracks(
-    token: str, limit: int = 20, session: AsyncSession = Depends(get_session)
-) -> list[dict]:
-    share = await _resolve_share(session, token)
-    return await queries.top_tracks(
-        session, share.user_id, limit=limit, since=share.range_from, until=share.range_to
-    )
-
-
-@router.get("/shared/{token}/top-albums")
-async def shared_top_albums(
-    token: str, limit: int = 20, session: AsyncSession = Depends(get_session)
-) -> list[dict]:
-    share = await _resolve_share(session, token)
-    return await queries.top_albums(
-        session, share.user_id, limit=limit, since=share.range_from, until=share.range_to
-    )
-
-
-@router.get("/shared/{token}/clock")
-async def shared_clock(
-    token: str, session: AsyncSession = Depends(get_session)
-) -> list[int]:
-    share = await _resolve_share(session, token)
-    return await queries.listening_clock(
-        session, share.user_id, since=share.range_from, until=share.range_to
-    )
-
-
-@router.get("/shared/{token}/weekday")
-async def shared_weekday(
-    token: str, session: AsyncSession = Depends(get_session)
-) -> list[int]:
-    share = await _resolve_share(session, token)
-    return await queries.listening_weekday(
-        session, share.user_id, since=share.range_from, until=share.range_to
-    )
-
-
-@router.get("/shared/{token}/history")
-async def shared_history(
-    token: str,
-    bucket: Literal["day", "week", "month"] = "day",
-    session: AsyncSession = Depends(get_session),
-) -> list[dict]:
-    share = await _resolve_share(session, token)
-    return await queries.listens_over_time(
-        session, share.user_id, bucket=bucket, since=share.range_from, until=share.range_to
-    )
-
-
-@router.get("/shared/{token}/recent")
-async def shared_recent(
-    token: str, limit: int = 50, session: AsyncSession = Depends(get_session)
-) -> list[dict]:
-    share = await _resolve_share(session, token)
-    return await queries.recent_listens(
-        session, share.user_id, limit=limit, since=share.range_from, until=share.range_to
     )

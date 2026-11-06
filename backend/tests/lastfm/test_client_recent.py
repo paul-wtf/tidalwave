@@ -98,3 +98,70 @@ async def test_unavailable_with_html_body_raises_http_status_error(client):
     )
     with pytest.raises(httpx.HTTPStatusError):
         await client.get_recent_tracks("alice", session_key="SK", page=1)
+
+
+_PLACEHOLDER = "https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png"
+
+
+def _single_track_payload(images):
+    return {
+        "recenttracks": {
+            "@attr": {"user": "alice", "page": "1", "perPage": "200", "totalPages": "1", "total": "1"},
+            "track": {
+                "artist": {"#text": "Daft Punk", "mbid": ""},
+                "name": "Aerodynamic",
+                "album": {"#text": "Discovery", "mbid": ""},
+                "mbid": "",
+                "image": images,
+                "date": {"uts": "1700000000", "#text": "14 Nov 2023, 22:13"},
+            },
+        }
+    }
+
+
+@respx.mock
+async def test_parse_track_keeps_extralarge_image(client):
+    images = [
+        {"#text": "https://img/small.jpg", "size": "small"},
+        {"#text": "https://img/xl.jpg", "size": "extralarge"},
+    ]
+    respx.get("https://ws.audioscrobbler.com/2.0/").respond(json=_single_track_payload(images))
+    page = await client.get_recent_tracks("alice", page=1)
+    assert page.scrobbles[0].image_url == "https://img/xl.jpg"
+
+
+@respx.mock
+async def test_parse_track_drops_placeholder_image(client):
+    respx.get("https://ws.audioscrobbler.com/2.0/").respond(
+        json=_single_track_payload([{"#text": _PLACEHOLDER, "size": "extralarge"}])
+    )
+    page = await client.get_recent_tracks("alice", page=1)
+    assert page.scrobbles[0].image_url is None
+
+
+@respx.mock
+async def test_parse_track_without_images_has_no_image_url(client):
+    respx.get("https://ws.audioscrobbler.com/2.0/").respond(
+        json=_single_track_payload([{"#text": "", "size": "extralarge"}])
+    )
+    page = await client.get_recent_tracks("alice", page=1)
+    assert page.scrobbles[0].image_url is None
+
+
+@respx.mock
+async def test_get_album_info_returns_extralarge_image(client):
+    route = respx.get("https://ws.audioscrobbler.com/2.0/").respond(
+        json={"album": {"image": [{"#text": "https://img/xl.jpg", "size": "extralarge"}]}}
+    )
+    assert await client.get_album_info("Daft Punk", "Discovery") == "https://img/xl.jpg"
+    params = dict(httpx.QueryParams(route.calls.last.request.url.query))
+    assert params["method"] == "album.getInfo"
+    assert "api_sig" not in params
+
+
+@respx.mock
+async def test_get_album_info_not_found_returns_none(client):
+    respx.get("https://ws.audioscrobbler.com/2.0/").respond(
+        json={"error": 6, "message": "Album not found"}
+    )
+    assert await client.get_album_info("X", "Y") is None

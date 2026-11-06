@@ -16,3 +16,4 @@ class Scrobble:
     artist_mbid: str | None = None
     album_mbid: str | None = None
     now_playing: bool = False
+    image_url: str | None = None

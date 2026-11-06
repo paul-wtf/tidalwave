@@ -9,7 +9,8 @@
     { href: `/s/${data.token}`, label: 'Overview' },
     { href: `/s/${data.token}/artists`, label: 'Artists' },
     { href: `/s/${data.token}/tracks`, label: 'Tracks' },
-    { href: `/s/${data.token}/albums`, label: 'Albums' }
+    { href: `/s/${data.token}/albums`, label: 'Albums' },
+    { href: `/s/${data.token}/insights`, label: 'Insights' }
   ]);
 </script>
 

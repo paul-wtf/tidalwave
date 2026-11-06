@@ -6,6 +6,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -35,6 +36,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+    timezone: Mapped[str | None] = mapped_column(String(64))
 
 
 class Listen(Base):
@@ -43,6 +45,7 @@ class Listen(Base):
         UniqueConstraint(
             "user_id", "artist", "track_title", "played_at", name="uq_listen_dedup"
         ),
+        Index("ix_listens_user_artist_played", "user_id", "artist", "played_at"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -84,6 +87,19 @@ class TrackDuration(Base):
     )
 
 
+class AlbumArt(Base):
+    __tablename__ = "album_art"
+    __table_args__ = (UniqueConstraint("artist", "album", name="uq_album_art"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    artist: Mapped[str] = mapped_column(Text, nullable=False)
+    album: Mapped[str] = mapped_column(Text, nullable=False)
+    image_url: Mapped[str | None] = mapped_column(Text)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class SyncState(Base):
     __tablename__ = "sync_state"
 
@@ -108,3 +124,4 @@ class Share(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    label: Mapped[str | None] = mapped_column(Text)

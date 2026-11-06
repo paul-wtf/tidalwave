@@ -24,7 +24,7 @@ async def test_stats_returns_own_data(api, db_session):
         "/stats/top-artists", headers={"Cookie": f"{COOKIE_NAME}={cookie}"}
     )
     assert resp.status_code == 200
-    assert resp.json()[0] == {"artist": "Daft Punk", "count": 1}
+    assert resp.json()[0] == {"artist": "Daft Punk", "count": 1, "image_url": None}
 
 
 async def test_weekday_returns_7_element_list(api, db_session):
@@ -99,3 +99,106 @@ async def test_summary_since_filters_listens(api, db_session):
     assert body["distinct_artists"] == 2  # Artist A + Artist B in the window
     assert body["distinct_tracks"] == 2
     assert body["total_seconds"] == 0  # no durations resolved in this test
+
+
+async def test_clock_uses_user_timezone(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "tz_user", "sk_tz", mode="open", allowlist=[])
+    user.timezone = "Europe/Berlin"
+    await db_session.flush()
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="A", track_title="t", album=None,
+                 played_at=datetime(2026, 7, 1, 10, tzinfo=UTC)),
+    ])
+    cookie = SessionCodec("test-secret").encode(user.id)
+    resp = await client.get("/stats/clock", headers={"Cookie": f"{COOKIE_NAME}={cookie}"})
+    assert resp.status_code == 200
+    assert resp.json()[12] == 1
+
+
+async def test_limit_capped_at_500(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "cap_user", "sk_cap", mode="open", allowlist=[])
+    headers = {"Cookie": f"{COOKIE_NAME}={SessionCodec('test-secret').encode(user.id)}"}
+    assert (await client.get("/stats/top-artists?limit=501", headers=headers)).status_code == 422
+    assert (await client.get("/stats/top-artists?limit=0", headers=headers)).status_code == 422
+    assert (await client.get("/stats/top-artists?limit=500", headers=headers)).status_code == 200
+
+
+async def test_summary_compare_omitted_for_all_time_and_shares(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "cmp", "sk_cmp", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="A", track_title="old", album=None,
+                 played_at=datetime(2024, 1, 15, tzinfo=UTC)),
+        Scrobble(artist="A", track_title="new", album=None,
+                 played_at=datetime(2024, 2, 15, tzinfo=UTC)),
+    ])
+    headers = {"Cookie": f"{COOKIE_NAME}={SessionCodec('test-secret').encode(user.id)}"}
+
+    all_time = await client.get("/stats/summary?compare=true", headers=headers)
+    assert all_time.json()["previous"] is None
+
+    plain = await client.get("/stats/summary", headers=headers)
+    assert "previous" not in plain.json()
+
+    ranged = await client.get(
+        "/stats/summary?compare=true&since=2024-02-01T00:00:00Z&until=2024-03-01T00:00:00Z",
+        headers=headers,
+    )
+    body = ranged.json()
+    assert body["total_listens"] == 1
+    assert body["previous"]["total_listens"] == 1
+
+    token = (await client.post("/shares", headers=headers)).json()["share_token"]
+    shared = await client.get(f"/shared/{token}/summary?compare=true&since=2024-02-01T00:00:00Z")
+    assert shared.status_code == 200
+    assert shared.json()["previous"] is None
+
+
+NASTY = 'AC/DC & "Friends" #1 ?+ Ünïcode'
+
+
+async def test_detail_roundtrips_special_characters(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "nasty", "sk_n", mode="open", allowlist=[])
+    when = datetime(2024, 1, 1, tzinfo=UTC)
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist=NASTY, track_title=NASTY, album=NASTY, played_at=when),
+        Scrobble(artist="Other", track_title="o", album="Oalbum", played_at=when.replace(day=2)),
+    ])
+    cookie = SessionCodec("test-secret").encode(user.id)
+    headers = {"Cookie": f"{COOKIE_NAME}={cookie}"}
+    resp = await client.get("/stats/artist", params={"artist": NASTY}, headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["artist"] == NASTY
+    resp = await client.get("/stats/album", params={"artist": NASTY, "album": NASTY}, headers=headers)
+    assert resp.json()["album"] == NASTY
+    resp = await client.get("/stats/track", params={"artist": NASTY, "track": NASTY}, headers=headers)
+    assert resp.json()["track"] == NASTY
+    assert resp.json()["album"] == NASTY
+    recent = await client.get("/stats/recent", params={"artist": NASTY, "album": NASTY}, headers=headers)
+    assert [r["artist"] for r in recent.json()] == [NASTY]
+    albums = await client.get("/stats/top-albums", params={"artist": NASTY}, headers=headers)
+    assert [r["album"] for r in albums.json()] == [NASTY]
+    metrics = await client.get("/stats/metrics-over-time", params={"artist": NASTY}, headers=headers)
+    assert [r["listens"] for r in metrics.json()] == [1]
+    unfiltered = await client.get("/stats/metrics-over-time", headers=headers)
+    assert sum(r["listens"] for r in unfiltered.json()) == 2
+
+
+async def test_detail_404_for_unknown_entity(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "empty", "sk_e", mode="open", allowlist=[])
+    cookie = SessionCodec("test-secret").encode(user.id)
+    headers = {"Cookie": f"{COOKIE_NAME}={cookie}"}
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="Known", track_title="k", album=None,
+                 played_at=datetime(2024, 1, 1, tzinfo=UTC)),
+    ])
+    assert (await client.get("/stats/artist", params={"artist": "Known"}, headers=headers)).status_code == 200
+    assert (await client.get("/stats/track", params={"artist": "Known", "track": "k"}, headers=headers)).status_code == 200
+    assert (await client.get("/stats/artist", params={"artist": "Nobody"}, headers=headers)).status_code == 404
+    assert (await client.get("/stats/album", params={"artist": "N", "album": "M"}, headers=headers)).status_code == 404
+    assert (await client.get("/stats/track", params={"artist": "N", "track": "M"}, headers=headers)).status_code == 404
+    assert (await client.get("/stats/artist", headers=headers)).status_code == 422
