@@ -123,3 +123,34 @@ async def test_limit_capped_at_500(api, db_session):
     assert (await client.get("/stats/top-artists?limit=501", headers=headers)).status_code == 422
     assert (await client.get("/stats/top-artists?limit=0", headers=headers)).status_code == 422
     assert (await client.get("/stats/top-artists?limit=500", headers=headers)).status_code == 200
+
+
+async def test_summary_compare_omitted_for_all_time_and_shares(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "cmp", "sk_cmp", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="A", track_title="old", album=None,
+                 played_at=datetime(2024, 1, 15, tzinfo=UTC)),
+        Scrobble(artist="A", track_title="new", album=None,
+                 played_at=datetime(2024, 2, 15, tzinfo=UTC)),
+    ])
+    headers = {"Cookie": f"{COOKIE_NAME}={SessionCodec('test-secret').encode(user.id)}"}
+
+    all_time = await client.get("/stats/summary?compare=true", headers=headers)
+    assert all_time.json()["previous"] is None
+
+    plain = await client.get("/stats/summary", headers=headers)
+    assert "previous" not in plain.json()
+
+    ranged = await client.get(
+        "/stats/summary?compare=true&since=2024-02-01T00:00:00Z&until=2024-03-01T00:00:00Z",
+        headers=headers,
+    )
+    body = ranged.json()
+    assert body["total_listens"] == 1
+    assert body["previous"]["total_listens"] == 1
+
+    token = (await client.post("/shares", headers=headers)).json()["share_token"]
+    shared = await client.get(f"/shared/{token}/summary?compare=true&since=2024-02-01T00:00:00Z")
+    assert shared.status_code == 200
+    assert shared.json()["previous"] is None

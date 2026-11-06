@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import calendar as _calendar
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, HTTPException
@@ -61,6 +63,33 @@ def intersect(
     lows = [v for v in (since, floor) if v is not None]
     highs = [v for v in (until, ceiling) if v is not None]
     return (max(lows) if lows else None, min(highs) if highs else None)
+
+
+def _shift_back(moment: datetime, tz: str, unit: Literal["week", "month", "year"]) -> datetime:
+    local = moment.astimezone(ZoneInfo(tz)).replace(tzinfo=None)
+    if unit == "week":
+        shifted = local - timedelta(days=7)
+    else:
+        months = 1 if unit == "month" else 12
+        index = local.year * 12 + local.month - 1 - months
+        year, month = divmod(index, 12)
+        month += 1
+        day = min(local.day, _calendar.monthrange(year, month)[1])
+        shifted = local.replace(year=year, month=month, day=day)
+    return shifted.replace(tzinfo=ZoneInfo(tz)).astimezone(UTC)
+
+
+def previous_range(
+    tz: str,
+    since: datetime,
+    until: datetime | None,
+    calendar: Literal["week", "month", "year"] | None,
+    now: datetime,
+) -> tuple[datetime, datetime]:
+    end = until if until is not None else now
+    if calendar is None:
+        return since - (end - since), since
+    return _shift_back(since, tz, calendar), _shift_back(end, tz, calendar)
 
 
 def user_tz(user: User) -> str:

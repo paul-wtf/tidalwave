@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -7,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.deps import get_session
 from tidalwave.stats import queries
-from tidalwave.stats.scope import Scope
+from tidalwave.stats.scope import Scope, previous_range
 
 
 def make_stats_router(scope_dep) -> APIRouter:
@@ -77,9 +79,22 @@ def make_stats_router(scope_dep) -> APIRouter:
 
     @router.get("/summary")
     async def summary(
+        compare: bool = False,
+        calendar: Literal["week", "month", "year"] | None = None,
         scope: Scope = Depends(scope_dep),
         session: AsyncSession = Depends(get_session),
     ) -> dict:
-        return await queries.summary_stats(session, scope)
+        current = await queries.summary_stats(session, scope)
+        if not compare:
+            return current
+        previous = None
+        if scope.since is not None and not scope.shared:
+            since, until = previous_range(
+                scope.tz, scope.since, scope.until, calendar, datetime.now(UTC)
+            )
+            previous = await queries.summary_stats(
+                session, replace(scope, since=since, until=until)
+            )
+        return {**current, "previous": previous}
 
     return router
