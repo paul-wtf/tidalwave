@@ -71,3 +71,34 @@ def test_previous_range_clamps_month_end():
     got = previous_range("Europe/Berlin", since, until, "month", datetime(2026, 5, 1, tzinfo=UTC))
     assert got[0] == datetime(2026, 2, 27, 23, tzinfo=UTC)
     assert got[1] == datetime(2026, 3, 31, 22, tzinfo=UTC)
+
+
+def test_previous_range_in_progress_month_with_future_until():
+    since = datetime(2026, 10, 31, 23, tzinfo=UTC)
+    until = datetime(2026, 11, 30, 23, tzinfo=UTC)
+    now = datetime(2026, 11, 6, 12, tzinfo=UTC)
+    got = previous_range("Europe/Berlin", since, until, "month", now)
+    assert got == (datetime(2026, 9, 30, 22, tzinfo=UTC), datetime(2026, 10, 6, 11, tzinfo=UTC))
+
+
+def test_previous_range_rolling_with_future_until():
+    since = datetime(2026, 11, 1, tzinfo=UTC)
+    until = datetime(2026, 12, 1, tzinfo=UTC)
+    now = datetime(2026, 11, 6, tzinfo=UTC)
+    assert previous_range("UTC", since, until, None, now) == (
+        datetime(2026, 10, 27, tzinfo=UTC), since,
+    )
+
+
+def test_previous_range_week():
+    since = datetime(2026, 11, 2, 23, tzinfo=UTC)
+    until = datetime(2026, 11, 9, 23, tzinfo=UTC)
+    got = previous_range("Europe/Berlin", since, until, "week", datetime(2026, 12, 1, tzinfo=UTC))
+    assert got == (datetime(2026, 10, 26, 23, tzinfo=UTC), datetime(2026, 11, 2, 23, tzinfo=UTC))
+
+
+def test_previous_range_year_clamps_leap_day():
+    since = datetime(2024, 2, 29, tzinfo=UTC)
+    until = datetime(2024, 3, 31, tzinfo=UTC)
+    got = previous_range("UTC", since, until, "year", datetime(2025, 1, 1, tzinfo=UTC))
+    assert got == (datetime(2023, 2, 28, tzinfo=UTC), datetime(2023, 3, 31, tzinfo=UTC))

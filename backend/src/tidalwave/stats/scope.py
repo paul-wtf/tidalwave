@@ -86,7 +86,7 @@ def previous_range(
     calendar: Literal["week", "month", "year"] | None,
     now: datetime,
 ) -> tuple[datetime, datetime]:
-    end = until if until is not None else now
+    end = min(until, now) if until is not None else now
     if calendar is None:
         return since - (end - since), since
     return _shift_back(since, tz, calendar), _shift_back(end, tz, calendar)
