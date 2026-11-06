@@ -4,17 +4,8 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.models.db import AlbumArt, Listen
-from tidalwave.stats.queries import _entity, _scope, artist_cover_subquery
+from tidalwave.stats.queries import _entity, _scope, artist_cover_subquery, bounded
 from tidalwave.stats.scope import Scope
-
-
-def _bounded(stmt, scope: Scope):
-    stmt = stmt.where(Listen.user_id == scope.user_id)
-    if scope.floor is not None:
-        stmt = stmt.where(Listen.played_at >= scope.floor)
-    if scope.ceiling is not None:
-        stmt = stmt.where(Listen.played_at < scope.ceiling)
-    return stmt
 
 
 def _iso(value) -> str | None:
@@ -32,7 +23,7 @@ async def _totals(session, scope, artist, album, track) -> tuple[int, int]:
 
 async def _span(session, scope, artist, album, track) -> tuple[str | None, str | None]:
     stmt = _entity(
-        _bounded(select(func.min(Listen.played_at), func.max(Listen.played_at)), scope),
+        bounded(select(func.min(Listen.played_at), func.max(Listen.played_at)), scope),
         artist, album, track,
     )
     first, last = (await session.execute(stmt)).one()
@@ -96,7 +87,7 @@ async def _track_album(session, scope, artist, track) -> str | None:
     found = (await session.execute(in_scope)).scalar_one_or_none()
     if found is not None:
         return found
-    overall = most_listened(_bounded(select(Listen.album), scope))
+    overall = most_listened(bounded(select(Listen.album), scope))
     return (await session.execute(overall)).scalar_one_or_none()
 
 

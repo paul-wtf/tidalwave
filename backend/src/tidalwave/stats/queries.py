@@ -16,6 +16,15 @@ def _scope(stmt, scope: Scope):
     return stmt
 
 
+def bounded(stmt, scope: Scope):
+    stmt = stmt.where(Listen.user_id == scope.user_id)
+    if scope.floor is not None:
+        stmt = stmt.where(Listen.played_at >= scope.floor)
+    if scope.ceiling is not None:
+        stmt = stmt.where(Listen.played_at < scope.ceiling)
+    return stmt
+
+
 def _entity(stmt, artist: str | None, album: str | None, track: str | None):
     if artist is not None:
         stmt = stmt.where(Listen.artist == artist)

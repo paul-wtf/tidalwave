@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.deps import get_session
-from tidalwave.stats import details, queries
+from tidalwave.stats import details, insights, queries
 from tidalwave.stats.scope import Scope, previous_range
 
 
@@ -148,5 +148,20 @@ def make_stats_router(scope_dep) -> APIRouter:
         session: AsyncSession = Depends(get_session),
     ) -> dict:
         return _found(await details.track_detail(session, scope, artist, track))
+
+    @router.get("/discoveries")
+    async def discoveries(
+        limit: int = Query(20, ge=1, le=500),
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await insights.discoveries(session, scope, limit=limit)
+
+    @router.get("/on-this-day")
+    async def on_this_day(
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> list[dict]:
+        return await insights.on_this_day(session, scope)
 
     return router
