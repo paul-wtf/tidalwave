@@ -42,3 +42,7 @@ export function formatRelative(iso: string, now: Date): string {
   const days = Math.floor(hours / 24);
   return days === 1 ? '1 day ago' : `${days} days ago`;
 }
+
+export function formatLocalDate(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date(iso));
+}
