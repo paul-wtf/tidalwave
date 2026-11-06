@@ -1,15 +1,19 @@
 import { vi } from 'vitest';
 
-export function mockApi(routes: Record<string, unknown>): { calls: string[]; requests: { method: string; url: string }[] } {
+export function mockApi(routes: Record<string, unknown>): { calls: string[]; requests: { method: string; url: string }[]; bodies: Record<string, string> } {
   const calls: string[] = [];
   const requests: { method: string; url: string }[] = [];
+  const bodies: Record<string, string> = {};
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       calls.push(url);
-      requests.push({ method: init?.method ?? 'GET', url });
-      const path = url.split('?')[0];
+      const method = init?.method ?? 'GET';
+      requests.push({ method, url });
+      if (typeof init?.body === 'string') bodies[`${method} ${url}`] = init.body;
+      const plain = url.split('?')[0];
+      const path = `${method} ${plain}` in routes ? `${method} ${plain}` : plain;
       if (!(path in routes)) {
         return new Response(JSON.stringify({ detail: 'Not Found' }), {
           status: 404,
@@ -22,5 +26,5 @@ export function mockApi(routes: Record<string, unknown>): { calls: string[]; req
       });
     })
   );
-  return { calls, requests };
+  return { calls, requests, bodies };
 }
