@@ -22,6 +22,15 @@ describe('Heatmap', () => {
     expect(cells(container)).toHaveLength(11);
   });
 
+  it('keeps a full year readable by scrolling instead of shrinking', () => {
+    const year = { start: '2025-11-07', end: '2026-11-06', days: [] };
+    const { container } = render(Heatmap, { heatmap: year });
+    const svg = container.querySelector('svg')!;
+    const columns = Number(svg.getAttribute('viewBox')!.split(' ')[2]) / 14;
+    expect(columns).toBe(53);
+    expect(svg.style.minWidth).toBe(`${columns * 14}px`);
+  });
+
   it('scales to the container instead of a fixed pixel width', () => {
     const { container } = render(Heatmap, { heatmap });
     const svg = container.querySelector('svg')!;

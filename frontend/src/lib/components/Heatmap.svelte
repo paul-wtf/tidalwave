@@ -39,7 +39,7 @@
       role="img"
       aria-label="Listens per day, {heatmap.start} to {heatmap.end}"
       width="100%"
-      style="max-width: {columns * STEP * 2}px"
+      style="min-width: {columns * STEP}px; max-width: {columns * STEP * 2}px"
       viewBox="0 0 {columns * STEP} {7 * STEP}"
     >
       {#each cells as c (c.date)}

@@ -177,6 +177,8 @@
     gap: 0.75rem;
     width: 22rem;
     max-width: calc(100vw - 2rem);
+    max-height: calc(100dvh - var(--bar-h) - 1rem);
+    overflow-y: auto;
     padding: 0.85rem;
     background: var(--surface0);
     border-radius: var(--r-sm);

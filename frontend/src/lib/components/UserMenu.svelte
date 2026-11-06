@@ -97,6 +97,8 @@
     flex-direction: column;
     gap: 0.75rem;
     min-width: 15rem;
+    max-height: calc(100dvh - var(--bar-h) - 1rem);
+    overflow-y: auto;
     padding: 0.85rem;
     background: var(--surface0);
     border-radius: var(--r-sm);
