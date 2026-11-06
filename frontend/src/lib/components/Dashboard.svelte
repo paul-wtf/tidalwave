@@ -7,7 +7,7 @@
   import { loadMe } from '$lib/stores/auth';
   import { rangeQuery } from '$lib/stores/range';
   import { formatCount, formatDuration } from '$lib/format';
-  import { artistHref, albumHref, trackHref } from '$lib/links';
+  import { artistItems, trackItems, albumItems, type ListItem } from '$lib/listItems';
   import StatCard from './StatCard.svelte';
   import AreaTrend from './AreaTrend.svelte';
   import TopList from './TopList.svelte';
@@ -24,7 +24,6 @@
     total_listens: 0, distinct_artists: 0, distinct_tracks: 0, distinct_albums: 0, total_seconds: 0
   };
 
-  type ListItem = { label: string; count: number; query?: string; href?: string; image?: string | null };
   let summary = $state<Summary>(EMPTY);
   let metrics = $state<MetricPoint[]>([]);
   let artists = $state<ListItem[]>([]);
@@ -43,18 +42,9 @@
   ) {
     summary = s;
     metrics = m;
-    artists = ar.map((x) => ({
-      label: x.artist, count: x.count, query: x.artist,
-      href: artistHref(base, x.artist), image: x.image_url
-    }));
-    tracks = tr.map((x) => ({
-      label: `${x.track} — ${x.artist}`, count: x.count, query: `${x.artist} ${x.track}`,
-      href: trackHref(base, x.artist, x.track)
-    }));
-    albums = al.map((x) => ({
-      label: `${x.album ?? 'Unknown album'} — ${x.artist}`, count: x.count, query: x.album ?? undefined,
-      href: x.album == null ? undefined : albumHref(base, x.artist, x.album), image: x.image_url
-    }));
+    artists = artistItems(ar, base);
+    tracks = trackItems(tr, base);
+    albums = albumItems(al, base);
     hours = cl; days = wd; recent = rc;
   }
 

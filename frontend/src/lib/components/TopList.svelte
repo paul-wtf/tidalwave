@@ -25,7 +25,7 @@
         <li>
           <span class="bar" class:top={i === 0} style="width: {(item.count / max) * 100}%"></span>
           <span class="rank">{i + 1}</span>
-          {#if covers}<Cover src={item.image} alt={item.label} size={32} />{/if}
+          {#if covers}<span class="cover"><Cover src={item.image} alt="" size={32} /></span>{/if}
           <span class="label">
             {#if item.href}<a href={item.href}>{item.label}</a>{:else}{item.label}{/if}
           </span>
@@ -107,8 +107,9 @@
     color: var(--text-dim);
     min-width: 1.2rem;
   }
-  :global(li > img), :global(li > .placeholder) {
+  .cover {
     z-index: 1;
+    display: flex;
   }
   .label {
     z-index: 1;

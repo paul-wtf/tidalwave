@@ -20,6 +20,6 @@ describe('Cover', () => {
     render(Cover, { props: { src: 'https://img/broken.png', alt: 'Discovery', size: 40 } });
     await fireEvent.error(screen.getByAltText('Discovery'));
     expect(screen.queryByAltText('Discovery')).toBeNull();
-    expect(screen.getByTestId('cover-placeholder')).toBeInTheDocument();
+    expect(screen.getByTestId('cover-placeholder')).toHaveAttribute('aria-hidden', 'true');
   });
 });

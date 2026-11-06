@@ -17,7 +17,7 @@
     <ul>
       {#each visible as item (item.played_at + item.track)}
         <li>
-          <span class="cover"><Cover src={item.image_url} alt={item.album ?? item.track} size={40} /></span>
+          <span class="cover"><Cover src={item.image_url} alt="" size={40} /></span>
           <a class="track" href={trackHref(base, item.artist, item.track)}>{item.track}</a>
           <a class="artist" href={artistHref(base, item.artist)}>{item.artist}</a>
           <time>{formatDateTime(item.played_at)}</time>

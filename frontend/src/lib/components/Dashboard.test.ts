@@ -88,4 +88,24 @@ describe('Dashboard', () => {
     await waitFor(() => expect(screen.getByText('42')).toBeInTheDocument());
     expect(screen.queryByText(/vs\. previous/)).toBeNull();
   });
+
+  it('links top-list rows under the share base in shared mode', async () => {
+    mockApi({
+      ...rest,
+      '/shared/tok/summary': {
+        total_listens: 42, distinct_artists: 5, distinct_tracks: 30, distinct_albums: 8, total_seconds: 7200
+      },
+      '/shared/tok/metrics-over-time': [],
+      '/shared/tok/top-artists': [{ artist: 'Daft Punk', count: 10, image_url: null }],
+      '/shared/tok/top-tracks': [],
+      '/shared/tok/top-albums': [{ album: null, artist: 'Daft Punk', count: 2, image_url: null }],
+      '/shared/tok/clock': new Array(24).fill(0),
+      '/shared/tok/weekday': new Array(7).fill(0),
+      '/shared/tok/recent': []
+    });
+    render(Dashboard, { token: 'tok' });
+    const link = await screen.findByRole('link', { name: 'Daft Punk' });
+    expect(link.getAttribute('href')!.startsWith('/s/tok/artist?')).toBe(true);
+    expect(screen.getByText('Unknown album — Daft Punk').closest('a')).toBeNull();
+  });
 });

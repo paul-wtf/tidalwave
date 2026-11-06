@@ -1,17 +1,13 @@
 <script lang="ts">
   let { src, alt, size }: { src: string | null | undefined; alt: string; size: number } = $props();
 
-  let failed = $state(false);
-  $effect(() => {
-    src;
-    failed = false;
-  });
+  let failedSrc = $state<string | null>(null);
 </script>
 
-{#if src && !failed}
-  <img {src} {alt} width={size} height={size} loading="lazy" onerror={() => (failed = true)} />
+{#if src && failedSrc !== src}
+  <img {src} {alt} width={size} height={size} loading="lazy" onerror={() => (failedSrc = src ?? null)} />
 {:else}
-  <span class="placeholder" data-testid="cover-placeholder" style="width: {size}px; height: {size}px"></span>
+  <span class="placeholder" aria-hidden="true" data-testid="cover-placeholder" style="width: {size}px; height: {size}px"></span>
 {/if}
 
 <style>

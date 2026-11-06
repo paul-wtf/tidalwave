@@ -21,6 +21,7 @@ describe('RecentList links', () => {
       .toHaveAttribute('href', '/s/tok/track?artist=AC%2FDC+%26+Co&track=Nightcall');
     expect(screen.getByRole('link', { name: 'AC/DC & Co' }))
       .toHaveAttribute('href', '/s/tok/artist?artist=AC%2FDC+%26+Co');
-    expect(screen.getByAltText('OutRun')).toHaveAttribute('src', 'https://img/o.png');
+    const { container } = { container: document.body };
+    expect(container.querySelector('img')).toHaveAttribute('src', 'https://img/o.png');
   });
 });

@@ -59,10 +59,12 @@ describe('TopList links and covers', () => {
 
   it('shows covers only when enabled', () => {
     const items = [{ label: 'Discovery', count: 3, image: 'https://img/d.png' }];
-    const { unmount } = render(TopList, { props: { title: 'Top Albums', items, covers: true } });
-    expect(screen.getByAltText('Discovery')).toHaveAttribute('src', 'https://img/d.png');
+    const { container, unmount } = render(TopList, { props: { title: 'Top Albums', items, covers: true } });
+    const img = container.querySelector('img');
+    expect(img).toHaveAttribute('src', 'https://img/d.png');
+    expect(img).toHaveAttribute('alt', '');
     unmount();
-    render(TopList, { props: { title: 'Top Albums', items } });
-    expect(screen.queryByAltText('Discovery')).toBeNull();
+    const plain = render(TopList, { props: { title: 'Top Albums', items } });
+    expect(plain.container.querySelector('img')).toBeNull();
   });
 });
