@@ -8,6 +8,7 @@ from tidalwave.ingest.repository import (
     advance_sync_state,
     get_sync_state,
     mark_synced,
+    upsert_album_art,
     upsert_listens,
 )
 from tidalwave.lastfm.client import RecentTracksPage
@@ -58,6 +59,7 @@ async def _collect_and_store(
         page += 1
 
     inserted = await upsert_listens(session, user.id, collected)
+    await upsert_album_art(session, collected)
     newest = max((s.played_at for s in collected if s.played_at is not None), default=None)
     if newest is not None:
         await advance_sync_state(session, user.id, last_played_at=newest)

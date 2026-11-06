@@ -126,7 +126,13 @@ listening" profiles are readable; public profiles work either way.
 tidalwave-backfill <lastfm-username>
 ```
 
-Both commands read configuration from the same `TIDALWAVE_*` environment variables as the server.
+**Album covers** — the poll stores cover URLs it sees and looks up to 50 missing albums per run; this fills the rest of the history:
+
+```bash
+tidalwave-backfill-covers
+```
+
+All commands read configuration from the same `TIDALWAVE_*` environment variables as the server.
 
 ---
 

@@ -6,9 +6,10 @@ from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.ingest.repository import (
     advance_sync_state,
     get_sync_state,
+    upsert_album_art,
     upsert_listens,
 )
-from tidalwave.models.db import Listen
+from tidalwave.models.db import AlbumArt, Listen
 from tidalwave.models.domain import Scrobble
 
 
@@ -90,3 +91,35 @@ async def test_sync_state_roundtrip(db_session):
     await advance_sync_state(db_session, user.id, last_played_at=ts)
     state = await get_sync_state(db_session, user.id)
     assert state is not None and state.last_played_at == ts
+
+
+def _cover(album: str | None, url: str | None, artist: str = "A") -> Scrobble:
+    return Scrobble(
+        artist=artist, track_title="t", album=album,
+        played_at=datetime.fromtimestamp(1000, tz=UTC), image_url=url,
+    )
+
+
+async def _art(db_session) -> dict[tuple[str, str], str | None]:
+    rows = (await db_session.execute(select(AlbumArt))).scalars().all()
+    return {(r.artist, r.album): r.image_url for r in rows}
+
+
+async def test_upsert_album_art_url_wins_over_null(db_session):
+    await upsert_album_art(db_session, [_cover("Alb", "https://img/1.jpg"), _cover(None, "x")])
+    assert await _art(db_session) == {("A", "Alb"): "https://img/1.jpg"}
+
+    await upsert_album_art(db_session, [_cover("Alb", None)])
+    assert await _art(db_session) == {("A", "Alb"): "https://img/1.jpg"}
+
+    await upsert_album_art(db_session, [_cover("Other", None)])
+    assert await _art(db_session) == {("A", "Alb"): "https://img/1.jpg", ("A", "Other"): None}
+
+
+async def test_upsert_album_art_newer_url_replaces_older(db_session):
+    await upsert_album_art(db_session, [_cover("Alb", "https://img/old.jpg")])
+    await upsert_album_art(
+        db_session,
+        [_cover("Alb", "https://img/mid.jpg"), _cover("Alb", "https://img/new.jpg"), _cover("Alb", None)],
+    )
+    assert await _art(db_session) == {("A", "Alb"): "https://img/new.jpg"}
