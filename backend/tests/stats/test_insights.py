@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.ingest.repository import upsert_listens
 from tidalwave.models.domain import Scrobble
-from tidalwave.stats.insights import discoveries, on_this_day
+from tidalwave.stats.insights import discoveries, heatmap, on_this_day, records
 from tidalwave.stats.scope import Scope
 
 
@@ -130,3 +130,99 @@ async def test_insights_empty_user_returns_empty(db_session):
         "new_artists": [], "new_tracks_count": 0, "new_tracks": [], "rediscoveries": []
     }
     assert await on_this_day(db_session, scope, now=_d(2026, 11, 6)) == []
+
+
+
+async def _seed(db_session, user, whens):
+    await upsert_listens(db_session, user.id, [_s("A", f"t{i}", w) for i, w in enumerate(whens)])
+
+
+async def test_longest_streak(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [
+        _d(2024, 6, 1, 12), _d(2024, 6, 1, 13), _d(2024, 6, 2, 12),
+        _d(2024, 6, 4, 12), _d(2024, 6, 5, 12), _d(2024, 6, 6, 12),
+        _d(2024, 6, 8, 12),
+    ])
+    r = await records(db_session, _scope(user), now=_d(2025, 1, 1))
+    assert r["longest_streak"] == {"days": 3, "start": "2024-06-04", "end": "2024-06-06"}
+
+
+async def test_current_streak_may_end_yesterday(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [_d(2024, 6, 3, 12), _d(2024, 6, 4, 12), _d(2024, 6, 5, 12)])
+    r = await records(db_session, _scope(user), now=_d(2024, 6, 6, 9))
+    assert r["current_streak"] == {"days": 3, "start": "2024-06-03"}
+    r = await records(db_session, _scope(user), now=_d(2024, 6, 7, 9))
+    assert r["current_streak"] is None
+
+
+async def test_current_streak_uses_user_tz(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [_d(2024, 6, 4, 12), _d(2024, 6, 5, 12)])
+    now = _d(2024, 6, 6, 22, 30)
+    utc = await records(db_session, _scope(user), now=now)
+    berlin = await records(db_session, _scope(user, tz="Europe/Berlin"), now=now)
+    assert utc["current_streak"] == {"days": 2, "start": "2024-06-04"}
+    assert berlin["current_streak"] is None
+
+
+async def test_current_streak_absent_when_range_excludes_today(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [_d(2024, 6, 4, 12), _d(2024, 6, 5, 12)])
+    now = _d(2024, 6, 6, 9)
+    scope = _scope(user, since=_d(2024, 6, 1), until=_d(2024, 6, 6))
+    assert (await records(db_session, scope, now=now))["current_streak"] is None
+    scope = _scope(user, since=_d(2024, 6, 1), until=_d(2024, 6, 7))
+    assert (await records(db_session, scope, now=now))["current_streak"] is not None
+    scope = _scope(user, since=_d(2024, 6, 7))
+    assert (await records(db_session, scope, now=now))["current_streak"] is None
+
+
+async def test_busiest_day_in_user_tz(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [
+        _d(2024, 6, 1, 12),
+        _d(2024, 6, 2, 21, 30), _d(2024, 6, 2, 22, 30), _d(2024, 6, 2, 23, 30),
+    ])
+    utc = await records(db_session, _scope(user), now=_d(2025, 1, 1))
+    assert utc["busiest_day"] == {"date": "2024-06-02", "listens": 3}
+    berlin = await records(db_session, _scope(user, tz="Europe/Berlin"), now=_d(2025, 1, 1))
+    assert berlin["busiest_day"] == {"date": "2024-06-03", "listens": 2}
+
+
+async def test_longest_session_breaks_after_30_minutes(db_session):
+    user = await _user(db_session)
+    base = _d(2024, 6, 1, 10)
+    first = [base + timedelta(minutes=30 * i) for i in range(4)]
+    second = [_d(2024, 6, 1, 20) + timedelta(minutes=31 * i) for i in range(4)]
+    await _seed(db_session, user, first + second)
+    r = await records(db_session, _scope(user), now=_d(2025, 1, 1))
+    assert r["longest_session"] == {"start": first[0].isoformat(), "listens": 4, "seconds": 0}
+    await _seed(db_session, user, [first[-1] + timedelta(minutes=30)])
+    r = await records(db_session, _scope(user), now=_d(2025, 1, 1))
+    assert r["longest_session"]["listens"] == 5
+
+
+async def test_heatmap_window_caps_at_365_days(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [_d(2023, 1, 1, 12), _d(2024, 1, 1, 12), _d(2024, 1, 1, 13)])
+    now = _d(2024, 6, 1, 9)
+    h = await heatmap(db_session, _scope(user), now=now)
+    assert (h["start"], h["end"]) == ("2023-06-03", "2024-06-01")
+    assert h["days"] == [{"date": "2024-01-01", "listens": 2}]
+    h = await heatmap(db_session, _scope(user, since=_d(2024, 1, 1), until=_d(2024, 2, 1)), now=now)
+    assert (h["start"], h["end"]) == ("2024-01-01", "2024-01-31")
+    h = await heatmap(db_session, _scope(user, since=_d(2022, 1, 1), until=_d(2024, 2, 1)), now=now)
+    assert (h["start"], h["end"]) == ("2023-02-01", "2024-01-31")
+
+
+async def test_records_empty_user(db_session):
+    user = await _user(db_session)
+    now = _d(2024, 6, 1)
+    assert await records(db_session, _scope(user), now=now) == {
+        "longest_streak": None, "current_streak": None,
+        "busiest_day": None, "longest_session": None,
+    }
+    h = await heatmap(db_session, _scope(user), now=now)
+    assert h["days"] == []

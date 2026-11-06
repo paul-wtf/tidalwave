@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Integer, cast, func, select
+from sqlalchemy import Date, Integer, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.models.db import Listen
@@ -12,6 +12,8 @@ from tidalwave.stats.scope import Scope
 
 REDISCOVERY_GAP = timedelta(days=180)
 ON_THIS_DAY_TRACKS = 3
+SESSION_GAP = timedelta(minutes=30)
+HEATMAP_DAYS = 365
 
 
 def _first_seen(scope: Scope, *columns):
@@ -131,3 +133,127 @@ async def on_this_day(
         entry["top_tracks"] = entry["top_tracks"][:ON_THIS_DAY_TRACKS]
         result.append(entry)
     return result
+
+
+def _local_day(scope: Scope):
+    return cast(func.timezone(scope.tz, Listen.played_at), Date)
+
+
+def _islands(scope: Scope):
+    days = _scope(select(_local_day(scope).label("day")), scope).distinct().subquery()
+    key = (days.c.day - cast(func.row_number().over(order_by=days.c.day), Integer)).label("key")
+    keyed = select(days.c.day, key).subquery()
+    return (
+        select(
+            func.count().label("days"),
+            func.min(keyed.c.day).label("start"),
+            func.max(keyed.c.day).label("end"),
+        )
+        .group_by(keyed.c.key)
+        .subquery()
+    )
+
+
+async def _longest_streak(session, scope: Scope) -> dict | None:
+    islands = _islands(scope)
+    row = (await session.execute(
+        select(islands).order_by(islands.c.days.desc(), islands.c.start.asc()).limit(1)
+    )).first()
+    if row is None:
+        return None
+    return {"days": row.days, "start": row.start.isoformat(), "end": row.end.isoformat()}
+
+
+async def _current_streak(session, scope: Scope, now: datetime) -> dict | None:
+    if (scope.until is not None and scope.until <= now) or (
+        scope.since is not None and scope.since > now
+    ):
+        return None
+    today = now.astimezone(ZoneInfo(scope.tz)).date()
+    islands = _islands(scope)
+    row = (await session.execute(
+        select(islands).order_by(islands.c.end.desc()).limit(1)
+    )).first()
+    if row is None or row.end < today - timedelta(days=1):
+        return None
+    return {"days": row.days, "start": row.start.isoformat()}
+
+
+async def _busiest_day(session, scope: Scope) -> dict | None:
+    day = _local_day(scope)
+    row = (await session.execute(
+        _scope(select(day.label("day"), func.count().label("n")), scope)
+        .group_by(day)
+        .order_by(func.count().desc(), day.asc())
+        .limit(1)
+    )).first()
+    if row is None:
+        return None
+    return {"date": row.day.isoformat(), "listens": row.n}
+
+
+async def _longest_session(session, scope: Scope) -> dict | None:
+    previous = func.lag(Listen.played_at).over(order_by=Listen.played_at)
+    gapped = _scope(
+        select(Listen.played_at, Listen.duration_sec, previous.label("prev")), scope
+    ).subquery()
+    is_break = func.coalesce(gapped.c.played_at - gapped.c.prev > SESSION_GAP, True)
+    numbered = select(
+        gapped.c.played_at,
+        gapped.c.duration_sec,
+        func.sum(cast(is_break, Integer)).over(order_by=gapped.c.played_at).label("sid"),
+    ).subquery()
+    row = (await session.execute(
+        select(
+            func.min(numbered.c.played_at).label("start"),
+            func.count().label("n"),
+            func.coalesce(func.sum(numbered.c.duration_sec), 0).label("seconds"),
+        )
+        .group_by(numbered.c.sid)
+        .order_by(func.count().desc(), func.min(numbered.c.played_at).asc())
+        .limit(1)
+    )).first()
+    if row is None:
+        return None
+    return {"start": row.start.isoformat(), "listens": row.n, "seconds": int(row.seconds)}
+
+
+async def records(
+    session: AsyncSession, scope: Scope, *, now: datetime | None = None
+) -> dict:
+    now = now or datetime.now(UTC)
+    return {
+        "longest_streak": await _longest_streak(session, scope),
+        "current_streak": await _current_streak(session, scope, now),
+        "busiest_day": await _busiest_day(session, scope),
+        "longest_session": await _longest_session(session, scope),
+    }
+
+
+def _heatmap_window(scope: Scope, now: datetime) -> tuple[date, date]:
+    zone = ZoneInfo(scope.tz)
+    end_instant = scope.until - timedelta(microseconds=1) if scope.until is not None else now
+    end = end_instant.astimezone(zone).date()
+    if scope.since is not None:
+        start = scope.since.astimezone(zone).date()
+        if (end - start).days + 1 <= 366:
+            return start, end
+    return end - timedelta(days=HEATMAP_DAYS - 1), end
+
+
+async def heatmap(
+    session: AsyncSession, scope: Scope, *, now: datetime | None = None
+) -> dict:
+    start, end = _heatmap_window(scope, now or datetime.now(UTC))
+    day = _local_day(scope)
+    rows = (await session.execute(
+        _scope(select(day.label("day"), func.count().label("n")), scope)
+        .where(day >= start, day <= end)
+        .group_by(day)
+        .order_by(day)
+    )).all()
+    return {
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "days": [{"date": r.day.isoformat(), "listens": r.n} for r in rows],
+    }

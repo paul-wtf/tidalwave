@@ -164,4 +164,18 @@ def make_stats_router(scope_dep) -> APIRouter:
     ) -> list[dict]:
         return await insights.on_this_day(session, scope)
 
+    @router.get("/records")
+    async def records(
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await insights.records(session, scope)
+
+    @router.get("/heatmap")
+    async def heatmap(
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await insights.heatmap(session, scope)
+
     return router
