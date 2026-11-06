@@ -29,6 +29,19 @@ describe('Discoveries', () => {
       'href', '/s/tok/artist?artist=Justice');
   });
 
+  it('renders tracks whose artist and title concatenate to the same text', () => {
+    const twins = {
+      ...none,
+      new_tracks_count: 2,
+      new_tracks: [
+        { track: 'ab', artist: 'c', first_listen: '2026-10-02T12:00:00Z', listens: 1 },
+        { track: 'a', artist: 'bc', first_listen: '2026-10-02T12:00:00Z', listens: 1 }
+      ]
+    };
+    render(Discoveries, { discoveries: twins });
+    expect(screen.getAllByRole('link', { name: /^(ab|a)$/ })).toHaveLength(2);
+  });
+
   it('shows an empty state per list', () => {
     render(Discoveries, { discoveries: none });
     expect(screen.getByText('No new artists in this range.')).toBeInTheDocument();

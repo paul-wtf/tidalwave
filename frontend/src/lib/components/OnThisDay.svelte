@@ -19,7 +19,7 @@
             <span class="count">{formatCount(y.listens)} {y.listens === 1 ? 'listen' : 'listens'}</span>
           </div>
           <ol>
-            {#each y.top_tracks as t (t.track + t.artist)}
+            {#each y.top_tracks as t (`${t.artist}\u0000${t.track}`)}
               <li>
                 <a href={trackHref(base, t.artist, t.track)}>{t.track}</a>
                 <a class="artist" href={artistHref(base, t.artist)}>{t.artist}</a>

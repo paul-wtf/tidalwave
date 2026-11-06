@@ -28,4 +28,11 @@ describe('OnThisDay', () => {
     render(OnThisDay, { years: [] });
     expect(screen.getByText('Nothing on this day in earlier years.')).toBeInTheDocument();
   });
+
+  it('renders tracks whose artist and title concatenate to the same text', () => {
+    render(OnThisDay, { years: [{ year: 2025, listens: 2, top_tracks: [
+      { track: 'ab', artist: 'c', count: 1 }, { track: 'a', artist: 'bc', count: 1 }
+    ] }] });
+    expect(screen.getAllByRole('link', { name: /^(ab|a)$/ })).toHaveLength(2);
+  });
 });

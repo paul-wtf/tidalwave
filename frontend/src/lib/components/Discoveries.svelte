@@ -5,7 +5,7 @@
   import Cover from './Cover.svelte';
 
   let { discoveries, base = '', tz = 'UTC' }:
-    { discoveries: Discoveries; base?: string; tz?: string } = $props();
+    { discoveries: Discoveries; base?: string; tz?: string | null } = $props();
 
   const listens = (n: number) => `${formatCount(n)} ${n === 1 ? 'listen' : 'listens'}`;
 </script>
@@ -33,7 +33,7 @@
     <p class="empty">No new tracks in this range.</p>
   {:else}
     <ul>
-      {#each discoveries.new_tracks as t (t.track + t.artist)}
+      {#each discoveries.new_tracks as t (`${t.artist}\u0000${t.track}`)}
         <li>
           <a class="name" href={trackHref(base, t.artist, t.track)}>{t.track}</a>
           <a class="artist" href={artistHref(base, t.artist)}>{t.artist}</a>

@@ -38,8 +38,8 @@
     <svg
       role="img"
       aria-label="Listens per day, {heatmap.start} to {heatmap.end}"
-      width={columns * STEP}
-      height={7 * STEP}
+      width="100%"
+      style="max-width: {columns * STEP * 2}px"
       viewBox="0 0 {columns * STEP} {7 * STEP}"
     >
       {#each cells as c (c.date)}
@@ -73,6 +73,7 @@
   }
   svg {
     display: block;
+    height: auto;
   }
   .l0 {
     fill: var(--surface0);

@@ -22,6 +22,13 @@ describe('Heatmap', () => {
     expect(cells(container)).toHaveLength(11);
   });
 
+  it('scales to the container instead of a fixed pixel width', () => {
+    const { container } = render(Heatmap, { heatmap });
+    const svg = container.querySelector('svg')!;
+    expect(svg.getAttribute('width')).toBe('100%');
+    expect(svg.getAttribute('viewBox')).toMatch(/^0 0 \d+ 98$/);
+  });
+
   it('titles each cell with date and count, singular for one listen', () => {
     const { container } = render(Heatmap, { heatmap });
     expect(byTitle(container, '2026-11-06: 14 listens')).toBeTruthy();
