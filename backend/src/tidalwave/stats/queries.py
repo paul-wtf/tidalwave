@@ -16,11 +16,21 @@ def _scope(stmt, scope: Scope):
     return stmt
 
 
+def _entity(stmt, artist: str | None, album: str | None, track: str | None):
+    if artist is not None:
+        stmt = stmt.where(Listen.artist == artist)
+    if album is not None:
+        stmt = stmt.where(Listen.album == album)
+    if track is not None:
+        stmt = stmt.where(Listen.track_title == track)
+    return stmt
+
+
 def _distinct_albums():
     return func.count(distinct(tuple_(Listen.artist, Listen.album))).filter(Listen.album.is_not(None))
 
 
-async def _top(session, scope, column, label, *, limit, extra=None):
+async def _top(session, scope, column, label, *, limit, extra=None, artist=None, album=None, track=None):
     """Top-N by listen count. ``extra`` is an optional ``(column, label)`` pair
     that is added to the GROUP BY and returned alongside each row — used so a
     track row also carries its artist (lets the UI build a precise search link)."""
@@ -33,7 +43,7 @@ async def _top(session, scope, column, label, *, limit, extra=None):
     order = [func.count().desc(), column.asc()]
     if extra is not None:
         order.append(extra[0].asc())
-    stmt = _scope(select(*cols), scope).group_by(*groups).order_by(*order).limit(limit)
+    stmt = _entity(_scope(select(*cols), scope), artist, album, track).group_by(*groups).order_by(*order).limit(limit)
     rows = (await session.execute(stmt)).all()
     if extra is None:
         return [{label: row[0], "count": row[1]} for row in rows]
@@ -79,19 +89,25 @@ async def top_artists(session: AsyncSession, scope: Scope, *, limit: int = 20) -
     ]
 
 
-async def top_tracks(session: AsyncSession, scope: Scope, *, limit: int = 20) -> list[dict]:
+async def top_tracks(
+    session: AsyncSession, scope: Scope, *, limit: int = 20,
+    artist: str | None = None, album: str | None = None, track: str | None = None,
+) -> list[dict]:
     # Group by (artist, track_title) so identically-titled songs by different
     # artists stay distinct and each row carries its artist.
     return await _top(session, scope, Listen.track_title, "track", limit=limit,
-                      extra=(Listen.artist, "artist"))
+                      extra=(Listen.artist, "artist"), artist=artist, album=album, track=track)
 
 
-async def top_albums(session: AsyncSession, scope: Scope, *, limit: int = 20) -> list[dict]:
+async def top_albums(
+    session: AsyncSession, scope: Scope, *, limit: int = 20,
+    artist: str | None = None, album: str | None = None, track: str | None = None,
+) -> list[dict]:
     stmt = (
-        _scope(
+        _entity(_scope(
             select(Listen.album, Listen.artist, func.count().label("count"), AlbumArt.image_url),
             scope,
-        )
+        ), artist, album, track)
         .outerjoin(AlbumArt, and_(AlbumArt.artist == Listen.artist, AlbumArt.album == Listen.album))
         .group_by(Listen.album, Listen.artist, AlbumArt.image_url)
         .order_by(func.count().desc(), Listen.album.asc(), Listen.artist.asc())
@@ -131,12 +147,15 @@ async def summary_stats(session: AsyncSession, scope: Scope) -> dict:
     }
 
 
-async def metrics_over_time(session: AsyncSession, scope: Scope, *, bucket: str = "day") -> list[dict]:
+async def metrics_over_time(
+    session: AsyncSession, scope: Scope, *, bucket: str = "day",
+    artist: str | None = None, album: str | None = None, track: str | None = None,
+) -> list[dict]:
     """Per-period listens, distinct artists/albums and seconds — drives the
     over-time graphs. Returns chronological rows keyed by ISO period."""
     period = func.date_trunc(bucket, func.timezone(scope.tz, Listen.played_at))
     stmt = (
-        _scope(
+        _entity(_scope(
             select(
                 period.label("period"),
                 func.count().label("listens"),
@@ -145,7 +164,7 @@ async def metrics_over_time(session: AsyncSession, scope: Scope, *, bucket: str 
                 func.coalesce(func.sum(Listen.duration_sec), 0).label("seconds"),
             ),
             scope,
-        )
+        ), artist, album, track)
         .group_by(period)
         .order_by(period.asc())
     )
@@ -194,12 +213,15 @@ async def listens_over_time(session: AsyncSession, scope: Scope, *, bucket: str 
     ]
 
 
-async def recent_listens(session: AsyncSession, scope: Scope, *, limit: int = 50) -> list[dict]:
+async def recent_listens(
+    session: AsyncSession, scope: Scope, *, limit: int = 50,
+    artist: str | None = None, album: str | None = None, track: str | None = None,
+) -> list[dict]:
     stmt = (
-        _scope(
+        _entity(_scope(
             select(Listen.track_title, Listen.artist, Listen.album, Listen.played_at, AlbumArt.image_url),
             scope,
-        )
+        ), artist, album, track)
         .outerjoin(AlbumArt, and_(AlbumArt.artist == Listen.artist, AlbumArt.album == Listen.album))
         .order_by(Listen.played_at.desc())
         .limit(limit)

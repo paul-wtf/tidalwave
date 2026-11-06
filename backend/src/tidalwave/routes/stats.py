@@ -4,12 +4,18 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.deps import get_session
-from tidalwave.stats import queries
+from tidalwave.stats import details, queries
 from tidalwave.stats.scope import Scope, previous_range
+
+
+def _found(detail: dict | None) -> dict:
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    return detail
 
 
 def make_stats_router(scope_dep) -> APIRouter:
@@ -26,18 +32,28 @@ def make_stats_router(scope_dep) -> APIRouter:
     @router.get("/top-tracks")
     async def top_tracks(
         limit: int = Query(20, ge=1, le=500),
+        artist: str | None = None,
+        album: str | None = None,
+        track: str | None = None,
         scope: Scope = Depends(scope_dep),
         session: AsyncSession = Depends(get_session),
     ) -> list[dict]:
-        return await queries.top_tracks(session, scope, limit=limit)
+        return await queries.top_tracks(
+            session, scope, limit=limit, artist=artist, album=album, track=track
+        )
 
     @router.get("/top-albums")
     async def top_albums(
         limit: int = Query(20, ge=1, le=500),
+        artist: str | None = None,
+        album: str | None = None,
+        track: str | None = None,
         scope: Scope = Depends(scope_dep),
         session: AsyncSession = Depends(get_session),
     ) -> list[dict]:
-        return await queries.top_albums(session, scope, limit=limit)
+        return await queries.top_albums(
+            session, scope, limit=limit, artist=artist, album=album, track=track
+        )
 
     @router.get("/clock")
     async def clock(
@@ -64,18 +80,28 @@ def make_stats_router(scope_dep) -> APIRouter:
     @router.get("/recent")
     async def recent(
         limit: int = Query(50, ge=1, le=500),
+        artist: str | None = None,
+        album: str | None = None,
+        track: str | None = None,
         scope: Scope = Depends(scope_dep),
         session: AsyncSession = Depends(get_session),
     ) -> list[dict]:
-        return await queries.recent_listens(session, scope, limit=limit)
+        return await queries.recent_listens(
+            session, scope, limit=limit, artist=artist, album=album, track=track
+        )
 
     @router.get("/metrics-over-time")
     async def metrics_over_time(
         bucket: Literal["day", "week", "month"] = "day",
+        artist: str | None = None,
+        album: str | None = None,
+        track: str | None = None,
         scope: Scope = Depends(scope_dep),
         session: AsyncSession = Depends(get_session),
     ) -> list[dict]:
-        return await queries.metrics_over_time(session, scope, bucket=bucket)
+        return await queries.metrics_over_time(
+            session, scope, bucket=bucket, artist=artist, album=album, track=track
+        )
 
     @router.get("/summary")
     async def summary(
@@ -96,5 +122,31 @@ def make_stats_router(scope_dep) -> APIRouter:
                 session, replace(scope, since=since, until=until)
             )
         return {**current, "previous": previous}
+
+    @router.get("/artist")
+    async def artist_detail(
+        artist: str,
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return _found(await details.artist_detail(session, scope, artist))
+
+    @router.get("/album")
+    async def album_detail(
+        artist: str,
+        album: str,
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return _found(await details.album_detail(session, scope, artist, album))
+
+    @router.get("/track")
+    async def track_detail(
+        artist: str,
+        track: str,
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return _found(await details.track_detail(session, scope, artist, track))
 
     return router

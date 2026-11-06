@@ -154,3 +154,38 @@ async def test_summary_compare_omitted_for_all_time_and_shares(api, db_session):
     shared = await client.get(f"/shared/{token}/summary?compare=true&since=2024-02-01T00:00:00Z")
     assert shared.status_code == 200
     assert shared.json()["previous"] is None
+
+
+NASTY = 'AC/DC & "Friends" #1 ?+ Ünïcode'
+
+
+async def test_detail_roundtrips_special_characters(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "nasty", "sk_n", mode="open", allowlist=[])
+    when = datetime(2024, 1, 1, tzinfo=UTC)
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist=NASTY, track_title=NASTY, album=NASTY, played_at=when),
+    ])
+    cookie = SessionCodec("test-secret").encode(user.id)
+    headers = {"Cookie": f"{COOKIE_NAME}={cookie}"}
+    resp = await client.get("/stats/artist", params={"artist": NASTY}, headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["artist"] == NASTY
+    resp = await client.get("/stats/album", params={"artist": NASTY, "album": NASTY}, headers=headers)
+    assert resp.json()["album"] == NASTY
+    resp = await client.get("/stats/track", params={"artist": NASTY, "track": NASTY}, headers=headers)
+    assert resp.json()["track"] == NASTY
+    assert resp.json()["album"] == NASTY
+    recent = await client.get("/stats/recent", params={"artist": NASTY, "album": NASTY}, headers=headers)
+    assert len(recent.json()) == 1
+
+
+async def test_detail_404_for_unknown_entity(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "empty", "sk_e", mode="open", allowlist=[])
+    cookie = SessionCodec("test-secret").encode(user.id)
+    headers = {"Cookie": f"{COOKIE_NAME}={cookie}"}
+    assert (await client.get("/stats/artist", params={"artist": "Nobody"}, headers=headers)).status_code == 404
+    assert (await client.get("/stats/album", params={"artist": "N", "album": "M"}, headers=headers)).status_code == 404
+    assert (await client.get("/stats/track", params={"artist": "N", "track": "M"}, headers=headers)).status_code == 404
+    assert (await client.get("/stats/artist", headers=headers)).status_code == 422
