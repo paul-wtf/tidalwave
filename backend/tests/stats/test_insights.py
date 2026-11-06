@@ -181,6 +181,25 @@ async def test_current_streak_absent_when_range_excludes_today(db_session):
     assert (await records(db_session, scope, now=now))["current_streak"] is None
 
 
+async def test_current_streak_is_not_cut_at_the_range_start(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [_d(2024, 6, day, 12) for day in range(1, 11)])
+    now = _d(2024, 6, 10, 15)
+    scope = _scope(user, since=_d(2024, 6, 9))
+    r = await records(db_session, scope, now=now)
+    assert r["current_streak"] == {"days": 10, "start": "2024-06-01"}
+
+
+async def test_current_streak_in_a_share_stops_at_the_share_floor(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [_d(2024, 6, day, 12) for day in range(1, 11)])
+    now = _d(2024, 6, 10, 15)
+    floor = _d(2024, 6, 8)
+    scope = _scope(user, since=floor, floor=floor, shared=True)
+    r = await records(db_session, scope, now=now)
+    assert r["current_streak"] == {"days": 3, "start": "2024-06-08"}
+
+
 async def test_busiest_day_in_user_tz(db_session):
     user = await _user(db_session)
     await _seed(db_session, user, [

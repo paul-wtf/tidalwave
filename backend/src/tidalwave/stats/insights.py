@@ -139,8 +139,9 @@ def _local_day(scope: Scope):
     return cast(func.timezone(scope.tz, Listen.played_at), Date)
 
 
-def _islands(scope: Scope):
-    days = _scope(select(_local_day(scope).label("day")), scope).distinct().subquery()
+def _islands(scope: Scope, *, bound_only: bool = False):
+    select_days = bounded if bound_only else _scope
+    days = select_days(select(_local_day(scope).label("day")), scope).distinct().subquery()
     key = (days.c.day - cast(func.row_number().over(order_by=days.c.day), Integer)).label("key")
     keyed = select(days.c.day, key).subquery()
     return (
@@ -170,7 +171,7 @@ async def _current_streak(session, scope: Scope, now: datetime) -> dict | None:
     ):
         return None
     today = now.astimezone(ZoneInfo(scope.tz)).date()
-    islands = _islands(scope)
+    islands = _islands(scope, bound_only=True)
     row = (await session.execute(
         select(islands).order_by(islands.c.end.desc()).limit(1)
     )).first()
