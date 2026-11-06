@@ -62,4 +62,25 @@ describe('UserMenu', () => {
     expect(requests).toContainEqual({ method: 'POST', url: '/auth/logout' });
     await vi.waitFor(() => expect(get(auth)).toEqual({ user: null, loading: false }));
   });
+  it('resets the select and shows an alert when the timezone change fails', async () => {
+    auth.set({ user: me(), loading: false });
+    mockApi({});
+    render(UserMenu);
+    await userEvent.click(screen.getByRole('button', { name: /paul/ }));
+    const select = screen.getByLabelText('Timezone') as HTMLSelectElement;
+    await userEvent.selectOptions(select, 'Europe/Berlin');
+    expect(await screen.findByRole('alert')).toHaveTextContent(/timezone/i);
+    expect(select.value).toBe('UTC');
+    expect(get(auth).user?.timezone).toBe('UTC');
+  });
+
+  it('shows an alert and keeps the user when logout fails', async () => {
+    auth.set({ user: me(), loading: false });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 500 })));
+    render(UserMenu);
+    await userEvent.click(screen.getByRole('button', { name: /paul/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Log out' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/log out/i);
+    expect(get(auth).user?.username).toBe('paul');
+  });
 });

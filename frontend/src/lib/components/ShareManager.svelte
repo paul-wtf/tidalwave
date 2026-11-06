@@ -168,9 +168,9 @@
     position: relative;
   }
   .panel {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 0.4rem);
+    position: fixed;
+    top: var(--bar-h);
+    right: clamp(1rem, 4vw, 2rem);
     z-index: 10;
     display: flex;
     flex-direction: column;

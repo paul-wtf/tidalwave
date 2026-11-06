@@ -5,6 +5,7 @@
 
   let open = $state(false);
   let busy = $state(false);
+  let error = $state<string | null>(null);
   let root: HTMLDivElement | undefined = $state();
 
   const user = $derived($auth.user);
@@ -28,19 +29,28 @@
   }
 
   async function changeTimezone(e: Event) {
-    const timezone = (e.currentTarget as HTMLSelectElement).value;
+    const select = e.currentTarget as HTMLSelectElement;
     busy = true;
+    error = null;
     try {
-      const updated = await api.updateMe({ timezone });
+      const updated = await api.updateMe({ timezone: select.value });
       auth.update((s) => ({ ...s, user: updated }));
+    } catch {
+      select.value = user?.timezone ?? 'UTC';
+      error = 'Could not change the timezone.';
     } finally {
       busy = false;
     }
   }
 
   async function logout() {
-    await api.logout();
-    auth.set({ user: null, loading: false });
+    error = null;
+    try {
+      await api.logout();
+      auth.set({ user: null, loading: false });
+    } catch {
+      error = 'Could not log out.';
+    }
   }
 </script>
 
@@ -66,6 +76,9 @@
           </select>
         </label>
         <button type="button" class="ghost" onclick={logout}>Log out</button>
+        {#if error}
+          <p class="error" role="alert">{error}</p>
+        {/if}
       </div>
     {/if}
   </div>
@@ -76,9 +89,9 @@
     position: relative;
   }
   .panel {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 0.4rem);
+    position: fixed;
+    top: var(--bar-h);
+    right: clamp(1rem, 4vw, 2rem);
     z-index: 10;
     display: flex;
     flex-direction: column;
@@ -93,6 +106,11 @@
     margin: 0;
     color: var(--text-muted);
     font-size: 0.82rem;
+  }
+  .error {
+    margin: 0;
+    color: var(--error);
+    font-size: 0.78rem;
   }
   label {
     display: flex;
