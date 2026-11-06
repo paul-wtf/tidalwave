@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.auth.registration import RegistrationDenied
@@ -101,9 +102,14 @@ async def update_me(
     user: User = Depends(current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
+    known = await session.scalar(
+        text("SELECT 1 FROM pg_timezone_names WHERE name = :tz"), {"tz": body.timezone}
+    )
+    if known is None:
+        raise HTTPException(status_code=422, detail="Unknown timezone")
     try:
         ZoneInfo(body.timezone)
-    except (KeyError, ValueError, OSError) as e:
+    except KeyError as e:
         raise HTTPException(status_code=422, detail="Unknown timezone") from e
     user.timezone = body.timezone
     await session.flush()

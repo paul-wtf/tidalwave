@@ -151,3 +151,18 @@ async def test_callback_schedules_immediate_ingest(api, monkeypatch):
     assert session_factory is app.state.session_factory
     assert lastfm_client is fake
     assert isinstance(user_id, int)
+
+
+async def test_patch_me_rejects_zoneinfo_name_postgres_does_not_know(
+    api, db_session, monkeypatch
+):
+    from tidalwave.routes import auth as auth_module
+
+    monkeypatch.setattr(auth_module, "ZoneInfo", lambda name: None)
+    client, user, headers = await _login(api, db_session)
+
+    resp = await client.patch("/auth/me", json={"timezone": "localtime"}, headers=headers)
+
+    assert resp.status_code == 422
+    await db_session.refresh(user)
+    assert user.timezone is None
