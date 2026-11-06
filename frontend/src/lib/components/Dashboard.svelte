@@ -75,6 +75,10 @@
   const listensTrend = $derived(metrics.map((m) => ({ period: m.period, value: m.listens })));
   const timeTrend = $derived(metrics.map((m) => ({ period: m.period, value: m.seconds })));
   const artistsTrend = $derived(metrics.map((m) => ({ period: m.period, value: m.artists })));
+  function change(cur: number, prev: number | undefined): number | null {
+    return token != null || !prev ? null : (cur - prev) / prev;
+  }
+  const prev = $derived(summary.previous);
   const timePending = $derived(summary.total_listens > 0 && summary.total_seconds === 0);
 </script>
 
@@ -83,14 +87,18 @@
 {:else}
   <div class="dashboard">
     <div class="row stats">
-      <StatCard label="Songs listened" value={formatCount(summary.total_listens)} />
+      <StatCard label="Songs listened" value={formatCount(summary.total_listens)}
+        delta={change(summary.total_listens, prev?.total_listens)} />
       <StatCard
         label="Time listened"
         value={formatDuration(summary.total_seconds)}
+        delta={change(summary.total_seconds, prev?.total_seconds)}
         sub={timePending ? 'resolving durations…' : undefined}
       />
-      <StatCard label="Artists" value={formatCount(summary.distinct_artists)} />
-      <StatCard label="Albums" value={formatCount(summary.distinct_albums)} />
+      <StatCard label="Artists" value={formatCount(summary.distinct_artists)}
+        delta={change(summary.distinct_artists, prev?.distinct_artists)} />
+      <StatCard label="Albums" value={formatCount(summary.distinct_albums)}
+        delta={change(summary.distinct_albums, prev?.distinct_albums)} />
     </div>
     <div class="row trends">
       <AreaTrend title="Listens over time" points={listensTrend} />
