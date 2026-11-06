@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import ShareManager from './ShareManager.svelte';
 import { mockApi } from '$lib/test/mockApi';
 import { range } from '$lib/stores/range';
+import { api } from '$lib/api/client';
 import { auth } from '$lib/stores/auth';
 
 const share = (token: string, extra: Record<string, unknown> = {}) => ({
@@ -122,5 +123,47 @@ describe('ShareManager', () => {
     render(ShareManager);
     await openPopover();
     expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
+
+  it('shows the last included day for a Berlin midnight end', async () => {
+    auth.set({ user: { username: 'u', timezone: 'Europe/Berlin' } as never, loading: false });
+    mockApi({
+      '/shares': [share('AAA', { range_from: '2026-09-30T22:00:00Z', range_to: '2026-10-31T23:00:00Z' })]
+    });
+    render(ShareManager);
+    await openPopover();
+    expect(await screen.findByText('2026-10-01 – 2026-10-31')).toBeInTheDocument();
+  });
+
+  it('creates a custom range with start and end one day after to', async () => {
+    range.set({ kind: 'custom', from: '2026-10-01', to: '2026-10-31' });
+    const m = mockApi({ '/shares': [], 'POST /shares': share('NEW') });
+    render(ShareManager);
+    await openPopover();
+    await screen.findByText('No active links');
+    await userEvent.click(screen.getByLabelText(/Current range/));
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await screen.findByText(/\/s\/NEW$/);
+    expect(JSON.parse(m.bodies['POST /shares'])).toEqual({ start: '2026-10-01', end: '2026-11-01' });
+  });
+
+  it('shows an error when create fails', async () => {
+    mockApi({ '/shares': [] });
+    vi.spyOn(api, 'createShare').mockRejectedValueOnce(new Error('boom'));
+    render(ShareManager);
+    await openPopover();
+    await screen.findByText('No active links');
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not create the link.');
+  });
+
+  it('checks All time when the selection becomes all time', async () => {
+    mockApi({ '/shares': [] });
+    render(ShareManager);
+    await openPopover();
+    await screen.findByText('No active links');
+    await userEvent.click(screen.getByLabelText(/Current range/));
+    range.set({ kind: 'rolling', key: 'all' });
+    await waitFor(() => expect(screen.getByLabelText('All time')).toBeChecked());
   });
 });

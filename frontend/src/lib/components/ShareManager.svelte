@@ -18,6 +18,10 @@
   const currentLabel = $derived(rangeLabel($range));
   const effectiveScope = $derived(isAll ? 'all' : scope);
 
+  $effect(() => {
+    if (isAll) scope = 'all';
+  });
+
   function localDay(ms: number): string {
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit'
@@ -140,7 +144,7 @@
         </label>
         <fieldset>
           <label class="choice">
-            <input type="radio" name="share-scope" value="all" bind:group={scope} checked={effectiveScope === 'all'} />
+            <input type="radio" name="share-scope" value="all" bind:group={scope} />
             All time
           </label>
           {#if !isAll}
@@ -254,7 +258,7 @@
   }
   .error {
     margin: 0;
-    color: var(--danger, #e5484d);
+    color: var(--error);
     font-size: 0.78rem;
   }
   button {
