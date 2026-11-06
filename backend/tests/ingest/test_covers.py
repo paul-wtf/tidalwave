@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.lastfm.client import LastfmError
@@ -134,6 +134,7 @@ async def test_budgeted_pick_rotates_past_albums_that_keep_failing(db_session, m
                 raise LastfmError(7, "boom")
             return "https://img/fine.jpg"
 
+    await db_session.execute(text("SELECT setseed(0.42)"))
     for _ in range(300):
         if await fill_missing_covers(db_session, Client(), max_albums=3):
             break
