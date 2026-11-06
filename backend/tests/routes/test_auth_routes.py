@@ -161,7 +161,7 @@ async def test_patch_me_rejects_zoneinfo_name_postgres_does_not_know(
     monkeypatch.setattr(auth_module, "ZoneInfo", lambda name: None)
     client, user, headers = await _login(api, db_session)
 
-    resp = await client.patch("/auth/me", json={"timezone": "localtime"}, headers=headers)
+    resp = await client.patch("/auth/me", json={"timezone": "Mars/Olympus_Mons"}, headers=headers)
 
     assert resp.status_code == 422
     await db_session.refresh(user)
