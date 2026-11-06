@@ -1,3 +1,4 @@
+import pytest
 from urllib.parse import parse_qs, urlsplit
 
 from tidalwave.auth.session import COOKIE_NAME, SessionCodec
@@ -52,7 +53,74 @@ async def test_me_returns_current_user(api, db_session):
     cookie = SessionCodec("test-secret").encode(user.id)
     resp = await client.get("/auth/me", headers={"Cookie": f"{COOKIE_NAME}={cookie}"})
     assert resp.status_code == 200
-    assert resp.json() == {"username": "alice", "is_admin": True}
+    assert resp.json() == {
+        "username": "alice",
+        "is_admin": True,
+        "timezone": None,
+        "disconnected": False,
+        "last_synced_at": None,
+        "last_played_at": None,
+    }
+
+
+async def _login(api, db_session):
+    from tidalwave.auth.service import upsert_user_from_session
+
+    client, _ = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    cookie = SessionCodec("test-secret").encode(user.id)
+    return client, user, {"Cookie": f"{COOKIE_NAME}={cookie}"}
+
+
+async def test_me_includes_sync_and_timezone(api, db_session):
+    from datetime import UTC, datetime
+
+    from tidalwave.ingest.repository import advance_sync_state
+
+    client, user, headers = await _login(api, db_session)
+    user.timezone = "Europe/Berlin"
+    played = datetime(2026, 11, 1, 12, 0, tzinfo=UTC)
+    await advance_sync_state(db_session, user.id, last_played_at=played)
+    await db_session.flush()
+
+    body = (await client.get("/auth/me", headers=headers)).json()
+
+    assert body["timezone"] == "Europe/Berlin"
+    assert body["disconnected"] is False
+    assert datetime.fromisoformat(body["last_played_at"]) == played
+    assert body["last_synced_at"] is not None
+
+
+async def test_patch_me_sets_timezone(api, db_session):
+    client, user, headers = await _login(api, db_session)
+
+    resp = await client.patch("/auth/me", json={"timezone": "Europe/Berlin"}, headers=headers)
+
+    assert resp.status_code == 200
+    assert resp.json()["timezone"] == "Europe/Berlin"
+    await db_session.refresh(user)
+    assert user.timezone == "Europe/Berlin"
+
+
+async def test_patch_me_rejects_unknown_timezone(api, db_session):
+    client, user, headers = await _login(api, db_session)
+
+    resp = await client.patch("/auth/me", json={"timezone": "Mars/Olympus"}, headers=headers)
+
+    assert resp.status_code == 422
+    await db_session.refresh(user)
+    assert user.timezone is None
+
+
+@pytest.mark.parametrize("name", ["", "../etc/passwd", "/etc/passwd", "Europe", "Europe/"])
+async def test_patch_me_rejects_malformed_timezone(api, db_session, name):
+    client, user, headers = await _login(api, db_session)
+
+    resp = await client.patch("/auth/me", json={"timezone": name}, headers=headers)
+
+    assert resp.status_code == 422
+    await db_session.refresh(user)
+    assert user.timezone is None
 
 
 async def test_callback_schedules_immediate_ingest(api, monkeypatch):

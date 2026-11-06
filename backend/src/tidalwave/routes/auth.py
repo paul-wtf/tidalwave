@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.auth.registration import RegistrationDenied
@@ -13,6 +15,7 @@ from tidalwave.models.db import User
 from tidalwave.config import Settings
 from tidalwave.deps import get_lastfm_client, get_session, get_settings
 from tidalwave.ingest.poller import ingest_user_now
+from tidalwave.ingest.repository import get_sync_state
 from tidalwave.lastfm.client import LastfmClient, LastfmError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -69,6 +72,39 @@ async def logout() -> Response:
     return resp
 
 
+class MeUpdate(BaseModel):
+    timezone: str
+
+
+async def _me_payload(session: AsyncSession, user: User) -> dict:
+    state = await get_sync_state(session, user.id)
+    return {
+        "username": user.lastfm_username,
+        "is_admin": user.is_admin,
+        "timezone": user.timezone,
+        "disconnected": user.disconnected,
+        "last_synced_at": state.last_synced_at.isoformat() if state and state.last_synced_at else None,
+        "last_played_at": state.last_played_at.isoformat() if state and state.last_played_at else None,
+    }
+
+
 @router.get("/me")
-async def me(user: User = Depends(current_user)) -> dict:
-    return {"username": user.lastfm_username, "is_admin": user.is_admin}
+async def me(
+    user: User = Depends(current_user), session: AsyncSession = Depends(get_session)
+) -> dict:
+    return await _me_payload(session, user)
+
+
+@router.patch("/me")
+async def update_me(
+    body: MeUpdate,
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    try:
+        ZoneInfo(body.timezone)
+    except (KeyError, ValueError, OSError) as e:
+        raise HTTPException(status_code=422, detail="Unknown timezone") from e
+    user.timezone = body.timezone
+    await session.flush()
+    return await _me_payload(session, user)

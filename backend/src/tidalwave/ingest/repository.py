@@ -73,3 +73,14 @@ async def advance_sync_state(
         )
     )
     await session.execute(stmt)
+
+
+async def mark_synced(session: AsyncSession, user_id: int) -> None:
+    stmt = (
+        pg_insert(SyncState)
+        .values(user_id=user_id, last_synced_at=func.now())
+        .on_conflict_do_update(
+            index_elements=[SyncState.user_id], set_={"last_synced_at": func.now()}
+        )
+    )
+    await session.execute(stmt)

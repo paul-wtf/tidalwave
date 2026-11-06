@@ -4,7 +4,12 @@ from typing import Protocol
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tidalwave.ingest.repository import advance_sync_state, get_sync_state, upsert_listens
+from tidalwave.ingest.repository import (
+    advance_sync_state,
+    get_sync_state,
+    mark_synced,
+    upsert_listens,
+)
 from tidalwave.lastfm.client import RecentTracksPage
 from tidalwave.models.db import User
 from tidalwave.models.domain import Scrobble
@@ -56,4 +61,6 @@ async def _collect_and_store(
     newest = max((s.played_at for s in collected if s.played_at is not None), default=None)
     if newest is not None:
         await advance_sync_state(session, user.id, last_played_at=newest)
+    else:
+        await mark_synced(session, user.id)
     return inserted
