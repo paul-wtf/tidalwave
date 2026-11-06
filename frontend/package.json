@@ -20,7 +20,7 @@
   "devDependencies": {
     "@playwright/test": "^1.61.0",
     "@sveltejs/adapter-static": "^3.0.0",
-    "@sveltejs/kit": "^2.69.1",
+    "@sveltejs/kit": "^2.70.4",
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/svelte": "^5.2.0",
@@ -32,16 +32,18 @@
     "svelte-check": "^4.0.0",
     "tslib": "^2.6.0",
     "typescript": "^5.4.0",
-    "vite": "^7.3.0",
-    "vitest": "^3.2.6"
+    "vite": "^7.3.7",
+    "vitest": "^4.1.12"
   },
   "pnpm": {
     "overrides": {
-      "brace-expansion@>=2.0.0 <2.1.2": ">=2.1.2 <3",
+      "brace-expansion@>=2.0.0 <2.1.7": ">=2.1.7 <3",
       "cookie@<0.7.0": ">=0.7.0",
+      "devalue@<5.9.3": ">=5.9.3 <6",
       "esbuild@<0.28.1": ">=0.28.1",
-      "js-yaml@<4.3.0": ">=4.3.0 <5",
-      "postcss@<8.5.18": ">=8.5.18 <9"
+      "js-yaml@<4.3.2": ">=4.3.2 <5",
+      "postcss@<8.5.18": ">=8.5.18 <9",
+      "source-map-js@<1.2.2": ">=1.2.2 <2"
     }
   },
   "dependencies": {
