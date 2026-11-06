@@ -1,6 +1,6 @@
 <script lang="ts">
   import {
-    api, ApiError,
+    statsApi, ApiError,
     type Summary, type MetricPoint, type RecentItem,
     type ArtistCount, type TrackCount, type AlbumCount
   } from '$lib/api/client';
@@ -52,25 +52,17 @@
 
   $effect(() => {
     const shared = token != null;
+    const client = statsApi(token);
     const params = shared ? undefined : { since: sinceFor($range) };
     const bucket = shared ? 'day' : bucketFor($range);
     (async () => {
       try {
-        if (token != null) {
-          const [s, m, ar, tr, al, cl, wd, rc] = await Promise.all([
-            api.shared.summary(token), api.shared.metricsOverTime(token, bucket),
-            api.shared.topArtists(token, 5), api.shared.topTracks(token, 5), api.shared.topAlbums(token, 5),
-            api.shared.clock(token), api.shared.weekday(token), api.shared.recent(token)
-          ]);
-          apply(s, m, ar, tr, al, cl, wd, rc);
-        } else {
-          const [s, m, ar, tr, al, cl, wd, rc] = await Promise.all([
-            api.summary(params), api.metricsOverTime(bucket, params),
-            api.topArtists(5, params), api.topTracks(5, params), api.topAlbums(5, params),
-            api.clock(params), api.weekday(params), api.recent(12)
-          ]);
-          apply(s, m, ar, tr, al, cl, wd, rc);
-        }
+        const [s, m, ar, tr, al, cl, wd, rc] = await Promise.all([
+          client.summary(params), client.metricsOverTime(bucket, params),
+          client.topArtists(5, params), client.topTracks(5, params), client.topAlbums(5, params),
+          client.clock(params), client.weekday(params), client.recent(12, params)
+        ]);
+        apply(s, m, ar, tr, al, cl, wd, rc);
         error = false;
       } catch (e) {
         if (!shared && e instanceof ApiError && e.status === 401) await loadMe();

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api, ApiError, type MetricPoint } from '$lib/api/client';
+  import { statsApi, ApiError, type MetricPoint } from '$lib/api/client';
   import { loadMe } from '$lib/stores/auth';
   import { range, sinceFor, bucketFor } from '$lib/stores/range';
   import TopList from './TopList.svelte';
@@ -18,32 +18,21 @@
 
   $effect(() => {
     const shared = token != null;
+    const client = statsApi(token);
     const params = shared ? undefined : { since: sinceFor($range) };
     const bucket = shared ? 'day' : bucketFor($range);
     const k = kind;
     (async () => {
       try {
-        if (token != null) {
-          const metricsPromise = api.shared.metricsOverTime(token, bucket);
-          if (k === 'artists') {
-            items = (await api.shared.topArtists(token, 100)).map((r) => ({ label: r.artist, count: r.count, query: r.artist }));
-          } else if (k === 'tracks') {
-            items = (await api.shared.topTracks(token, 100)).map((r) => ({ label: `${r.track} — ${r.artist}`, count: r.count, query: `${r.artist} ${r.track}` }));
-          } else {
-            items = (await api.shared.topAlbums(token, 100)).map((r) => ({ label: r.album ?? 'Unknown album', count: r.count, query: r.album ?? undefined }));
-          }
-          metrics = await metricsPromise;
+        const metricsPromise = client.metricsOverTime(bucket, params);
+        if (k === 'artists') {
+          items = (await client.topArtists(100, params)).map((r) => ({ label: r.artist, count: r.count, query: r.artist }));
+        } else if (k === 'tracks') {
+          items = (await client.topTracks(100, params)).map((r) => ({ label: `${r.track} — ${r.artist}`, count: r.count, query: `${r.artist} ${r.track}` }));
         } else {
-          const metricsPromise = api.metricsOverTime(bucket, params);
-          if (k === 'artists') {
-            items = (await api.topArtists(100, params)).map((r) => ({ label: r.artist, count: r.count, query: r.artist }));
-          } else if (k === 'tracks') {
-            items = (await api.topTracks(100, params)).map((r) => ({ label: `${r.track} — ${r.artist}`, count: r.count, query: `${r.artist} ${r.track}` }));
-          } else {
-            items = (await api.topAlbums(100, params)).map((r) => ({ label: r.album ?? 'Unknown album', count: r.count, query: r.album ?? undefined }));
-          }
-          metrics = await metricsPromise;
+          items = (await client.topAlbums(100, params)).map((r) => ({ label: r.album ?? 'Unknown album', count: r.count, query: r.album ?? undefined }));
         }
+        metrics = await metricsPromise;
         error = false;
       } catch (e) {
         if (!shared && e instanceof ApiError && e.status === 401) await loadMe();

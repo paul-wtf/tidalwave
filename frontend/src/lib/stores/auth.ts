@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
-import { api, type UserInfo } from '$lib/api/client';
+import { api, type Me } from '$lib/api/client';
 
-export interface AuthState { user: UserInfo | null; loading: boolean; }
+export interface AuthState { user: Me | null; loading: boolean; }
 
 export const auth = writable<AuthState>({ user: null, loading: true });
 

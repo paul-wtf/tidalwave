@@ -6,79 +6,169 @@ export class ApiError extends Error {
   }
 }
 
-async function get<T>(path: string): Promise<T> {
-  const res = await fetch(path, { credentials: 'include' });
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(path, { credentials: 'include', ...init });
   if (!res.ok) throw new ApiError(res.status, path);
   return (await res.json()) as T;
 }
 
-export interface UserInfo { username: string; is_admin: boolean; }
-export interface ArtistCount { artist: string; count: number; }
-export interface TrackCount { track: string; artist: string; count: number; }
-export interface AlbumCount { album: string; count: number; }
+export interface Me {
+  username: string;
+  is_admin: boolean;
+  timezone: string | null;
+  disconnected: boolean;
+  last_synced_at: string | null;
+  last_played_at: string | null;
+}
+export interface ArtistCount { artist: string; count: number; image_url?: string | null; }
+export interface TrackCount { track: string; artist: string; count: number; image_url?: string | null; }
+export interface AlbumCount { album: string | null; artist: string; count: number; image_url?: string | null; }
 export interface HistoryPoint { period: string; count: number; }
 export interface MetricPoint { period: string; listens: number; artists: number; albums: number; seconds: number; }
-export interface RecentItem { track: string; artist: string; album: string | null; played_at: string; }
+export interface RecentItem {
+  track: string; artist: string; album: string | null; played_at: string; image_url?: string | null;
+}
 export interface Summary {
   total_listens: number;
   distinct_artists: number;
   distinct_tracks: number;
   distinct_albums: number;
   total_seconds: number;
+  previous?: Summary | null;
+}
+export interface Share {
+  share_token: string;
+  label: string | null;
+  range_from: string | null;
+  range_to: string | null;
+  created_at: string;
+}
+export interface ShareCreate {
+  label?: string | null;
+  range_from?: string | null;
+  range_to?: string | null;
+  start?: string | null;
+  end?: string | null;
+}
+export interface ArtistDetail {
+  artist: string; listens: number; seconds: number; rank: number | null;
+  first_listen: string; last_listen: string; image_url: string | null;
+}
+export interface AlbumDetail {
+  artist: string; album: string; listens: number; seconds: number;
+  first_listen: string; last_listen: string; image_url: string | null;
+}
+export interface TrackDetail {
+  artist: string; track: string; album: string | null; listens: number; seconds: number;
+  first_listen: string; last_listen: string; image_url: string | null;
+}
+export interface Discoveries {
+  new_artists: { artist: string; first_listen: string; listens: number; image_url: string | null }[];
+  new_tracks_count: number;
+  new_tracks: { track: string; artist: string; first_listen: string; listens: number }[];
+  rediscoveries: { artist: string; previous_listen: string; gap_days: number; listens: number }[];
+}
+export interface OnThisDayYear {
+  year: number;
+  listens: number;
+  top_tracks: { track: string; artist: string; count: number }[];
+}
+export interface Records {
+  longest_streak: { days: number; start: string } | null;
+  current_streak: { days: number; start: string } | null;
+  busiest_day: { date: string; listens: number } | null;
+  longest_session: { start: string; listens: number; seconds: number } | null;
+}
+export interface Heatmap {
+  start: string;
+  end: string;
+  days: { date: string; listens: number }[];
 }
 export type Bucket = 'day' | 'week' | 'month';
-export interface RangeParams { since?: string; until?: string; }
+export type StatsParams = {
+  since?: string; until?: string; start?: string; end?: string;
+  calendar?: 'week' | 'month' | 'year';
+  artist?: string; album?: string; track?: string;
+};
 
-function qs(params: Record<string, string | number | undefined>): string {
-  const entries = Object.entries(params).filter(([, v]) => v != null && v !== '');
-  if (entries.length === 0) return '';
-  return '?' + entries.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
+function qs(params: Record<string, string | number | boolean | undefined | null>): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v != null && v !== '') q.set(k, String(v));
+  }
+  const s = q.toString();
+  return s ? `?${s}` : '';
 }
+
+export interface StatsApi {
+  summary(p?: StatsParams, compare?: boolean): Promise<Summary>;
+  topArtists(limit: number, p?: StatsParams): Promise<ArtistCount[]>;
+  topTracks(limit: number, p?: StatsParams): Promise<TrackCount[]>;
+  topAlbums(limit: number, p?: StatsParams): Promise<AlbumCount[]>;
+  clock(p?: StatsParams): Promise<number[]>;
+  weekday(p?: StatsParams): Promise<number[]>;
+  history(bucket: Bucket, p?: StatsParams): Promise<HistoryPoint[]>;
+  metricsOverTime(bucket: Bucket, p?: StatsParams): Promise<MetricPoint[]>;
+  recent(limit: number, p?: StatsParams): Promise<RecentItem[]>;
+  artist(name: string, p?: StatsParams): Promise<ArtistDetail>;
+  album(artist: string, album: string, p?: StatsParams): Promise<AlbumDetail>;
+  track(artist: string, track: string, p?: StatsParams): Promise<TrackDetail>;
+  discoveries(p?: StatsParams): Promise<Discoveries>;
+  onThisDay(): Promise<OnThisDayYear[]>;
+  records(p?: StatsParams): Promise<Records>;
+  heatmap(p?: StatsParams): Promise<Heatmap>;
+}
+
+export function statsApi(token?: string): StatsApi {
+  const base = token == null ? '/stats' : `/shared/${encodeURIComponent(token)}`;
+  const get = <T>(path: string, query: Record<string, string | number | boolean | undefined | null>) =>
+    request<T>(`${base}${path}${qs(query)}`);
+  return {
+    summary: (p, compare) => get('/summary', { ...p, compare: compare ? true : undefined }),
+    topArtists: (limit, p) => get('/top-artists', { limit, ...p }),
+    topTracks: (limit, p) => get('/top-tracks', { limit, ...p }),
+    topAlbums: (limit, p) => get('/top-albums', { limit, ...p }),
+    clock: (p) => get('/clock', { ...p }),
+    weekday: (p) => get('/weekday', { ...p }),
+    history: (bucket, p) => get('/history', { bucket, ...p }),
+    metricsOverTime: (bucket, p) => get('/metrics-over-time', { bucket, ...p }),
+    recent: (limit, p) => get('/recent', { limit, ...p }),
+    artist: (name, p) => get('/artist', { artist: name, ...p }),
+    album: (artist, album, p) => get('/album', { artist, album, ...p }),
+    track: (artist, track, p) => get('/track', { artist, track, ...p }),
+    discoveries: (p) => get('/discoveries', { ...p }),
+    onThisDay: () => get('/on-this-day', {}),
+    records: (p) => get('/records', { ...p }),
+    heatmap: (p) => get('/heatmap', { ...p })
+  };
+}
+
+const json = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(body)
+});
 
 export const api = {
   loginUrl: () => '/auth/login',
 
-  async me(): Promise<UserInfo | null> {
+  async me(): Promise<Me | null> {
     const res = await fetch('/auth/me', { credentials: 'include' });
     if (res.status === 401) return null;
     if (!res.ok) throw new ApiError(res.status, '/auth/me');
-    return (await res.json()) as UserInfo;
+    return (await res.json()) as Me;
+  },
+  updateMe: (body: { timezone: string }) => request<Me>('/auth/me', json('PATCH', body)),
+  async logout(): Promise<void> {
+    const res = await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+    if (!res.ok) throw new ApiError(res.status, '/auth/logout');
   },
 
-  summary: (p?: RangeParams) => get<Summary>(`/stats/summary${qs({ ...p })}`),
-  topArtists: (limit?: number, p?: RangeParams) =>
-    get<ArtistCount[]>(`/stats/top-artists${qs({ limit, ...p })}`),
-  topTracks: (limit?: number, p?: RangeParams) =>
-    get<TrackCount[]>(`/stats/top-tracks${qs({ limit, ...p })}`),
-  topAlbums: (limit?: number, p?: RangeParams) =>
-    get<AlbumCount[]>(`/stats/top-albums${qs({ limit, ...p })}`),
-  clock: (p?: RangeParams) => get<number[]>(`/stats/clock${qs({ ...p })}`),
-  weekday: (p?: RangeParams) => get<number[]>(`/stats/weekday${qs({ ...p })}`),
-  history: (bucket: Bucket = 'day', p?: RangeParams) =>
-    get<HistoryPoint[]>(`/stats/history${qs({ bucket, ...p })}`),
-  metricsOverTime: (bucket: Bucket = 'day', p?: RangeParams) =>
-    get<MetricPoint[]>(`/stats/metrics-over-time${qs({ bucket, ...p })}`),
-  recent: (limit?: number) => get<RecentItem[]>(`/stats/recent${qs({ limit })}`),
-
-  async createShare(): Promise<{ share_token: string }> {
-    const res = await fetch('/shares', { method: 'POST', credentials: 'include' });
-    if (!res.ok) throw new ApiError(res.status, '/shares');
-    return (await res.json()) as { share_token: string };
-  },
+  listShares: () => request<Share[]>('/shares'),
+  createShare: (body?: ShareCreate) =>
+    request<Share>('/shares', body ? json('POST', body) : { method: 'POST' }),
   async revokeShare(token: string): Promise<void> {
     const res = await fetch(`/shares/${token}`, { method: 'DELETE', credentials: 'include' });
     if (!res.ok) throw new ApiError(res.status, `/shares/${token}`);
-  },
-
-  shared: {
-    summary: (t: string) => get<Summary>(`/shared/${t}/summary`),
-    topArtists: (t: string, limit?: number) => get<ArtistCount[]>(`/shared/${t}/top-artists${qs({ limit })}`),
-    topTracks: (t: string, limit?: number) => get<TrackCount[]>(`/shared/${t}/top-tracks${qs({ limit })}`),
-    topAlbums: (t: string, limit?: number) => get<AlbumCount[]>(`/shared/${t}/top-albums${qs({ limit })}`),
-    clock: (t: string) => get<number[]>(`/shared/${t}/clock`),
-    weekday: (t: string) => get<number[]>(`/shared/${t}/weekday`),
-    history: (t: string, bucket: Bucket = 'day') => get<HistoryPoint[]>(`/shared/${t}/history?bucket=${bucket}`),
-    metricsOverTime: (t: string, bucket: Bucket = 'day') => get<MetricPoint[]>(`/shared/${t}/metrics-over-time?bucket=${bucket}`),
-    recent: (t: string) => get<RecentItem[]>(`/shared/${t}/recent`)
   }
 };
