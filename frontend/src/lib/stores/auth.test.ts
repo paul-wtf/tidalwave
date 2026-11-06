@@ -24,3 +24,21 @@ describe('auth store', () => {
     expect(get(auth).user).toBeNull();
   });
 });
+
+describe('loadMe timezone sync', () => {
+  it('stores the browser timezone once when the profile has none', async () => {
+    vi.spyOn(api, 'me').mockResolvedValue(ME);
+    const update = vi.spyOn(api, 'updateMe').mockResolvedValue({ ...ME, timezone: 'Europe/Berlin' });
+    await loadMe();
+    expect(update).toHaveBeenCalledWith({ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+    expect(get(auth).user?.timezone).toBe('Europe/Berlin');
+  });
+
+  it('does not update when a timezone is set', async () => {
+    vi.spyOn(api, 'me').mockResolvedValue({ ...ME, timezone: 'UTC' });
+    const update = vi.spyOn(api, 'updateMe').mockResolvedValue(ME);
+    update.mockClear();
+    await loadMe();
+    expect(update).not.toHaveBeenCalled();
+  });
+});

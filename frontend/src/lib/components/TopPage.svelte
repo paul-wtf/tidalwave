@@ -1,7 +1,7 @@
 <script lang="ts">
   import { statsApi, ApiError, type MetricPoint } from '$lib/api/client';
   import { loadMe } from '$lib/stores/auth';
-  import { range, sinceFor, bucketFor } from '$lib/stores/range';
+  import { rangeQuery } from '$lib/stores/range';
   import TopList from './TopList.svelte';
   import AreaTrend from './AreaTrend.svelte';
 
@@ -19,8 +19,9 @@
   $effect(() => {
     const shared = token != null;
     const client = statsApi(token);
-    const params = shared ? undefined : { since: sinceFor($range) };
-    const bucket = shared ? 'day' : bucketFor($range);
+    const q = shared ? undefined : $rangeQuery;
+    const params = q?.params;
+    const bucket = q?.bucket ?? 'day';
     const k = kind;
     (async () => {
       try {

@@ -5,7 +5,7 @@
     type ArtistCount, type TrackCount, type AlbumCount
   } from '$lib/api/client';
   import { loadMe } from '$lib/stores/auth';
-  import { range, sinceFor, bucketFor } from '$lib/stores/range';
+  import { rangeQuery } from '$lib/stores/range';
   import { formatCount, formatDuration } from '$lib/format';
   import StatCard from './StatCard.svelte';
   import AreaTrend from './AreaTrend.svelte';
@@ -53,12 +53,13 @@
   $effect(() => {
     const shared = token != null;
     const client = statsApi(token);
-    const params = shared ? undefined : { since: sinceFor($range) };
-    const bucket = shared ? 'day' : bucketFor($range);
+    const q = shared ? undefined : $rangeQuery;
+    const params = q?.params;
+    const bucket = q?.bucket ?? 'day';
     (async () => {
       try {
         const [s, m, ar, tr, al, cl, wd, rc] = await Promise.all([
-          client.summary(params), client.metricsOverTime(bucket, params),
+          client.summary(params, q?.compare), client.metricsOverTime(bucket, params),
           client.topArtists(5, params), client.topTracks(5, params), client.topAlbums(5, params),
           client.clock(params), client.weekday(params), client.recent(12, params)
         ]);
