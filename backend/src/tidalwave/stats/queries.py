@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from sqlalchemy import Integer, cast, distinct, func, select, tuple_
+from sqlalchemy import Integer, and_, cast, distinct, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tidalwave.models.db import Listen
+from tidalwave.models.db import AlbumArt, Listen
 from tidalwave.stats.scope import Scope
 
 
@@ -40,8 +40,43 @@ async def _top(session, scope, column, label, *, limit, extra=None):
     return [{label: row[0], extra[1]: row[1], "count": row[2]} for row in rows]
 
 
+def artist_cover_subquery(scope: Scope, artist: str | None = None):
+    """One row per artist: ``(artist, image_url)``, the cover of the artist's
+    most-listened album with a cover inside ``scope`` (ties by album name)."""
+    n = func.count().label("n")
+    stmt = (
+        select(Listen.artist.label("artist"), Listen.album.label("album"),
+               AlbumArt.image_url.label("image_url"), n)
+        .join(AlbumArt, and_(AlbumArt.artist == Listen.artist, AlbumArt.album == Listen.album))
+        .where(AlbumArt.image_url.is_not(None))
+    )
+    if artist is not None:
+        stmt = stmt.where(Listen.artist == artist)
+    per_album = _scope(stmt, scope).group_by(Listen.artist, Listen.album, AlbumArt.image_url).subquery()
+    ranked = select(
+        per_album.c.artist,
+        per_album.c.image_url,
+        func.row_number().over(
+            partition_by=per_album.c.artist,
+            order_by=(per_album.c.n.desc(), per_album.c.album.asc()),
+        ).label("rn"),
+    ).subquery()
+    return select(ranked.c.artist, ranked.c.image_url).where(ranked.c.rn == 1).subquery()
+
+
 async def top_artists(session: AsyncSession, scope: Scope, *, limit: int = 20) -> list[dict]:
-    return await _top(session, scope, Listen.artist, "artist", limit=limit)
+    cover = artist_cover_subquery(scope)
+    stmt = (
+        _scope(select(Listen.artist, func.count().label("count"), cover.c.image_url), scope)
+        .outerjoin(cover, cover.c.artist == Listen.artist)
+        .group_by(Listen.artist, cover.c.image_url)
+        .order_by(func.count().desc(), Listen.artist.asc())
+        .limit(limit)
+    )
+    return [
+        {"artist": r[0], "count": r[1], "image_url": r[2]}
+        for r in (await session.execute(stmt)).all()
+    ]
 
 
 async def top_tracks(session: AsyncSession, scope: Scope, *, limit: int = 20) -> list[dict]:
@@ -52,8 +87,20 @@ async def top_tracks(session: AsyncSession, scope: Scope, *, limit: int = 20) ->
 
 
 async def top_albums(session: AsyncSession, scope: Scope, *, limit: int = 20) -> list[dict]:
-    return await _top(session, scope, Listen.album, "album", limit=limit,
-                      extra=(Listen.artist, "artist"))
+    stmt = (
+        _scope(
+            select(Listen.album, Listen.artist, func.count().label("count"), AlbumArt.image_url),
+            scope,
+        )
+        .outerjoin(AlbumArt, and_(AlbumArt.artist == Listen.artist, AlbumArt.album == Listen.album))
+        .group_by(Listen.album, Listen.artist, AlbumArt.image_url)
+        .order_by(func.count().desc(), Listen.album.asc(), Listen.artist.asc())
+        .limit(limit)
+    )
+    return [
+        {"album": r[0], "artist": r[1], "count": r[2], "image_url": r[3]}
+        for r in (await session.execute(stmt)).all()
+    ]
 
 
 async def total_listens(session: AsyncSession, scope: Scope) -> int:
@@ -148,11 +195,16 @@ async def listens_over_time(session: AsyncSession, scope: Scope, *, bucket: str 
 
 
 async def recent_listens(session: AsyncSession, scope: Scope, *, limit: int = 50) -> list[dict]:
-    stmt = _scope(
-        select(Listen.track_title, Listen.artist, Listen.album, Listen.played_at),
-        scope,
-    ).order_by(Listen.played_at.desc()).limit(limit)
+    stmt = (
+        _scope(
+            select(Listen.track_title, Listen.artist, Listen.album, Listen.played_at, AlbumArt.image_url),
+            scope,
+        )
+        .outerjoin(AlbumArt, and_(AlbumArt.artist == Listen.artist, AlbumArt.album == Listen.album))
+        .order_by(Listen.played_at.desc())
+        .limit(limit)
+    )
     return [
-        {"track": r[0], "artist": r[1], "album": r[2], "played_at": r[3].isoformat()}
+        {"track": r[0], "artist": r[1], "album": r[2], "played_at": r[3].isoformat(), "image_url": r[4]}
         for r in (await session.execute(stmt)).all()
     ]

@@ -25,7 +25,7 @@ async def test_share_create_then_public_view(api, db_session):
 
     view = await client.get(f"/shared/{token}/top-artists")  # public, no cookie
     assert view.status_code == 200
-    assert view.json()[0] == {"artist": "Kavinsky", "count": 1}
+    assert view.json()[0] == {"artist": "Kavinsky", "count": 1, "image_url": None}
 
 
 async def test_revoked_share_returns_404(api, db_session):

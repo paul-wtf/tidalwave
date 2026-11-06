@@ -24,7 +24,7 @@ async def test_stats_returns_own_data(api, db_session):
         "/stats/top-artists", headers={"Cookie": f"{COOKIE_NAME}={cookie}"}
     )
     assert resp.status_code == 200
-    assert resp.json()[0] == {"artist": "Daft Punk", "count": 1}
+    assert resp.json()[0] == {"artist": "Daft Punk", "count": 1, "image_url": None}
 
 
 async def test_weekday_returns_7_element_list(api, db_session):

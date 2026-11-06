@@ -2,9 +2,11 @@ from datetime import UTC, datetime
 
 from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.ingest.repository import upsert_listens
+from tidalwave.models.db import AlbumArt
 from tidalwave.models.domain import Scrobble
 from tidalwave.stats.queries import (
     listening_clock,
+    recent_listens,
     listening_weekday,
     listens_over_time,
     metrics_over_time,
@@ -40,8 +42,8 @@ async def _seed(db_session):
 async def test_top_artists_ranks_by_count(db_session):
     user = await _seed(db_session)
     rows = await top_artists(db_session, _scope(user), limit=10)
-    assert rows[0] == {"artist": "Daft Punk", "count": 2}
-    assert rows[1] == {"artist": "Kavinsky", "count": 1}
+    assert rows[0] == {"artist": "Daft Punk", "count": 2, "image_url": None}
+    assert rows[1] == {"artist": "Kavinsky", "count": 1, "image_url": None}
 
 
 async def test_top_tracks_includes_artist(db_session):
@@ -152,8 +154,8 @@ async def test_top_albums_split_same_name_by_artist(db_session):
     user = await _seed_greatest_hits(db_session)
     rows = await top_albums(db_session, _scope(user), limit=10)
     assert rows == [
-        {"album": "Greatest Hits", "artist": "A", "count": 2},
-        {"album": "Greatest Hits", "artist": "B", "count": 1},
+        {"album": "Greatest Hits", "artist": "A", "count": 2, "image_url": None},
+        {"album": "Greatest Hits", "artist": "B", "count": 1, "image_url": None},
     ]
 
 
@@ -175,6 +177,70 @@ async def test_unknown_album_rows_split_by_artist(db_session):
     ])
     rows = await top_albums(db_session, _scope(user), limit=10)
     assert rows == [
-        {"album": None, "artist": "A", "count": 2},
-        {"album": None, "artist": "B", "count": 1},
+        {"album": None, "artist": "A", "count": 2, "image_url": None},
+        {"album": None, "artist": "B", "count": 1, "image_url": None},
     ]
+
+
+def _scope_range(user, since, until):
+    return Scope(user_id=user.id, tz="UTC", since=since, until=until)
+
+
+async def _covers(db_session, *rows):
+    db_session.add_all([AlbumArt(artist=a, album=b, image_url=u) for a, b, u in rows])
+    await db_session.flush()
+
+
+async def test_top_albums_carry_cover(db_session):
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        _alb("A", "x", "One", 0), _alb("A", "y", "Two", 86400),
+    ])
+    await _covers(db_session, ("A", "One", "https://img/one.jpg"))
+    rows = await top_albums(db_session, _scope(user), limit=10)
+    assert {r["album"]: r["image_url"] for r in rows} == {
+        "One": "https://img/one.jpg",
+        "Two": None,
+    }
+
+
+async def test_top_artist_cover_is_most_listened_album_in_scope(db_session):
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        _alb("A", "x1", "X", 0), _alb("A", "x2", "X", 86400), _alb("A", "x3", "X", 172800),
+        _alb("A", "y1", "Y", 259200), _alb("A", "y2", "Y", 345600),
+    ])
+    await _covers(db_session, ("A", "X", "https://img/x.jpg"), ("A", "Y", "https://img/y.jpg"))
+    overall = await top_artists(db_session, _scope(user), limit=10)
+    assert overall == [{"artist": "A", "count": 5, "image_url": "https://img/x.jpg"}]
+    ranged = await top_artists(
+        db_session, _scope_range(user, datetime.fromtimestamp(259200, tz=UTC), None), limit=10
+    )
+    assert ranged == [{"artist": "A", "count": 2, "image_url": "https://img/y.jpg"}]
+
+
+async def test_top_artist_cover_tie_breaks_by_album_name(db_session):
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [_alb("A", "b", "Beta", 0), _alb("A", "a", "Alpha", 86400)])
+    await _covers(db_session, ("A", "Alpha", "https://img/alpha.jpg"), ("A", "Beta", "https://img/beta.jpg"))
+    rows = await top_artists(db_session, _scope(user), limit=10)
+    assert rows[0]["image_url"] == "https://img/alpha.jpg"
+
+
+async def test_recent_listens_carry_cover(db_session):
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        _alb("A", "x", "One", 0), _alb("B", "y", None, 86400),
+    ])
+    await _covers(db_session, ("A", "One", "https://img/one.jpg"))
+    rows = await recent_listens(db_session, _scope(user))
+    assert [(r["track"], r["image_url"]) for r in rows] == [("y", None), ("x", "https://img/one.jpg")]
+
+
+async def test_missing_cover_is_null(db_session):
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [_alb("A", "x", "One", 0)])
+    await _covers(db_session, ("A", "One", None))
+    assert (await top_artists(db_session, _scope(user)))[0]["image_url"] is None
+    assert (await top_albums(db_session, _scope(user)))[0]["image_url"] is None
+    assert (await recent_listens(db_session, _scope(user)))[0]["image_url"] is None
