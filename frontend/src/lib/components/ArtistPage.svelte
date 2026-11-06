@@ -1,10 +1,11 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import {
-    statsApi, ApiError,
+    statsApi,
     type ArtistDetail, type MetricPoint, type RecentItem
   } from '$lib/api/client';
-  import { auth, loadMe } from '$lib/stores/auth';
+  import { auth } from '$lib/stores/auth';
+  import { loadDetail } from '$lib/detailLoader';
   import { rangeQuery } from '$lib/stores/range';
   import { formatCount, formatDuration, formatLocalDate } from '$lib/format';
   import { trackItems, albumItems, type ListItem } from '$lib/listItems';
@@ -34,29 +35,26 @@
     const params = q?.params;
     const bucket = q?.bucket ?? 'day';
     const artist = name;
-    let stale = false;
-    (async () => {
-      try {
-        const [d, m, tr, al, rc] = await Promise.all([
-          client.artist(artist, params),
-          client.metricsOverTime(bucket, { ...params, artist }),
-          client.topTracks(10, { ...params, artist }),
-          client.topAlbums(10, { ...params, artist }),
-          client.recent(12, { ...params, artist })
-        ]);
-        if (stale) return;
+    return loadDetail(
+      shared,
+      () => Promise.all([
+        client.artist(artist, params),
+        client.metricsOverTime(bucket, { ...params, artist }),
+        client.topTracks(10, { ...params, artist }),
+        client.topAlbums(10, { ...params, artist }),
+        client.recent(12, { ...params, artist })
+      ]),
+      ([d, m, tr, al, rc]) => {
         detail = d; metrics = m; recent = rc;
         tracks = trackItems(tr, base);
         albums = albumItems(al, base);
-        notFound = false; error = false;
-      } catch (e) {
-        if (stale) return;
-        if (e instanceof ApiError && e.status === 404) { detail = null; notFound = true; error = false; }
-        else if (!shared && e instanceof ApiError && e.status === 401) await loadMe();
-        else error = true;
+      },
+      (st) => {
+        notFound = st === 'notFound';
+        error = st === 'error';
+        if (st === 'notFound') detail = null;
       }
-    })();
-    return () => { stale = true; };
+    );
   });
 
   const trend = $derived(metrics.map((m) => ({ period: m.period, value: m.listens })));

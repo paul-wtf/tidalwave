@@ -1,63 +1,108 @@
-import { render, screen, waitFor } from '@testing-library/svelte';
+import { render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockApi } from '$lib/test/mockApi';
+import { stubDeferredFetch } from '$lib/test/deferredFetch';
 
 const pageStore = vi.hoisted(() => {
   const { writable } = require('svelte/store');
-  return writable({ url: new URL('http://localhost/artist?artist=Daft%20Punk') });
+  return writable({ url: new URL('http://localhost/artist?artist=Daft+Punk') });
 });
 vi.mock('$app/stores', () => ({ page: pageStore }));
 
 import ArtistPage from './ArtistPage.svelte';
 
-const common = {
-  '/stats/metrics-over-time': [],
-  '/stats/recent': [],
-  '/stats/top-tracks': [],
-  '/stats/top-albums': []
+const url = (name: string) => new URL(`http://localhost/artist?${new URLSearchParams({ artist: name })}`);
+const detail = (name: string) => ({ artist: name, listens: 1234, seconds: 7200, rank: 1, first_listen: '2019-03-01T12:00:00Z', last_listen: '2026-11-06T12:00:00Z', image_url: null });
+const rows = {
+  topTracks: [{ track: 'Aerodynamic', artist: 'Daft Punk', count: 6 }],
+  topAlbums: [{ album: 'Discovery', artist: 'Daft Punk', count: 8, image_url: null }],
+  recent: [
+    { track: 'One More Time', artist: 'Daft Punk', album: 'Discovery', played_at: '2026-11-05T10:00:00Z' }
+  ]
 };
-const sharedCommon = {
-  '/shared/tok/metrics-over-time': [],
-  '/shared/tok/recent': [],
-  '/shared/tok/top-tracks': [],
-  '/shared/tok/top-albums': []
-};
-const detail = { artist: 'Daft Punk', listens: 1234, seconds: 7200, rank: 1, first_listen: '2019-03-01T12:00:00Z', last_listen: '2026-11-06T12:00:00Z', image_url: null };
+const routes = (prefix: string, name = 'Daft Punk') => ({
+  [`${prefix}/artist`]: detail(name),
+  [`${prefix}/metrics-over-time`]: [],
+  [`${prefix}/recent`]: rows.recent,
+  [`${prefix}/top-tracks`]: rows.topTracks,
+  [`${prefix}/top-albums`]: rows.topAlbums
+});
+const section = (title: string) => within(screen.getByRole('heading', { name: title }).closest('section')!);
+const heading = () => screen.getByRole('heading', { level: 1 });
 
 describe('ArtistPage', () => {
-  beforeEach(() => pageStore.set({ url: new URL('http://localhost/artist?artist=Daft%20Punk') }));
+  beforeEach(() => pageStore.set({ url: url('Daft Punk') }));
 
   it('renders the header stats from the detail response', async () => {
-    mockApi({ ...common, '/stats/artist': detail });
+    mockApi(routes('/stats'));
     render(ArtistPage);
-    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Daft Punk'));
+    await waitFor(() => expect(heading()).toHaveTextContent('Daft Punk'));
     expect(screen.getByText('1,234')).toBeInTheDocument();
     expect(screen.getByText('2h 0m')).toBeInTheDocument();
     expect(screen.getByText('2019-03-01')).toBeInTheDocument();
     expect(screen.getByText('2026-11-06')).toBeInTheDocument();
   });
 
+  it('lists top tracks, top albums and recent plays in their sections', async () => {
+    mockApi(routes('/stats'));
+    render(ArtistPage);
+    await waitFor(() => expect(heading()).toBeInTheDocument());
+    await waitFor(() => expect(section('Top Tracks').getByText('Aerodynamic — Daft Punk')).toBeInTheDocument());
+    expect(section('Top Albums').getByText('Discovery — Daft Punk')).toBeInTheDocument();
+    expect(section('Recent').getByText('One More Time')).toBeInTheDocument();
+    expect(section('Top Tracks').getByRole('link', { name: 'Aerodynamic — Daft Punk' })).toHaveAttribute(
+      'href', '/track?artist=Daft+Punk&track=Aerodynamic');
+  });
+
   it('shows the not-found text on 404', async () => {
-    mockApi({ ...common });
+    mockApi({});
     render(ArtistPage);
     await waitFor(() => expect(screen.getByText('Nothing found for Daft Punk.')).toBeInTheDocument());
   });
 
   it('reads from the shared endpoints in share mode', async () => {
-    const { calls } = mockApi({ ...sharedCommon, '/shared/tok/artist': detail });
+    const { calls } = mockApi(routes('/shared/tok'));
     render(ArtistPage, { token: 'tok' });
-    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Daft Punk'));
+    await waitFor(() => expect(heading()).toHaveTextContent('Daft Punk'));
     expect(calls.length).toBeGreaterThan(0);
     expect(calls.every((c) => c.startsWith('/shared/tok/'))).toBe(true);
+    await waitFor(() =>
+      expect(section('Top Albums').getByRole('link', { name: 'Discovery — Daft Punk' })).toHaveAttribute(
+        'href', '/s/tok/album?artist=Daft+Punk&album=Discovery')
+    );
   });
 
   it('loads the new item when the URL changes', async () => {
-    const calls = mockApi({ ...common, '/stats/artist': detail }).calls;
+    const { calls } = mockApi(routes('/stats'));
     render(ArtistPage);
-    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument());
-    pageStore.set({ url: new URL('http://localhost/artist?artist=Other&album=Other&track=Other') });
+    await waitFor(() => expect(heading()).toBeInTheDocument());
+    pageStore.set({ url: url('Other') });
     await waitFor(() =>
-      expect(calls.some((c) => c.startsWith('/stats/artist?') && c.includes('Other'))).toBe(true)
+      expect(calls.some((c) => c.startsWith('/stats/artist?') && c.includes('artist=Other'))).toBe(true)
     );
+  });
+
+  it('ignores a slow response for the previous URL', async () => {
+    const { release } = stubDeferredFetch(
+      (u) => {
+        const name = u.searchParams.get('artist') ?? '';
+        const map: Record<string, unknown> = {
+          '/stats/artist': detail(name),
+          '/stats/metrics-over-time': [],
+          '/stats/recent': [],
+          '/stats/top-tracks': [],
+          '/stats/top-albums': []
+        };
+        return map[u.pathname];
+      },
+      (u) => u.searchParams.get('artist') === 'Slow'
+    );
+    pageStore.set({ url: url('Slow') });
+    render(ArtistPage);
+    pageStore.set({ url: url('Fast') });
+    await waitFor(() => expect(heading()).toHaveTextContent('Fast'));
+    release();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(heading()).toHaveTextContent('Fast');
   });
 });

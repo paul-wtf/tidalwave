@@ -1,9 +1,10 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import {
-    statsApi, ApiError, type AlbumDetail, type MetricPoint
+    statsApi,  type AlbumDetail, type MetricPoint
   } from '$lib/api/client';
-  import { auth, loadMe } from '$lib/stores/auth';
+  import { auth } from '$lib/stores/auth';
+  import { loadDetail } from '$lib/detailLoader';
   import { rangeQuery } from '$lib/stores/range';
   import { formatCount, formatDuration, formatLocalDate } from '$lib/format';
   import { artistHref } from '$lib/links';
@@ -33,26 +34,23 @@
     const bucket = q?.bucket ?? 'day';
     const artist = artistName;
     const album = albumName;
-    let stale = false;
-    (async () => {
-      try {
-        const [d, m, tr] = await Promise.all([
-          client.album(artist, album, params),
-          client.metricsOverTime(bucket, { ...params, artist, album }),
-          client.topTracks(100, { ...params, artist, album })
-        ]);
-        if (stale) return;
+    return loadDetail(
+      shared,
+      () => Promise.all([
+        client.album(artist, album, params),
+        client.metricsOverTime(bucket, { ...params, artist, album }),
+        client.topTracks(100, { ...params, artist, album })
+      ]),
+      ([d, m, tr]) => {
         detail = d; metrics = m;
         tracks = trackItems(tr, base);
-        notFound = false; error = false;
-      } catch (e) {
-        if (stale) return;
-        if (e instanceof ApiError && e.status === 404) { detail = null; notFound = true; error = false; }
-        else if (!shared && e instanceof ApiError && e.status === 401) await loadMe();
-        else error = true;
+      },
+      (st) => {
+        notFound = st === 'notFound';
+        error = st === 'error';
+        if (st === 'notFound') detail = null;
       }
-    })();
-    return () => { stale = true; };
+    );
   });
 
   const trend = $derived(metrics.map((m) => ({ period: m.period, value: m.listens })));
