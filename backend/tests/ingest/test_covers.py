@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 
 from tidalwave.auth.service import upsert_user_from_session
+from tidalwave.lastfm.client import LastfmError
 from tidalwave.ingest.covers import fill_missing_covers
 from tidalwave.ingest.repository import upsert_listens
 from tidalwave.models.db import AlbumArt
@@ -52,3 +53,65 @@ async def test_fill_missing_covers_writes_null_rows_and_respects_budget(db_sessi
     limited = await fill_missing_covers(db_session, client, max_albums=1)
     assert limited == 1
     assert len(client.calls) == 3
+
+
+class FlakyClient:
+    def __init__(self, errors):
+        self.errors = errors
+        self.calls: list[tuple[str, str]] = []
+
+    async def get_album_info(self, artist, album):
+        self.calls.append((artist, album))
+        err = self.errors.get((artist, album))
+        if err is not None:
+            raise err
+        return "https://img/ok.jpg"
+
+
+async def _seed(db_session, pairs):
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_listens(
+        db_session, user.id, [_sc(a, b, i * 10) for i, (a, b) in enumerate(pairs)]
+    )
+
+
+async def test_transient_error_writes_no_row_and_is_retried(db_session):
+    await _seed(db_session, [("A", "One"), ("B", "Two")])
+    client = FlakyClient({("A", "One"): RuntimeError("boom")})
+
+    assert await fill_missing_covers(db_session, client) == 1
+    rows = (await db_session.execute(select(AlbumArt))).scalars().all()
+    assert [(r.artist, r.album) for r in rows] == [("B", "Two")]
+
+    client.errors.clear()
+    client.calls.clear()
+    assert await fill_missing_covers(db_session, client) == 1
+    assert client.calls == [("A", "One")]
+
+
+async def test_lastfm_error_other_than_rate_limit_is_skipped(db_session):
+    await _seed(db_session, [("A", "One"), ("B", "Two")])
+    client = FlakyClient({("A", "One"): LastfmError(11, "Service offline")})
+    client.errors[("A", "One")] = LastfmError(11, "Service offline")
+
+    assert await fill_missing_covers(db_session, client) == 1
+    assert len(client.calls) == 2
+
+
+async def test_rate_limit_stops_the_run(db_session):
+    await _seed(db_session, [("A", "One"), ("B", "Two"), ("C", "Three")])
+    client = FlakyClient({})
+    first = None
+
+    async def limited(artist, album):
+        nonlocal first
+        client.calls.append((artist, album))
+        if first is None:
+            first = (artist, album)
+            return "https://img/ok.jpg"
+        raise LastfmError(29, "Rate limit exceeded")
+
+    client.get_album_info = limited  # type: ignore[method-assign]
+    assert await fill_missing_covers(db_session, client) == 1
+    assert len(client.calls) == 2
+    assert len((await db_session.execute(select(AlbumArt))).scalars().all()) == 1

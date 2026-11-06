@@ -13,6 +13,8 @@ from tidalwave.models.db import AlbumArt, Listen
 
 log = logging.getLogger(__name__)
 
+_RATE_LIMITED = 29
+
 
 class AlbumInfoSource(Protocol):
     async def get_album_info(self, artist: str, album: str) -> str | None: ...
@@ -26,8 +28,9 @@ async def fill_missing_covers(
 ) -> int:
     """Fetch covers for listened albums without an ``album_art`` row.
 
-    A row is written for every album looked up, with a NULL URL when Last.fm has
-    no cover or the lookup failed. Returns the number of rows written.
+    A NULL URL is written only when Last.fm answers that it has no cover; failed
+    lookups write nothing and are retried on the next run. A rate-limit error ends
+    the run. Returns the number of rows written.
     """
     known = select(AlbumArt.id).where(
         AlbumArt.artist == Listen.artist, AlbumArt.album == Listen.album
@@ -41,18 +44,24 @@ async def fill_missing_covers(
         stmt = stmt.limit(max_albums)
 
     pairs = [(row[0], row[1]) for row in (await session.execute(stmt)).all()]
+    written = 0
     for artist, album in pairs:
-        url: str | None = None
         try:
             url = await client.get_album_info(artist, album)
-            await asyncio.sleep(0.1)  # be polite to the Last.fm API
         except LastfmError as e:
             log.warning("album.getInfo failed for %s — %s: %s", artist, album, e)
+            if e.code == _RATE_LIMITED:
+                break
+            continue
         except Exception:
             log.exception("album.getInfo errored for %s — %s", artist, album)
+            continue
+        finally:
+            await asyncio.sleep(0.1)
         await session.execute(
             pg_insert(AlbumArt)
             .values(artist=artist, album=album, image_url=url)
             .on_conflict_do_nothing(constraint="uq_album_art")
         )
-    return len(pairs)
+        written += 1
+    return written
