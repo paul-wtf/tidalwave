@@ -5,7 +5,8 @@
     { href: '/', label: 'Overview' },
     { href: '/artists', label: 'Artists' },
     { href: '/tracks', label: 'Tracks' },
-    { href: '/albums', label: 'Albums' }
+    { href: '/albums', label: 'Albums' },
+    { href: '/insights', label: 'Insights' }
   ];
 
   let { links = DEFAULT_LINKS }: { links?: { href: string; label: string }[] } = $props();

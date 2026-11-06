@@ -74,7 +74,7 @@ export interface OnThisDayYear {
   top_tracks: { track: string; artist: string; count: number }[];
 }
 export interface Records {
-  longest_streak: { days: number; start: string } | null;
+  longest_streak: { days: number; start: string; end: string } | null;
   current_streak: { days: number; start: string } | null;
   busiest_day: { date: string; listens: number } | null;
   longest_session: { start: string; listens: number; seconds: number } | null;
