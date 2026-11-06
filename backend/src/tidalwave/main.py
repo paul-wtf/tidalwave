@@ -7,7 +7,9 @@ from fastapi import FastAPI
 
 from tidalwave.db import make_engine, make_session_factory
 from tidalwave.deps import get_settings
-from tidalwave.routes import auth, health, share, stats
+from tidalwave.routes import auth, health, share
+from tidalwave.routes.stats import make_stats_router
+from tidalwave.stats.scope import own_scope, shared_scope
 
 
 def create_app() -> FastAPI:
@@ -28,7 +30,8 @@ def create_app() -> FastAPI:
     app.state.http = httpx.AsyncClient(timeout=15.0)
     app.include_router(health.router)
     app.include_router(auth.router)
-    app.include_router(stats.router)
+    app.include_router(make_stats_router(own_scope), prefix="/stats")
+    app.include_router(make_stats_router(shared_scope), prefix="/shared/{token}")
     app.include_router(share.router)
     return app
 

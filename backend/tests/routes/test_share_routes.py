@@ -73,3 +73,34 @@ async def test_shared_endpoints_404_when_revoked(api, db_session):
     await client.delete(f"/shares/{token}", headers=auth)
     assert (await client.get(f"/shared/{token}/top-tracks")).status_code == 404
     assert (await client.get(f"/shared/{token}/clock")).status_code == 404
+
+
+async def test_shared_view_cannot_widen_share_range(api, db_session):
+    from tidalwave.models.db import Share
+
+    client, app = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="A", track_title="dec", album=None,
+                 played_at=datetime(2025, 12, 15, tzinfo=UTC)),
+        Scrobble(artist="A", track_title="jan", album=None,
+                 played_at=datetime(2026, 1, 15, tzinfo=UTC)),
+    ])
+    db_session.add(Share(
+        share_token="ranged", user_id=user.id,
+        range_from=datetime(2026, 1, 1, tzinfo=UTC), range_to=datetime(2026, 2, 1, tzinfo=UTC),
+    ))
+    await db_session.flush()
+
+    resp = await client.get("/shared/ranged/summary?since=2025-01-01T00:00:00Z")
+    assert resp.status_code == 200
+    assert resp.json()["total_listens"] == 1
+
+
+async def test_shared_paths_unchanged(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    token = (await client.post("/shares", headers=_auth_header(user.id))).json()["share_token"]
+    for path in ("top-artists", "top-tracks", "top-albums", "clock", "weekday", "history",
+                 "metrics-over-time", "recent", "summary"):
+        assert (await client.get(f"/shared/{token}/{path}")).status_code == 200, path

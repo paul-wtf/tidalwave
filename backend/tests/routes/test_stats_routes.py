@@ -99,3 +99,27 @@ async def test_summary_since_filters_listens(api, db_session):
     assert body["distinct_artists"] == 2  # Artist A + Artist B in the window
     assert body["distinct_tracks"] == 2
     assert body["total_seconds"] == 0  # no durations resolved in this test
+
+
+async def test_clock_uses_user_timezone(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "tz_user", "sk_tz", mode="open", allowlist=[])
+    user.timezone = "Europe/Berlin"
+    await db_session.flush()
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="A", track_title="t", album=None,
+                 played_at=datetime(2026, 7, 1, 10, tzinfo=UTC)),
+    ])
+    cookie = SessionCodec("test-secret").encode(user.id)
+    resp = await client.get("/stats/clock", headers={"Cookie": f"{COOKIE_NAME}={cookie}"})
+    assert resp.status_code == 200
+    assert resp.json()[12] == 1
+
+
+async def test_limit_capped_at_500(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "cap_user", "sk_cap", mode="open", allowlist=[])
+    headers = {"Cookie": f"{COOKIE_NAME}={SessionCodec('test-secret').encode(user.id)}"}
+    assert (await client.get("/stats/top-artists?limit=501", headers=headers)).status_code == 422
+    assert (await client.get("/stats/top-artists?limit=0", headers=headers)).status_code == 422
+    assert (await client.get("/stats/top-artists?limit=500", headers=headers)).status_code == 200
