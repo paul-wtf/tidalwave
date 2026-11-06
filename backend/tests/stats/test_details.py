@@ -125,3 +125,50 @@ async def test_top_tracks_filtered_by_artist(db_session):
     assert {(r["artist"], r["track"]) for r in rows} == {("B", "x"), ("B", "y")}
     rows = await top_tracks(db_session, _scope(user), artist="B", track="y")
     assert len(rows) == 1
+
+
+async def test_track_detail_album_prefers_range_over_all_time(db_session):
+    user = await _user(db_session)
+    await upsert_listens(db_session, user.id, [
+        _s("A", "t", datetime(2024, 1, d, tzinfo=UTC), "Compilation") for d in (1, 2, 3)
+    ] + [
+        _s("A", "t", datetime(2024, 2, d, tzinfo=UTC), "Single") for d in (1, 2)
+    ])
+    scope = _scope(user, since=datetime(2024, 2, 1, tzinfo=UTC), until=datetime(2024, 3, 1, tzinfo=UTC))
+    assert (await track_detail(db_session, scope, "A", "t"))["album"] == "Single"
+    assert (await track_detail(db_session, _scope(user), "A", "t"))["album"] == "Compilation"
+
+
+async def test_track_detail_album_fallback_stays_inside_share(db_session):
+    user = await _user(db_session)
+    await upsert_listens(db_session, user.id, [
+        _s("A", "t", datetime(2024, 1, d, tzinfo=UTC), "Outside") for d in (1, 2, 3)
+    ] + [_s("A", "t", datetime(2024, 6, 1, tzinfo=UTC), "Inside")])
+    db_session.add_all([
+        AlbumArt(artist="A", album="Outside", image_url="http://img/outside"),
+        AlbumArt(artist="A", album="Inside", image_url="http://img/inside"),
+    ])
+    await db_session.flush()
+    scope = _scope(
+        user,
+        since=datetime(2024, 7, 1, tzinfo=UTC), until=datetime(2024, 8, 1, tzinfo=UTC),
+        floor=datetime(2024, 3, 1, tzinfo=UTC), ceiling=datetime(2024, 9, 1, tzinfo=UTC),
+        shared=True,
+    )
+    d = await track_detail(db_session, scope, "A", "t")
+    assert d["listens"] == 0
+    assert d["album"] == "Inside"
+    assert d["image_url"] == "http://img/inside"
+
+
+async def test_artist_rank_inside_range_differs_from_all_time(db_session):
+    user = await _user(db_session)
+    await upsert_listens(db_session, user.id, [
+        _s("A", f"t{d}", datetime(2024, 1, d, tzinfo=UTC)) for d in (1, 2, 3)
+    ] + [
+        _s("B", f"t{d}", datetime(2024, 6, d, tzinfo=UTC)) for d in (1, 2)
+    ])
+    assert (await artist_detail(db_session, _scope(user), "B"))["rank"] == 2
+    june = _scope(user, since=datetime(2024, 6, 1, tzinfo=UTC), until=datetime(2024, 7, 1, tzinfo=UTC))
+    assert (await artist_detail(db_session, june, "B"))["rank"] == 1
+    assert (await artist_detail(db_session, june, "A"))["rank"] is None

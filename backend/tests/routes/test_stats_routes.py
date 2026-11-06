@@ -165,6 +165,7 @@ async def test_detail_roundtrips_special_characters(api, db_session):
     when = datetime(2024, 1, 1, tzinfo=UTC)
     await upsert_listens(db_session, user.id, [
         Scrobble(artist=NASTY, track_title=NASTY, album=NASTY, played_at=when),
+        Scrobble(artist="Other", track_title="o", album="Oalbum", played_at=when.replace(day=2)),
     ])
     cookie = SessionCodec("test-secret").encode(user.id)
     headers = {"Cookie": f"{COOKIE_NAME}={cookie}"}
@@ -177,7 +178,13 @@ async def test_detail_roundtrips_special_characters(api, db_session):
     assert resp.json()["track"] == NASTY
     assert resp.json()["album"] == NASTY
     recent = await client.get("/stats/recent", params={"artist": NASTY, "album": NASTY}, headers=headers)
-    assert len(recent.json()) == 1
+    assert [r["artist"] for r in recent.json()] == [NASTY]
+    albums = await client.get("/stats/top-albums", params={"artist": NASTY}, headers=headers)
+    assert [r["album"] for r in albums.json()] == [NASTY]
+    metrics = await client.get("/stats/metrics-over-time", params={"artist": NASTY}, headers=headers)
+    assert [r["listens"] for r in metrics.json()] == [1]
+    unfiltered = await client.get("/stats/metrics-over-time", headers=headers)
+    assert sum(r["listens"] for r in unfiltered.json()) == 2
 
 
 async def test_detail_404_for_unknown_entity(api, db_session):
@@ -185,6 +192,12 @@ async def test_detail_404_for_unknown_entity(api, db_session):
     user = await upsert_user_from_session(db_session, "empty", "sk_e", mode="open", allowlist=[])
     cookie = SessionCodec("test-secret").encode(user.id)
     headers = {"Cookie": f"{COOKIE_NAME}={cookie}"}
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="Known", track_title="k", album=None,
+                 played_at=datetime(2024, 1, 1, tzinfo=UTC)),
+    ])
+    assert (await client.get("/stats/artist", params={"artist": "Known"}, headers=headers)).status_code == 200
+    assert (await client.get("/stats/track", params={"artist": "Known", "track": "k"}, headers=headers)).status_code == 200
     assert (await client.get("/stats/artist", params={"artist": "Nobody"}, headers=headers)).status_code == 404
     assert (await client.get("/stats/album", params={"artist": "N", "album": "M"}, headers=headers)).status_code == 404
     assert (await client.get("/stats/track", params={"artist": "N", "track": "M"}, headers=headers)).status_code == 404
