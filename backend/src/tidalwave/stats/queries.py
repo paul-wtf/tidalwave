@@ -16,6 +16,10 @@ def _scope(stmt, scope: Scope):
     return stmt
 
 
+def _distinct_albums():
+    return func.count(distinct(tuple_(Listen.artist, Listen.album))).filter(Listen.album.is_not(None))
+
+
 async def _top(session, scope, column, label, *, limit, extra=None):
     """Top-N by listen count. ``extra`` is an optional ``(column, label)`` pair
     that is added to the GROUP BY and returned alongside each row — used so a
@@ -26,9 +30,10 @@ async def _top(session, scope, column, label, *, limit, extra=None):
         extra_col, extra_label = extra
         cols.insert(1, extra_col.label(extra_label))
         groups.insert(0, extra_col)
-    stmt = _scope(select(*cols), scope).group_by(*groups).order_by(
-        func.count().desc(), column.asc()
-    ).limit(limit)
+    order = [func.count().desc(), column.asc()]
+    if extra is not None:
+        order.append(extra[0].asc())
+    stmt = _scope(select(*cols), scope).group_by(*groups).order_by(*order).limit(limit)
     rows = (await session.execute(stmt)).all()
     if extra is None:
         return [{label: row[0], "count": row[1]} for row in rows]
@@ -47,7 +52,8 @@ async def top_tracks(session: AsyncSession, scope: Scope, *, limit: int = 20) ->
 
 
 async def top_albums(session: AsyncSession, scope: Scope, *, limit: int = 20) -> list[dict]:
-    return await _top(session, scope, Listen.album, "album", limit=limit)
+    return await _top(session, scope, Listen.album, "album", limit=limit,
+                      extra=(Listen.artist, "artist"))
 
 
 async def total_listens(session: AsyncSession, scope: Scope) -> int:
@@ -63,7 +69,7 @@ async def summary_stats(session: AsyncSession, scope: Scope) -> dict:
             func.count().label("total_listens"),
             func.count(distinct(Listen.artist)).label("distinct_artists"),
             func.count(distinct(tuple_(Listen.artist, Listen.track_title))).label("distinct_tracks"),
-            func.count(distinct(Listen.album)).label("distinct_albums"),
+            _distinct_albums().label("distinct_albums"),
             func.coalesce(func.sum(Listen.duration_sec), 0).label("total_seconds"),
         ),
         scope,
@@ -88,7 +94,7 @@ async def metrics_over_time(session: AsyncSession, scope: Scope, *, bucket: str 
                 period.label("period"),
                 func.count().label("listens"),
                 func.count(distinct(Listen.artist)).label("artists"),
-                func.count(distinct(Listen.album)).label("albums"),
+                _distinct_albums().label("albums"),
                 func.coalesce(func.sum(Listen.duration_sec), 0).label("seconds"),
             ),
             scope,

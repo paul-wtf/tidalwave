@@ -9,6 +9,7 @@ from tidalwave.stats.queries import (
     listens_over_time,
     metrics_over_time,
     summary_stats,
+    top_albums,
     top_artists,
     top_tracks,
     total_listens,
@@ -130,3 +131,50 @@ async def test_listens_over_time_buckets_by_day(db_session):
     assert result[1]["count"] == 1
     # chronological order: day1 before day2
     assert result[0]["period"] < result[1]["period"]
+
+
+def _alb(artist, title, album, ts):
+    return Scrobble(artist=artist, track_title=title, album=album,
+                    played_at=datetime.fromtimestamp(ts, tz=UTC))
+
+
+async def _seed_greatest_hits(db_session):
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        _alb("A", "x", "Greatest Hits", 0),
+        _alb("A", "y", "Greatest Hits", 86400),
+        _alb("B", "z", "Greatest Hits", 172800),
+    ])
+    return user
+
+
+async def test_top_albums_split_same_name_by_artist(db_session):
+    user = await _seed_greatest_hits(db_session)
+    rows = await top_albums(db_session, _scope(user), limit=10)
+    assert rows == [
+        {"album": "Greatest Hits", "artist": "A", "count": 2},
+        {"album": "Greatest Hits", "artist": "B", "count": 1},
+    ]
+
+
+async def test_distinct_albums_counts_artist_album_pairs(db_session):
+    user = await _seed_greatest_hits(db_session)
+    await upsert_listens(db_session, user.id, [_alb("C", "n", None, 259200)])
+    stats = await summary_stats(db_session, _scope(user))
+    assert stats["distinct_albums"] == 2
+    buckets = await metrics_over_time(db_session, _scope(user), bucket="month")
+    assert sum(b["albums"] for b in buckets) == 2
+
+
+async def test_unknown_album_rows_split_by_artist(db_session):
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        _alb("A", "x", None, 0),
+        _alb("A", "y", None, 86400),
+        _alb("B", "z", None, 172800),
+    ])
+    rows = await top_albums(db_session, _scope(user), limit=10)
+    assert rows == [
+        {"album": None, "artist": "A", "count": 2},
+        {"album": None, "artist": "B", "count": 1},
+    ]
