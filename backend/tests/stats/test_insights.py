@@ -270,3 +270,27 @@ async def test_records_empty_user(db_session):
     }
     h = await heatmap(db_session, _scope(user), now=now)
     assert h["days"] == []
+
+
+async def test_discovery_and_session_instants_carry_the_owner_offset(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [_d(2024, 1, 10, 23, 30), _d(2024, 7, 10, 23, 30)])
+    scope = _scope(user, tz="Europe/Berlin", since=_d(2024, 1, 1), until=_d(2025, 1, 1))
+    d = await discoveries(db_session, scope)
+    assert d["new_artists"][0]["first_listen"] == "2024-01-11T00:30:00+01:00"
+    assert d["new_tracks"][0]["first_listen"].endswith("+01:00")
+    r = await records(db_session, scope, now=_d(2025, 1, 1))
+    assert r["longest_session"]["start"] == "2024-01-11T00:30:00+01:00"
+
+
+async def test_rediscovery_previous_listen_carries_the_owner_offset(db_session):
+    user = await _user(db_session)
+    since = _d(2024, 7, 1)
+    await upsert_listens(db_session, user.id, [
+        _s("Gap", "t", _d(2023, 12, 1, 23, 30)),
+        _s("Gap", "t", since),
+    ])
+    d = await discoveries(
+        db_session, _scope(user, tz="Europe/Berlin", since=since, until=_d(2024, 8, 1))
+    )
+    assert d["rediscoveries"][0]["previous_listen"] == "2023-12-02T00:30:00+01:00"

@@ -5,11 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.models.db import AlbumArt, Listen
 from tidalwave.stats.queries import _entity, _scope, artist_cover_subquery, bounded
-from tidalwave.stats.scope import Scope
+from tidalwave.stats.scope import Scope, iso_in
 
 
-def _iso(value) -> str | None:
-    return value.isoformat() if value is not None else None
+def _iso(value, tz: str) -> str | None:
+    return iso_in(value, tz) if value is not None else None
 
 
 async def _totals(session, scope, artist, album, track) -> tuple[int, int]:
@@ -27,7 +27,7 @@ async def _span(session, scope, artist, album, track) -> tuple[str | None, str |
         artist, album, track,
     )
     first, last = (await session.execute(stmt)).one()
-    return _iso(first), _iso(last)
+    return _iso(first, scope.tz), _iso(last, scope.tz)
 
 
 async def _cover(session, artist: str, album: str | None) -> str | None:

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.models.db import Listen
 from tidalwave.stats.queries import _scope, artist_cover_subquery, bounded
-from tidalwave.stats.scope import Scope
+from tidalwave.stats.scope import Scope, iso_in
 
 REDISCOVERY_GAP = timedelta(days=180)
 ON_THIS_DAY_TRACKS = 3
@@ -44,7 +44,7 @@ async def _new_artists(session, scope: Scope, limit: int) -> list[dict]:
         .limit(limit)
     )
     return [
-        {"artist": r[0], "first_listen": r[1].isoformat(), "listens": r[2], "image_url": r[3]}
+        {"artist": r[0], "first_listen": iso_in(r[1], scope.tz), "listens": r[2], "image_url": r[3]}
         for r in (await session.execute(stmt)).all()
     ]
 
@@ -62,7 +62,7 @@ async def _new_tracks(session, scope: Scope, limit: int) -> tuple[int, list[dict
         joined.order_by(func.count().desc(), Listen.track_title.asc(), Listen.artist.asc()).limit(limit)
     )).all()
     return int(total), [
-        {"track": r[0], "artist": r[1], "first_listen": r[2].isoformat(), "listens": r[3]}
+        {"track": r[0], "artist": r[1], "first_listen": iso_in(r[2], scope.tz), "listens": r[3]}
         for r in rows
     ]
 
@@ -89,7 +89,7 @@ async def _rediscoveries(session, scope: Scope, limit: int) -> list[dict]:
         .limit(limit)
     )
     return [
-        {"artist": r[0], "previous_listen": r[1].isoformat(), "gap_days": r[2].days, "listens": r[3]}
+        {"artist": r[0], "previous_listen": iso_in(r[1], scope.tz), "gap_days": r[2].days, "listens": r[3]}
         for r in (await session.execute(stmt)).all()
     ]
 
@@ -216,7 +216,7 @@ async def _longest_session(session, scope: Scope) -> dict | None:
     )).first()
     if row is None:
         return None
-    return {"start": row.start.isoformat(), "listens": row.n, "seconds": int(row.seconds)}
+    return {"start": iso_in(row.start, scope.tz), "listens": row.n, "seconds": int(row.seconds)}
 
 
 async def records(

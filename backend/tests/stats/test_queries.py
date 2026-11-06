@@ -244,3 +244,13 @@ async def test_missing_cover_is_null(db_session):
     assert (await top_artists(db_session, _scope(user)))[0]["image_url"] is None
     assert (await top_albums(db_session, _scope(user)))[0]["image_url"] is None
     assert (await recent_listens(db_session, _scope(user)))[0]["image_url"] is None
+
+
+async def test_recent_listens_carry_the_owner_offset(db_session):
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="A", track_title="t", album=None,
+                 played_at=datetime(2024, 7, 10, 23, 30, tzinfo=UTC)),
+    ])
+    scope = Scope(user_id=user.id, tz="Europe/Berlin", since=None, until=None)
+    assert (await recent_listens(db_session, scope))[0]["played_at"] == "2024-07-11T01:30:00+02:00"

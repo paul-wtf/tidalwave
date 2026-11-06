@@ -4,7 +4,7 @@ from sqlalchemy import Integer, and_, cast, distinct, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.models.db import AlbumArt, Listen
-from tidalwave.stats.scope import Scope
+from tidalwave.stats.scope import Scope, iso_in
 
 
 def _scope(stmt, scope: Scope):
@@ -236,6 +236,6 @@ async def recent_listens(
         .limit(limit)
     )
     return [
-        {"track": r[0], "artist": r[1], "album": r[2], "played_at": r[3].isoformat(), "image_url": r[4]}
+        {"track": r[0], "artist": r[1], "album": r[2], "played_at": iso_in(r[3], scope.tz), "image_url": r[4]}
         for r in (await session.execute(stmt)).all()
     ]

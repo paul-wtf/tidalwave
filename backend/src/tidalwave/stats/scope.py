@@ -32,6 +32,10 @@ def _aware(value: datetime | None) -> datetime | None:
     return value
 
 
+def iso_in(moment: datetime, tz: str) -> str:
+    return moment.astimezone(ZoneInfo(tz)).isoformat()
+
+
 def _local_midnight(day: date, tz: str) -> datetime:
     return datetime.combine(day, time.min, tzinfo=ZoneInfo(tz)).astimezone(UTC)
 

@@ -172,3 +172,19 @@ async def test_artist_rank_inside_range_differs_from_all_time(db_session):
     june = _scope(user, since=datetime(2024, 6, 1, tzinfo=UTC), until=datetime(2024, 7, 1, tzinfo=UTC))
     assert (await artist_detail(db_session, june, "B"))["rank"] == 1
     assert (await artist_detail(db_session, june, "A"))["rank"] is None
+
+
+async def test_detail_instants_carry_the_owner_offset(db_session):
+    user = await _user(db_session)
+    await upsert_listens(db_session, user.id, [
+        _s("A", "t", datetime(2024, 1, 10, 23, 30, tzinfo=UTC), album="X"),
+        _s("A", "t", datetime(2024, 7, 10, 23, 30, tzinfo=UTC), album="X"),
+    ])
+    scope = Scope(user_id=user.id, tz="Europe/Berlin", since=None, until=None)
+    for d in (
+        await artist_detail(db_session, scope, "A"),
+        await album_detail(db_session, scope, "A", "X"),
+        await track_detail(db_session, scope, "A", "t"),
+    ):
+        assert d["first_listen"] == "2024-01-11T00:30:00+01:00"
+        assert d["last_listen"] == "2024-07-11T01:30:00+02:00"
