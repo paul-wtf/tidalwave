@@ -2,6 +2,7 @@
   import { statsApi, ApiError, type MetricPoint } from '$lib/api/client';
   import { loadMe } from '$lib/stores/auth';
   import { rangeQuery } from '$lib/stores/range';
+  import { artistHref, albumHref, trackHref } from '$lib/links';
   import TopList from './TopList.svelte';
   import AreaTrend from './AreaTrend.svelte';
 
@@ -12,7 +13,8 @@
   const TITLES = { artists: 'Top Artists', tracks: 'Top Tracks', albums: 'Top Albums' };
   const TRENDS = { artists: 'Artists over time', tracks: 'Listens over time', albums: 'Albums over time' };
 
-  let items = $state<{ label: string; count: number; query?: string }[]>([]);
+  let items = $state<{ label: string; count: number; query?: string; href?: string; image?: string | null }[]>([]);
+  const base = $derived(token ? `/s/${token}` : '');
   let metrics = $state<MetricPoint[]>([]);
   let error = $state(false);
 
@@ -27,11 +29,20 @@
       try {
         const metricsPromise = client.metricsOverTime(bucket, params);
         if (k === 'artists') {
-          items = (await client.topArtists(100, params)).map((r) => ({ label: r.artist, count: r.count, query: r.artist }));
+          items = (await client.topArtists(100, params)).map((r) => ({
+            label: r.artist, count: r.count, query: r.artist,
+            href: artistHref(base, r.artist), image: r.image_url
+          }));
         } else if (k === 'tracks') {
-          items = (await client.topTracks(100, params)).map((r) => ({ label: `${r.track} — ${r.artist}`, count: r.count, query: `${r.artist} ${r.track}` }));
+          items = (await client.topTracks(100, params)).map((r) => ({
+            label: `${r.track} — ${r.artist}`, count: r.count, query: `${r.artist} ${r.track}`,
+            href: trackHref(base, r.artist, r.track)
+          }));
         } else {
-          items = (await client.topAlbums(100, params)).map((r) => ({ label: r.album ?? 'Unknown album', count: r.count, query: r.album ?? undefined }));
+          items = (await client.topAlbums(100, params)).map((r) => ({
+            label: `${r.album ?? 'Unknown album'} — ${r.artist}`, count: r.count, query: r.album ?? undefined,
+            href: r.album == null ? undefined : albumHref(base, r.artist, r.album), image: r.image_url
+          }));
         }
         metrics = await metricsPromise;
         error = false;
@@ -55,7 +66,7 @@
 {:else}
   <div class="dashboard">
     <AreaTrend title={TRENDS[kind]} points={trend} />
-    <TopList title={TITLES[kind]} items={items} initial={1000} />
+    <TopList title={TITLES[kind]} items={items} initial={1000} covers={kind !== 'tracks'} />
   </div>
 {/if}
 

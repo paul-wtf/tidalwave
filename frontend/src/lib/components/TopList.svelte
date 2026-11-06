@@ -1,9 +1,10 @@
 <script lang="ts">
   import PlatformLinks from './PlatformLinks.svelte';
+  import Cover from './Cover.svelte';
 
-  type Item = { label: string; count: number; query?: string };
-  let { title, items, initial = 5, href }:
-    { title: string; items: Item[]; initial?: number; href?: string } =
+  type Item = { label: string; count: number; query?: string; href?: string; image?: string | null };
+  let { title, items, initial = 5, href, covers = false }:
+    { title: string; items: Item[]; initial?: number; href?: string; covers?: boolean } =
     $props();
   const max = $derived(items.reduce((m, i) => Math.max(m, i.count), 0) || 1);
 
@@ -24,7 +25,10 @@
         <li>
           <span class="bar" class:top={i === 0} style="width: {(item.count / max) * 100}%"></span>
           <span class="rank">{i + 1}</span>
-          <span class="label">{item.label}</span>
+          {#if covers}<Cover src={item.image} alt={item.label} size={32} />{/if}
+          <span class="label">
+            {#if item.href}<a href={item.href}>{item.label}</a>{:else}{item.label}{/if}
+          </span>
           {#if item.query}
             <span class="links"><PlatformLinks query={item.query} /></span>
           {/if}
@@ -103,6 +107,9 @@
     color: var(--text-dim);
     min-width: 1.2rem;
   }
+  :global(li > img), :global(li > .placeholder) {
+    z-index: 1;
+  }
   .label {
     z-index: 1;
     flex: 1;
@@ -110,6 +117,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .label a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .label a:hover {
+    color: var(--accent-text);
   }
   .links {
     z-index: 1;

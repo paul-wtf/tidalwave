@@ -7,6 +7,7 @@
   import { loadMe } from '$lib/stores/auth';
   import { rangeQuery } from '$lib/stores/range';
   import { formatCount, formatDuration } from '$lib/format';
+  import { artistHref, albumHref, trackHref } from '$lib/links';
   import StatCard from './StatCard.svelte';
   import AreaTrend from './AreaTrend.svelte';
   import TopList from './TopList.svelte';
@@ -23,7 +24,7 @@
     total_listens: 0, distinct_artists: 0, distinct_tracks: 0, distinct_albums: 0, total_seconds: 0
   };
 
-  type ListItem = { label: string; count: number; query?: string };
+  type ListItem = { label: string; count: number; query?: string; href?: string; image?: string | null };
   let summary = $state<Summary>(EMPTY);
   let metrics = $state<MetricPoint[]>([]);
   let artists = $state<ListItem[]>([]);
@@ -42,10 +43,17 @@
   ) {
     summary = s;
     metrics = m;
-    artists = ar.map((x) => ({ label: x.artist, count: x.count, query: x.artist }));
-    tracks = tr.map((x) => ({ label: `${x.track} — ${x.artist}`, count: x.count, query: `${x.artist} ${x.track}` }));
+    artists = ar.map((x) => ({
+      label: x.artist, count: x.count, query: x.artist,
+      href: artistHref(base, x.artist), image: x.image_url
+    }));
+    tracks = tr.map((x) => ({
+      label: `${x.track} — ${x.artist}`, count: x.count, query: `${x.artist} ${x.track}`,
+      href: trackHref(base, x.artist, x.track)
+    }));
     albums = al.map((x) => ({
-      label: x.album ?? 'Unknown album', count: x.count, query: x.album ?? undefined
+      label: `${x.album ?? 'Unknown album'} — ${x.artist}`, count: x.count, query: x.album ?? undefined,
+      href: x.album == null ? undefined : albumHref(base, x.artist, x.album), image: x.image_url
     }));
     hours = cl; days = wd; recent = rc;
   }
@@ -110,11 +118,11 @@
       <WeekdayChart {days} />
     </div>
     <div class="row tops">
-      <TopList title="Top Artists" items={artists} href="{base}/artists" />
+      <TopList title="Top Artists" items={artists} href="{base}/artists" covers={true} />
       <TopList title="Top Tracks" items={tracks} href="{base}/tracks" />
-      <TopList title="Top Albums" items={albums} href="{base}/albums" />
+      <TopList title="Top Albums" items={albums} href="{base}/albums" covers={true} />
     </div>
-    <RecentList items={recent} />
+    <RecentList items={recent} {base} />
   </div>
 {/if}
 

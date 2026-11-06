@@ -46,3 +46,23 @@ describe('TopList', () => {
     expect(screen.queryByRole('link')).toBeNull();
   });
 });
+
+describe('TopList links and covers', () => {
+  it('links the label when an item has an href', () => {
+    render(TopList, { props: { title: 'Top Artists', items: [
+      { label: 'Daft Punk', count: 10, href: '/artist?artist=Daft+Punk' },
+      { label: 'Unknown album', count: 2 }
+    ] } });
+    expect(screen.getByRole('link', { name: 'Daft Punk' })).toHaveAttribute('href', '/artist?artist=Daft+Punk');
+    expect(screen.queryByRole('link', { name: 'Unknown album' })).toBeNull();
+  });
+
+  it('shows covers only when enabled', () => {
+    const items = [{ label: 'Discovery', count: 3, image: 'https://img/d.png' }];
+    const { unmount } = render(TopList, { props: { title: 'Top Albums', items, covers: true } });
+    expect(screen.getByAltText('Discovery')).toHaveAttribute('src', 'https://img/d.png');
+    unmount();
+    render(TopList, { props: { title: 'Top Albums', items } });
+    expect(screen.queryByAltText('Discovery')).toBeNull();
+  });
+});
