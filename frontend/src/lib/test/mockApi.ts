@@ -1,12 +1,14 @@
 import { vi } from 'vitest';
 
-export function mockApi(routes: Record<string, unknown>): { calls: string[] } {
+export function mockApi(routes: Record<string, unknown>): { calls: string[]; requests: { method: string; url: string }[] } {
   const calls: string[] = [];
+  const requests: { method: string; url: string }[] = [];
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (input: RequestInfo | URL) => {
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       calls.push(url);
+      requests.push({ method: init?.method ?? 'GET', url });
       const path = url.split('?')[0];
       if (!(path in routes)) {
         return new Response(JSON.stringify({ detail: 'Not Found' }), {
@@ -20,5 +22,5 @@ export function mockApi(routes: Record<string, unknown>): { calls: string[] } {
       });
     })
   );
-  return { calls };
+  return { calls, requests };
 }

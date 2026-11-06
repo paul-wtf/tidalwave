@@ -5,6 +5,8 @@
   import Nav from '$lib/components/Nav.svelte';
   import RangeSelector from '$lib/components/RangeSelector.svelte';
   import ShareManager from '$lib/components/ShareManager.svelte';
+  import UserMenu from '$lib/components/UserMenu.svelte';
+  import ReconnectBanner from '$lib/components/ReconnectBanner.svelte';
   import Landing from '$lib/components/Landing.svelte';
   import type { Snippet } from 'svelte';
 
@@ -20,12 +22,14 @@
   {#if $auth.user}
     <RangeSelector />
     <ShareManager />
+    <UserMenu />
   {/if}
 </Header>
 
 {#if $auth.loading}
   <p class="centered">Loading…</p>
 {:else if $auth.user}
+  <ReconnectBanner />
   {@render children?.()}
 {:else}
   <Landing />
