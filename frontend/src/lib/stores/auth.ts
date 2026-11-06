@@ -12,7 +12,7 @@ export async function loadMe(): Promise<void> {
     try {
       user = await api.updateMe({ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
     } catch {
-      // keep the unsynced profile; the backend treats a missing timezone as UTC
+      // the backend treats a missing timezone as UTC
     }
   }
   auth.set({ user, loading: false });

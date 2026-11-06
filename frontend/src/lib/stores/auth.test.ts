@@ -12,9 +12,9 @@ describe('auth store', () => {
   beforeEach(() => { auth.set({ user: null, loading: false }); });
 
   it('loadMe populates the user when logged in', async () => {
-    vi.spyOn(api, 'me').mockResolvedValue(ME);
+    vi.spyOn(api, 'me').mockResolvedValue({ ...ME, timezone: 'UTC' });
     await loadMe();
-    expect(get(auth).user).toEqual(ME);
+    expect(get(auth).user).toEqual({ ...ME, timezone: 'UTC' });
     expect(get(auth).loading).toBe(false);
   });
 
@@ -40,5 +40,13 @@ describe('loadMe timezone sync', () => {
     update.mockClear();
     await loadMe();
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it('a rejected updateMe still finishes loading with the user set', async () => {
+    vi.spyOn(api, 'me').mockResolvedValue(ME);
+    vi.spyOn(api, 'updateMe').mockRejectedValue(new Error('boom'));
+    await loadMe();
+    expect(get(auth).user).toEqual(ME);
+    expect(get(auth).loading).toBe(false);
   });
 });

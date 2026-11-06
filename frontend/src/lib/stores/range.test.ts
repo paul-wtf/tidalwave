@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { toParams, bucketFor, rangeLabel } from './range';
+import { get } from 'svelte/store';
+import { toParams, bucketFor, rangeLabel, range, rangeQuery } from './range';
+import { auth } from './auth';
 
 const BERLIN = 'Europe/Berlin';
 
@@ -22,6 +24,11 @@ describe('toParams', () => {
   it('this_year uses the local date, not the UTC date', () => {
     expect(toParams({ kind: 'calendar', key: 'this_year' }, BERLIN, new Date('2026-12-31T23:30:00Z')))
       .toEqual({ start: '2027-01-01', calendar: 'year' });
+  });
+
+  it('this_year west of UTC uses the local date', () => {
+    expect(toParams({ kind: 'calendar', key: 'this_year' }, 'America/Los_Angeles', new Date('2027-01-01T03:00:00Z')))
+      .toEqual({ start: '2026-01-01', calendar: 'year' });
   });
 
   it('last_month across a year boundary', () => {
@@ -73,8 +80,18 @@ describe('range persistence', () => {
     vi.resetModules();
   });
 
-  it('maps the legacy key', async () => {
-    localStorage.setItem('tw-range', 'month');
+  it.each([
+    ['day', '24h'], ['week', '7d'], ['month', '30d'], ['year', '365d'], ['all', 'all']
+  ])('maps legacy %s to %s', async (legacy, key) => {
+    localStorage.setItem('tw-range', legacy);
+    const { range } = await import('./range');
+    let value: unknown;
+    range.subscribe((v) => (value = v))();
+    expect(value).toEqual({ kind: 'rolling', key });
+  });
+
+  it('falls back to the default for a corrupt custom range', async () => {
+    localStorage.setItem('tw-range-v2', JSON.stringify({ kind: 'custom', from: 'x', to: '2026-01-01' }));
     const { range } = await import('./range');
     let value: unknown;
     range.subscribe((v) => (value = v))();
@@ -95,5 +112,39 @@ describe('range persistence', () => {
     let value: unknown;
     range.subscribe((v) => (value = v))();
     expect(value).toEqual({ kind: 'rolling', key: '30d' });
+  });
+});
+
+describe('rangeQuery', () => {
+  const user = (timezone: string | null) => ({
+    username: 'a', is_admin: false, timezone, disconnected: false,
+    last_synced_at: null, last_played_at: null
+  });
+
+  it('compare is false only for all time', () => {
+    range.set({ kind: 'rolling', key: 'all' });
+    expect(get(rangeQuery).compare).toBe(false);
+    range.set({ kind: 'rolling', key: '7d' });
+    expect(get(rangeQuery).compare).toBe(true);
+    range.set({ kind: 'calendar', key: 'this_month' });
+    expect(get(rangeQuery).compare).toBe(true);
+  });
+
+  it('uses the user timezone, UTC when missing, and re-emits on change', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-12-31T23:30:00Z'));
+    try {
+      range.set({ kind: 'calendar', key: 'this_year' });
+      auth.set({ user: null, loading: false });
+      expect(get(rangeQuery).params.start).toBe('2026-01-01');
+      const seen: (string | undefined)[] = [];
+      const unsub = rangeQuery.subscribe((q) => seen.push(q.params.start));
+      auth.set({ user: user('Europe/Berlin'), loading: false });
+      auth.set({ user: user('America/Los_Angeles'), loading: false });
+      unsub();
+      expect(seen).toEqual(['2026-01-01', '2027-01-01', '2026-01-01']);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

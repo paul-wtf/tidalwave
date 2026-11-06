@@ -45,12 +45,18 @@ const ROLLING_MS: Record<Exclude<RollingKey, 'all'>, number> = {
 
 const DAY_MS = 86_400_000;
 
+const YMD = /^\d{4}-\d{2}-\d{2}$/;
+
 function isSel(v: unknown): v is RangeSel {
   if (typeof v !== 'object' || v === null) return false;
   const s = v as Record<string, unknown>;
   if (s.kind === 'rolling') return ROLLING.some((r) => r.key === s.key);
   if (s.kind === 'calendar') return CALENDAR.some((r) => r.key === s.key);
-  return s.kind === 'custom' && typeof s.from === 'string' && typeof s.to === 'string';
+  return (
+    s.kind === 'custom' &&
+    typeof s.from === 'string' && typeof s.to === 'string' &&
+    YMD.test(s.from) && YMD.test(s.to) && s.from <= s.to
+  );
 }
 
 function initial(): RangeSel {
@@ -62,9 +68,9 @@ function initial(): RangeSel {
       if (isSel(parsed)) return parsed;
     }
     const legacy = localStorage.getItem(LEGACY_KEY);
-    if (legacy && legacy in LEGACY) return { kind: 'rolling', key: LEGACY[legacy] };
+    if (legacy && Object.hasOwn(LEGACY, legacy)) return { kind: 'rolling', key: LEGACY[legacy] };
   } catch {
-    // unreadable storage falls through to the default
+    return DEFAULT;
   }
   return DEFAULT;
 }
@@ -77,7 +83,7 @@ range.subscribe((value) => {
   try {
     localStorage.setItem(KEY, JSON.stringify(value));
   } catch {
-    // storage may be unavailable
+    return;
   }
 });
 
