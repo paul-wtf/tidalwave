@@ -1,7 +1,10 @@
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import update
+
 from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.ingest.repository import upsert_listens
+from tidalwave.models.db import Listen
 from tidalwave.models.domain import Scrobble
 from tidalwave.stats.insights import discoveries, heatmap, on_this_day, records
 from tidalwave.stats.scope import Scope
@@ -132,7 +135,6 @@ async def test_insights_empty_user_returns_empty(db_session):
     assert await on_this_day(db_session, scope, now=_d(2026, 11, 6)) == []
 
 
-
 async def _seed(db_session, user, whens):
     await upsert_listens(db_session, user.id, [_s("A", f"t{i}", w) for i, w in enumerate(whens)])
 
@@ -193,15 +195,38 @@ async def test_busiest_day_in_user_tz(db_session):
 
 async def test_longest_session_breaks_after_30_minutes(db_session):
     user = await _user(db_session)
-    base = _d(2024, 6, 1, 10)
-    first = [base + timedelta(minutes=30 * i) for i in range(4)]
-    second = [_d(2024, 6, 1, 20) + timedelta(minutes=31 * i) for i in range(4)]
+    first = [_d(2024, 6, 1, 10) + timedelta(minutes=30 * i) for i in range(4)]
+    second = [_d(2024, 6, 1, 20) + timedelta(minutes=31 * i) for i in range(5)]
     await _seed(db_session, user, first + second)
+    await db_session.execute(update(Listen).where(Listen.track_title == "t0").values(duration_sec=100))
+    await db_session.execute(update(Listen).where(Listen.track_title == "t2").values(duration_sec=50))
     r = await records(db_session, _scope(user), now=_d(2025, 1, 1))
-    assert r["longest_session"] == {"start": first[0].isoformat(), "listens": 4, "seconds": 0}
+    assert r["longest_session"] == {"start": first[0].isoformat(), "listens": 4, "seconds": 150}
     await _seed(db_session, user, [first[-1] + timedelta(minutes=30)])
     r = await records(db_session, _scope(user), now=_d(2025, 1, 1))
     assert r["longest_session"]["listens"] == 5
+
+
+async def test_streak_across_month_boundary_and_dst_in_berlin(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [_d(2024, 3, 30, 12), _d(2024, 3, 31, 12), _d(2024, 4, 1, 12)])
+    r = await records(db_session, _scope(user, tz="Europe/Berlin"), now=_d(2025, 1, 1))
+    assert r["longest_streak"] == {"days": 3, "start": "2024-03-30", "end": "2024-04-01"}
+
+
+async def test_heatmap_366_day_boundary(db_session):
+    user = await _user(db_session)
+    now = _d(2025, 6, 1)
+    h = await heatmap(db_session, _scope(user, since=_d(2024, 1, 1), until=_d(2025, 1, 1)), now=now)
+    assert (h["start"], h["end"]) == ("2024-01-01", "2024-12-31")
+    h = await heatmap(db_session, _scope(user, since=_d(2024, 1, 1), until=_d(2025, 1, 2)), now=now)
+    assert (h["start"], h["end"]) == ("2024-01-03", "2025-01-01")
+
+
+async def test_heatmap_future_since_is_empty_window(db_session):
+    user = await _user(db_session)
+    h = await heatmap(db_session, _scope(user, since=_d(2025, 6, 10)), now=_d(2025, 6, 1))
+    assert (h["start"], h["end"], h["days"]) == ("2025-06-01", "2025-06-01", [])
 
 
 async def test_heatmap_window_caps_at_365_days(db_session):

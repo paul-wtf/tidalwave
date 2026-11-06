@@ -235,7 +235,7 @@ def _heatmap_window(scope: Scope, now: datetime) -> tuple[date, date]:
     end_instant = scope.until - timedelta(microseconds=1) if scope.until is not None else now
     end = end_instant.astimezone(zone).date()
     if scope.since is not None:
-        start = scope.since.astimezone(zone).date()
+        start = min(scope.since.astimezone(zone).date(), end)
         if (end - start).days + 1 <= 366:
             return start, end
     return end - timedelta(days=HEATMAP_DAYS - 1), end
