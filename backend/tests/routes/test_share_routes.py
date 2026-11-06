@@ -330,3 +330,23 @@ async def test_shared_on_this_day_ignores_listens_outside_the_range(api, db_sess
     assert [(y["year"], [t["track"] for t in y["top_tracks"]]) for y in resp.json()] == [
         (today.year - 2, ["in"])
     ]
+
+
+async def test_create_share_rejects_overlong_label(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    resp = await client.post("/shares", headers=_auth_header(user.id), json={"label": "x" * 201})
+    assert resp.status_code == 422
+    resp = await client.post("/shares", headers=_auth_header(user.id), json={"label": "x" * 200})
+    assert resp.status_code == 201
+
+
+async def test_create_share_stores_blank_label_as_null(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    for label in ("", "   \t"):
+        resp = await client.post("/shares", headers=_auth_header(user.id), json={"label": label})
+        assert resp.status_code == 201
+        assert resp.json()["label"] is None
+    resp = await client.post("/shares", headers=_auth_header(user.id), json={"label": "  Summer "})
+    assert resp.json()["label"] == "Summer"

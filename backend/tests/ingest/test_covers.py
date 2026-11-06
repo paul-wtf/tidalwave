@@ -115,3 +115,27 @@ async def test_rate_limit_stops_the_run(db_session):
     assert await fill_missing_covers(db_session, client) == 1
     assert len(client.calls) == 2
     assert len((await db_session.execute(select(AlbumArt))).scalars().all()) == 1
+
+
+async def test_budgeted_pick_rotates_past_albums_that_keep_failing(db_session, monkeypatch):
+    async def no_sleep(_):
+        return None
+
+    monkeypatch.setattr("tidalwave.ingest.covers.asyncio.sleep", no_sleep)
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        *[_sc("Bad", f"Broken {i}", i) for i in range(30)],
+        _sc("Good", "Fine", 100),
+    ])
+
+    class Client:
+        async def get_album_info(self, artist, album):
+            if artist == "Bad":
+                raise LastfmError(7, "boom")
+            return "https://img/fine.jpg"
+
+    for _ in range(300):
+        if await fill_missing_covers(db_session, Client(), max_albums=3):
+            break
+    else:
+        raise AssertionError("the good album was never picked")

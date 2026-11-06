@@ -166,3 +166,13 @@ async def test_patch_me_rejects_zoneinfo_name_postgres_does_not_know(
     assert resp.status_code == 422
     await db_session.refresh(user)
     assert user.timezone is None
+
+
+async def test_patch_me_rejects_nul_in_timezone_without_a_server_error(api, db_session):
+    client, user, headers = await _login(api, db_session)
+
+    for tz in ("Europe/Berlin\x00", "\x00", "../etc/passwd", ""):
+        resp = await client.patch("/auth/me", json={"timezone": tz}, headers=headers)
+        assert resp.status_code == 422, tz
+    await db_session.refresh(user)
+    assert user.timezone is None

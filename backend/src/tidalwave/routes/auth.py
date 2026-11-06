@@ -102,15 +102,15 @@ async def update_me(
     user: User = Depends(current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
+    try:
+        ZoneInfo(body.timezone)
+    except (KeyError, ValueError, OSError) as e:
+        raise HTTPException(status_code=422, detail="Unknown timezone") from e
     known = await session.scalar(
         text("SELECT 1 FROM pg_timezone_names WHERE name = :tz"), {"tz": body.timezone}
     )
     if known is None:
         raise HTTPException(status_code=422, detail="Unknown timezone")
-    try:
-        ZoneInfo(body.timezone)
-    except KeyError as e:
-        raise HTTPException(status_code=422, detail="Unknown timezone") from e
     user.timezone = body.timezone
     await session.flush()
     return await _me_payload(session, user)

@@ -4,7 +4,7 @@ import asyncio
 import logging
 from typing import Protocol
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,10 +38,10 @@ async def fill_missing_covers(
     stmt = (
         select(Listen.artist, Listen.album)
         .where(Listen.album.is_not(None), ~known.exists())
-        .distinct()
+        .group_by(Listen.artist, Listen.album)
     )
     if max_albums is not None:
-        stmt = stmt.limit(max_albums)
+        stmt = stmt.order_by(func.random()).limit(max_albums)
 
     pairs = [(row[0], row[1]) for row in (await session.execute(stmt)).all()]
     written = 0

@@ -4,7 +4,7 @@ import secrets
 from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,11 +17,16 @@ router = APIRouter(tags=["share"])
 
 
 class ShareCreate(BaseModel):
-    label: str | None = None
+    label: str | None = Field(default=None, max_length=200)
     range_from: datetime | None = None
     range_to: datetime | None = None
     start: date | None = None
     end: date | None = None
+
+    @field_validator("label")
+    @classmethod
+    def _blank_label_is_none(cls, value: str | None) -> str | None:
+        return (value.strip() or None) if value is not None else None
 
 
 def _serialize(share: Share) -> dict:
