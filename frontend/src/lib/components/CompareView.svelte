@@ -265,12 +265,15 @@
     background: var(--mantle);
   }
   .shared li {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    flex-wrap: wrap;
     gap: 0.25rem 0.75rem;
   }
+  .shared .name {
+    flex: 1 1 10rem;
+    min-width: 0;
+  }
   .bars {
-    grid-column: 1 / -1;
+    flex: 1 0 100%;
     display: flex;
     flex-direction: column;
     gap: 2px;
