@@ -42,11 +42,15 @@ class User(Base):
     discord_webhook_url: Mapped[str | None] = mapped_column(Text)
 
 
+def _same_as_artist(context) -> str:
+    return context.get_current_parameters()["artist"]
+
+
 class Listen(Base):
     __tablename__ = "listens"
     __table_args__ = (
         UniqueConstraint(
-            "user_id", "artist", "track_title", "played_at", name="uq_listen_dedup"
+            "user_id", "artist_raw", "track_title", "played_at", name="uq_listen_dedup"
         ),
         Index("ix_listens_user_artist_played", "user_id", "artist", "played_at"),
     )
@@ -57,6 +61,9 @@ class Listen(Base):
     )
     track_title: Mapped[str] = mapped_column(Text, nullable=False)
     artist: Mapped[str] = mapped_column(Text, nullable=False)
+    # The spelling the listen arrived with; ``artist`` holds the name it is
+    # merged into, if the user merged that spelling.
+    artist_raw: Mapped[str] = mapped_column(Text, nullable=False, default=_same_as_artist)
     album: Mapped[str | None] = mapped_column(Text)
     played_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, index=True
@@ -163,6 +170,23 @@ class Share(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     label: Mapped[str | None] = mapped_column(Text)
     range_key: Mapped[str | None] = mapped_column(String(16))
+
+
+class ArtistMerge(Base):
+    """One spelling of an artist that a user merged into another name."""
+
+    __tablename__ = "artist_merges"
+    __table_args__ = (UniqueConstraint("user_id", "variant", name="uq_artist_merge_variant"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    variant: Mapped[str] = mapped_column(Text, nullable=False)
+    canonical: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
 
 
 class AllowlistEntry(Base):

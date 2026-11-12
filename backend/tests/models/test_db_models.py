@@ -8,16 +8,16 @@ def test_tables_registered():
     names = set(Base.metadata.tables)
     assert names == {
         "users", "listens", "sync_state", "shares", "track_durations", "album_art", "artist_tags",
-        "album_years", "allowlist_entries", "compare_invites", "compare_pairs",
+        "album_years", "allowlist_entries", "compare_invites", "compare_pairs", "artist_merges",
     }
 
 
 def test_listen_dedup_constraint_present():
     cols = {c.name for c in Listen.__table__.columns}
-    assert {"user_id", "artist", "track_title", "played_at"} <= cols
+    assert {"user_id", "artist", "artist_raw", "track_title", "played_at"} <= cols
     uniques = [c for c in Listen.__table__.constraints if c.__class__.__name__ == "UniqueConstraint"]
     assert any(
-        {col.name for col in u.columns} == {"user_id", "artist", "track_title", "played_at"}
+        {col.name for col in u.columns} == {"user_id", "artist_raw", "track_title", "played_at"}
         for u in uniques
     )
 

@@ -68,7 +68,7 @@ async def test_head_upgrades_a_database_at_the_previous_revision(scratch):
 
     assert await conn.fetchval("SELECT version_num FROM alembic_version") == head
     assert await conn.fetchval("SELECT count(*) FROM listens") == 1
-    assert await conn.fetchval("SELECT discord_webhook_url FROM users") is None
+    assert await conn.fetchval("SELECT artist_raw FROM listens") == "Kavinsky"
 
 
 async def test_migrations_create_the_columns_the_models_declare(scratch):
