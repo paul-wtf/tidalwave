@@ -96,11 +96,12 @@ describe('UserMenu', () => {
     expect(screen.getByRole('link', { name: 'JSON' })).toHaveAttribute('href', '/auth/export?format=json');
   });
 
-  it('links to the spellings page', async () => {
+  it('links to the spellings and import pages', async () => {
     auth.set({ user: me(), loading: false });
     render(UserMenu);
     await userEvent.click(screen.getByRole('button', { name: /paul/ }));
     expect(screen.getByRole('link', { name: 'Spellings' })).toHaveAttribute('href', '/spellings');
+    expect(screen.getByRole('link', { name: 'Import' })).toHaveAttribute('href', '/import');
   });
 
   it('asks for the username before it deletes the account', async () => {

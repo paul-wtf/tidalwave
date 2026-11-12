@@ -2,11 +2,11 @@
   import {
     statsApi, ApiError,
     type Summary, type MetricPoint, type RecentItem,
-    type ArtistCount, type TrackCount, type AlbumCount
+    type ArtistCount, type TrackCount, type AlbumCount, type Sources
   } from '$lib/api/client';
   import { auth, loadMe } from '$lib/stores/auth';
   import { rangeQuery } from '$lib/stores/range';
-  import { formatDuration } from '$lib/format';
+  import { formatCount, formatDuration, formatLongDate } from '$lib/format';
   import { artistItems, trackItems, albumItems, type ListItem } from '$lib/listItems';
   import StatCard from './StatCard.svelte';
   import AreaTrend from './AreaTrend.svelte';
@@ -35,6 +35,7 @@
   let days = $state<number[]>(new Array(7).fill(0));
   let recent = $state<RecentItem[]>([]);
   let error = $state(false);
+  let sources = $state<Sources | null>(null);
 
   const base = $derived(token ? `/s/${token}` : '');
   const tz = $derived(token ? null : ($auth.user?.timezone ?? 'UTC'));
@@ -66,6 +67,7 @@
         ]);
         apply(s, m, ar, tr, al, cl, wd, rc);
         error = false;
+        sources = await client.sources(params).catch(() => null);
       } catch (e) {
         if (!shared && e instanceof ApiError && e.status === 401) await loadMe();
         else error = true;
@@ -79,6 +81,17 @@
   function change(cur: number, prev: number | undefined): number | null {
     return token != null || !prev ? null : (cur - prev) / prev;
   }
+  const SOURCE_NAMES: Record<string, string> = { spotify: 'Spotify', listenbrainz: 'ListenBrainz' };
+  const importNote = $derived.by(() => {
+    if (!sources || sources.imported === 0) return null;
+    const names = sources.sources.map((s) => SOURCE_NAMES[s.source] ?? s.source);
+    const from = names.length === 1 ? `a ${names[0]} import` : `${names.join(' and ')} imports`;
+    if (sources.imported_before_lastfm > 0 && sources.lastfm_first) {
+      const before = formatLongDate(sources.lastfm_first, tz);
+      return `${formatCount(sources.imported_before_lastfm)} listens before ${before} come from ${from}.`;
+    }
+    return `${formatCount(sources.imported)} of these listens come from ${from}.`;
+  });
   const prev = $derived(summary.previous);
   const timePending = $derived(summary.total_listens > 0 && summary.total_seconds === 0);
 </script>
@@ -104,6 +117,12 @@
       <StatCard label="Albums" value={summary.distinct_albums}
         delta={change(summary.distinct_albums, prev?.distinct_albums)} />
     </div>
+    {#if importNote}
+      <p class="source-note">
+        {importNote}
+        {#if token == null}<a href="/import">Imports</a>{/if}
+      </p>
+    {/if}
     <div class="row trends">
       <AreaTrend title="Listens over time" points={listensTrend} />
       <AreaTrend title="Time listened" points={timeTrend} formatValue={formatDuration} />
@@ -123,6 +142,15 @@
 {/if}
 
 <style>
+  .source-note {
+    margin: -0.4rem 0 0;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+  .source-note a {
+    color: var(--text-muted);
+    margin-left: 0.3rem;
+  }
   .error {
     max-width: 1180px;
     margin: 0 auto;

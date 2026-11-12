@@ -148,6 +148,29 @@ export interface SpellingName { artist: string; listens: number; }
 export interface SpellingSuggestion { names: SpellingName[]; listens: number; }
 export interface SpellingMerge { canonical: string; listens: number; variants: SpellingName[]; }
 export interface Spellings { suggestions: SpellingSuggestion[]; merges: SpellingMerge[]; }
+export type ImportStatus = 'pending' | 'running' | 'done' | 'failed' | 'undone';
+export interface ImportJob {
+  id: number;
+  filename: string;
+  source: 'spotify' | 'listenbrainz' | null;
+  status: ImportStatus;
+  error: string | null;
+  read: number;
+  skipped: number;
+  too_short: number;
+  duplicates: number;
+  added: number;
+  first_played_at: string | null;
+  last_played_at: string | null;
+  created_at: string;
+  finished_at: string | null;
+}
+export interface Sources {
+  imported: number;
+  imported_before_lastfm: number;
+  lastfm_first: string | null;
+  sources: { source: string; listens: number }[];
+}
 export type Bucket = 'day' | 'week' | 'month';
 export type StatsParams = {
   since?: string; until?: string; start?: string; end?: string;
@@ -189,6 +212,7 @@ export interface StatsApi {
   heatmap(p?: StatsParams): Promise<Heatmap>;
   milestones(): Promise<Milestones>;
   search(q: string, p?: StatsParams): Promise<SearchResults>;
+  sources(p?: StatsParams): Promise<Sources>;
   nowPlaying(): Promise<NowPlaying | null>;
 }
 
@@ -221,6 +245,7 @@ export function statsApi(token?: string): StatsApi {
     heatmap: (p) => get('/heatmap', { ...p }),
     milestones: () => get('/milestones', {}),
     search: (q, p) => get('/search', { q, ...p }),
+    sources: (p) => get('/sources', { ...p }),
     nowPlaying: () => get('/now-playing', {})
   };
 }
@@ -289,6 +314,16 @@ export const api = {
     request<Spellings>('/merges', json('POST', { canonical, variants })),
   unmerge: (canonical: string, variant?: string) =>
     request<Spellings>(`/merges${qs({ canonical, variant })}`, { method: 'DELETE' }),
+
+  imports: () => request<ImportJob[]>('/imports'),
+  importJob: (id: number) => request<ImportJob>(`/imports/${id}`),
+  uploadImport: (file: Blob, filename: string) =>
+    request<ImportJob>(`/imports${qs({ filename })}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/octet-stream' },
+      body: file
+    }),
+  undoImport: (id: number) => request<ImportJob>(`/imports/${id}`, { method: 'DELETE' }),
 
   setWebhook: (url: string) => request<Me>('/auth/me/webhook', json('PUT', { url })),
   clearWebhook: () => request<Me>('/auth/me/webhook', { method: 'DELETE' }),

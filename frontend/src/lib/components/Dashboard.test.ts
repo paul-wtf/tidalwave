@@ -182,4 +182,30 @@ describe('Dashboard', () => {
     expect(calls.some((c) => c.includes('now-playing'))).toBe(false);
     expect(screen.queryByText('now playing')).toBeNull();
   });
+
+  it('notes how many listens before the first scrobble come from an import', async () => {
+    auth.set({ user: { username: 'paul', is_admin: false, timezone: 'UTC' } as never, loading: false });
+    mockApi({
+      ...rest,
+      '/stats/summary': { total_listens: 20000, distinct_artists: 1, distinct_tracks: 1, distinct_albums: 1, total_seconds: 0 },
+      '/stats/sources': {
+        imported: 9000, imported_before_lastfm: 8714, lastfm_first: '2021-07-01T08:00:00+00:00',
+        sources: [{ source: 'spotify', listens: 9000 }]
+      }
+    });
+    render(Dashboard);
+    expect(await screen.findByText(/8,714 listens before 1 Jul 2021 come from a Spotify import/))
+      .toBeInTheDocument();
+  });
+
+  it('says nothing about imports when there are none', async () => {
+    mockApi({
+      ...rest,
+      '/stats/summary': { total_listens: 3, distinct_artists: 1, distinct_tracks: 1, distinct_albums: 1, total_seconds: 0 },
+      '/stats/sources': { imported: 0, imported_before_lastfm: 0, lastfm_first: null, sources: [] }
+    });
+    render(Dashboard);
+    await waitFor(() => expect(screen.getByText('3')).toBeInTheDocument());
+    expect(screen.queryByText(/import/)).toBeNull();
+  });
 });
