@@ -29,6 +29,8 @@ for the detail pages and Insights.
   user menu.
 - Read-only share links, revocable from a list. A link covers all time, a
   fixed range, or a range that keeps moving, such as the last 30 days.
+- Link previews for share links: a chat app shows whose listening it is,
+  the range, the listen count, the top artist and a cover.
 
 ## Architecture
 
@@ -115,6 +117,12 @@ Required values:
 **Postgres** is external (CNPG-managed); the chart does not deploy a database.
 The Ingress routes `/auth`, `/stats`, `/shares`, and `/shared` to the backend
 and everything else to the frontend.
+
+**Link previews** are on by default (`config.sharePreviews`). The Ingress then
+also routes `/s/` to the backend, which serves share pages as the frontend's
+`index.html` plus Open Graph tags and fetches that file from the frontend
+Service inside the cluster. With `--set config.sharePreviews=false` share
+pages come straight from the frontend and carry no preview.
 
 **Poller** runs as a Kubernetes CronJob (`*/5 * * * *` by default). Adjust the
 schedule with `--set poller.schedule='*/10 * * * *'` or disable with

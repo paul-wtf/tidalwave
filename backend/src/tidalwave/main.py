@@ -9,7 +9,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from tidalwave.db import make_engine, make_session_factory
 from tidalwave.deps import get_settings
-from tidalwave.routes import auth, health, share
+from tidalwave.routes import auth, health, share, share_page
 from tidalwave.routes.stats import make_stats_router
 from tidalwave.stats.scope import own_scope, shared_scope
 
@@ -50,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(make_stats_router(own_scope), prefix="/stats")
     app.include_router(make_stats_router(shared_scope), prefix="/shared/{token}")
     app.include_router(share.router)
+    app.include_router(share_page.router)
     return app
 
 

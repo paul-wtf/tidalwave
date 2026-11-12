@@ -39,6 +39,7 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `TIDALWAVE_REGISTRATION_MODE` | `allowlist` | Controls who may connect a Last.fm account. `open` allows anyone; `allowlist` restricts to the usernames listed in `TIDALWAVE_REGISTRATION_ALLOWLIST`. |
 | `TIDALWAVE_REGISTRATION_ALLOWLIST` | *(empty)* | Comma-separated list of Last.fm usernames permitted to register when `REGISTRATION_MODE=allowlist`. Example: `alice,bob`. |
 | `TIDALWAVE_SESSION_SECRET` | `dev-insecure-change-me` | Secret used to sign the session cookie with itsdangerous. **Must be set to a strong random value in production.** |
+| `TIDALWAVE_FRONTEND_URL` | *(empty)* | Base URL the backend fetches the frontend's `index.html` from, to serve `/s/<token>` with link-preview tags. Needs the ingress to route `/s/` to the backend. Empty: `/s/<token>` on the backend answers with a small page that carries the tags and forwards to `/?share=<token>`. |
 | `TIDALWAVE_LOG_LEVEL` | `INFO` | Python logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
 
 ---
@@ -129,6 +130,12 @@ the link keeps showing the last 30 days or the current month.
 
 Responses under `/shared/` carry `Access-Control-Allow-Origin: *`, so a page
 on another origin can read a share. No other route sends CORS headers.
+
+### Share pages (no auth required)
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/s/{token}` and every path below it | The frontend's `index.html` with Open Graph tags for the share added to its head: the owner's name and the share's label as title, the range, listen count and top artist as description, and an album cover from the range as image. All of it is computed inside the share's range. The shell is fetched from `TIDALWAVE_FRONTEND_URL` and cached for a minute. A revoked or unknown token gets the unchanged shell with status 404. |
 
 ---
 

@@ -39,6 +39,10 @@ spec:
               value: {{ .Values.config.registrationMode | quote }}
             - name: TIDALWAVE_REGISTRATION_ALLOWLIST
               value: {{ .Values.config.registrationAllowlist | quote }}
+            {{- if .Values.config.sharePreviews }}
+            - name: TIDALWAVE_FRONTEND_URL
+              value: "http://{{ include "tidalwave.fullname" . }}-frontend"
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /health
