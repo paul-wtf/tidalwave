@@ -2,8 +2,8 @@ apiVersion: v2
 name: tidalwave
 description: Self-hosted multi-user Tidal listening tracker (via Last.fm)
 type: application
-version: 0.2.0
-appVersion: "0.2.0"
+version: 0.3.0
+appVersion: "0.3.0"
 home: https://github.com/paul-wtf/tidalwave
 sources:
   - https://github.com/paul-wtf/tidalwave
