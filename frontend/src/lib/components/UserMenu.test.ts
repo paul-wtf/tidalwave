@@ -107,7 +107,7 @@ describe('UserMenu', () => {
     expect(screen.queryByLabelText(/Type paul to confirm/)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Delete account' }));
 
-    expect(screen.getByText(/all your listens, your share links and your sync state/)).toBeInTheDocument();
+    expect(screen.getByText(/all your listens, your share links, your comparisons and your sync state/)).toBeInTheDocument();
     const confirm = screen.getByRole('button', { name: 'Delete account for good' });
     expect(confirm).toBeDisabled();
     const field = screen.getByLabelText(/Type paul to confirm/);

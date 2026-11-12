@@ -6,18 +6,22 @@
     { href: '/artists', label: 'Artists' },
     { href: '/tracks', label: 'Tracks' },
     { href: '/albums', label: 'Albums' },
-    { href: '/insights', label: 'Insights' }
+    { href: '/insights', label: 'Insights' },
+    { href: '/compare', label: 'Compare', section: true }
   ];
 
-  let { links = DEFAULT_LINKS, admin = false }:
-    { links?: { href: string; label: string }[]; admin?: boolean } = $props();
+  type Link = { href: string; label: string; section?: boolean };
+  let { links = DEFAULT_LINKS, admin = false }: { links?: Link[]; admin?: boolean } = $props();
+
+  const current = (link: Link, path: string) =>
+    path === link.href || (link.section === true && path.startsWith(`${link.href}/`));
 
   const shown = $derived(admin ? [...links, { href: '/admin', label: 'Admin' }] : links);
 </script>
 
 <nav aria-label="Sections">
   {#each shown as link (link.href)}
-    <a href={link.href} aria-current={$page.url.pathname === link.href ? 'page' : undefined}>
+    <a href={link.href} aria-current={current(link, $page.url.pathname) ? 'page' : undefined}>
       {link.label}
     </a>
   {/each}

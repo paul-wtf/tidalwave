@@ -112,8 +112,9 @@
         {#if deleting}
           <form class="danger" onsubmit={deleteAccount}>
             <p>
-              This deletes your tidalwave account with all your listens, your share links and
-              your sync state. It cannot be undone. Your Last.fm account stays as it is.
+              This deletes your tidalwave account with all your listens, your share links, your
+              comparisons and your sync state. It cannot be undone. Your Last.fm account stays as
+              it is.
             </p>
             <label>
               <span>Type {user.username} to confirm</span>

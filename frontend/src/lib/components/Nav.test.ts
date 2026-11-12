@@ -28,4 +28,10 @@ describe('Nav', () => {
     expect(links.at(-1)).toHaveTextContent('Admin');
     expect(links.at(-1)).toHaveAttribute('href', '/admin');
   });
+
+  it('lists Compare after Insights', () => {
+    render(Nav);
+    const labels = screen.getAllByRole('link').map((a) => a.textContent?.trim());
+    expect(labels.indexOf('Compare')).toBe(labels.indexOf('Insights') + 1);
+  });
 });
