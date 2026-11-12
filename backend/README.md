@@ -37,7 +37,7 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `TIDALWAVE_LASTFM_API_SECRET` | *(empty)* | Last.fm API secret corresponding to the key above. |
 | `TIDALWAVE_PUBLIC_BASE_URL` | `http://localhost:8080` | Public base URL of this service. Used to build the `cb=` callback parameter sent to Last.fm during auth. Must be reachable by the browser completing the OAuth flow. |
 | `TIDALWAVE_REGISTRATION_MODE` | `allowlist` | Controls who may connect a Last.fm account. `open` allows anyone; `allowlist` restricts to the usernames listed in `TIDALWAVE_REGISTRATION_ALLOWLIST`. |
-| `TIDALWAVE_REGISTRATION_ALLOWLIST` | *(empty)* | Comma-separated list of Last.fm usernames permitted to register when `REGISTRATION_MODE=allowlist`. Example: `alice,bob`. |
+| `TIDALWAVE_REGISTRATION_ALLOWLIST` | *(empty)* | Comma-separated list of Last.fm usernames permitted to register when `REGISTRATION_MODE=allowlist`. Example: `alice,bob`. Admins can allow more names at runtime on the admin page; those are stored in the database. A name on either list may register, compared without regard to case. |
 | `TIDALWAVE_SESSION_SECRET` | `dev-insecure-change-me` | Secret used to sign the session cookie with itsdangerous. **Must be set to a strong random value in production.** |
 | `TIDALWAVE_FRONTEND_URL` | *(empty)* | Base URL the backend fetches the frontend's `index.html` from, to serve `/s/<token>` with link-preview tags. Needs the ingress to route `/s/` to the backend. Empty: `/s/<token>` on the backend answers with a small page that carries the tags and forwards to `/?share=<token>`. |
 | `TIDALWAVE_LINKHOP_URL` | *(empty)* | Base URL of a [linkhop](https://github.com/paul-wtf/linkhop) instance, `http://` or `https://`. When set, the frontend shows one more icon next to the platform links, which opens `<url>/?q=<artist title>` there. Empty: no icon. |
@@ -74,9 +74,12 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `GET` | `/auth/callback` | None | Receives Last.fm token, creates/logs in user, sets session cookie. |
 | `POST` | `/auth/logout` | None | Clears session cookie. |
 | `GET` | `/auth/config` | None | Settings the static frontend reads at start, also in share views: `{"linkhop_url": <url or null>}`. |
-| `GET` | `/auth/me` | Session | Username, admin flag, timezone, `disconnected`, `last_synced_at` and `last_played_at`. |
+| `GET` | `/auth/me` | Session | Username, admin flag, timezone, `disconnected`, `last_synced_at`, `last_played_at` and `weekly_report_webhook`, the saved Discord webhook masked (`https://discord.com/api/webhooks/1234…/…wxyz`) or `null`. |
 | `PATCH` | `/auth/me` | Session | Sets the timezone: `{"timezone": "<IANA name>"}`, 422 for an unknown name. |
-| `DELETE` | `/auth/me` | Session | Deletes the user with their listens, shares and sync state, and clears the session cookie. The shared `album_art` and `track_durations` caches stay. |
+| `PUT` | `/auth/me/webhook` | Session | Saves the Discord webhook for the weekly report: `{"url": "https://discord.com/api/webhooks/<id>/<token>"}`. `discordapp.com` works as well; any other address is a 422. Returns the same body as `GET /auth/me`. |
+| `DELETE` | `/auth/me/webhook` | Session | Clears the webhook. Returns the same body as `GET /auth/me`. |
+| `POST` | `/auth/me/webhook/test` | Session | Posts a short test message to the saved webhook. 204 on success, 409 without a webhook, 502 when Discord refuses it or cannot be reached. |
+| `DELETE` | `/auth/me` | Session | Deletes the user with their listens, shares, comparisons, invites and sync state, and clears the session cookie. The shared `album_art` and `track_durations` caches stay. |
 | `GET` | `/auth/export` | Session | Streams every listen of the user as a download. `format=csv` or `format=json`; fields: `played_at` (ISO-8601, UTC), `artist`, `track`, `album`, `track_mbid`, `artist_mbid`, `album_mbid`, `duration_sec`. |
 
 ### Stats (session-gated, requires a valid session cookie)
@@ -114,6 +117,34 @@ Hours, weekdays, days and period buckets are computed in the user's timezone
 | `GET` | `/stats/on-this-day` | | Listens on today's date in earlier years. Ignores the range parameters. |
 | `GET` | `/stats/now-playing` | | The track Last.fm reports as playing right now (`track`, `artist`, `album`, `image_url`), or `null`. Takes no range. The answer is kept in memory for 15 seconds per user, and a Last.fm failure yields `null`. |
 | `GET` | `/stats/milestones` | | Round listen counts reached so far and the next one. Ignores the range parameters. |
+
+### Admin (admins only)
+
+Every route answers 401 without a session and 403 for users who are not
+admins. The first user to connect is the admin.
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/auth/admin/users` | Every account: `id`, `username`, `is_admin`, `disconnected`, `created_at`, `listens` and `last_synced_at`, the time of the last successful poll or `null`. |
+| `DELETE` | `/auth/admin/users/{id}` | Deletes another account the way `DELETE /auth/me` does. 409 for the admin's own id, 404 for an unknown one. |
+| `GET` | `/auth/admin/allowlist` | `{"mode": "open"\|"allowlist", "entries": [{"username", "fixed", "added_at"}]}`. `fixed` entries come from `TIDALWAVE_REGISTRATION_ALLOWLIST`. |
+| `POST` | `/auth/admin/allowlist` | Adds `{"username": "..."}` (letters, digits, `_`, `.`, `-`, at most 64). 409 when the name is already on either list, in any case. |
+| `DELETE` | `/auth/admin/allowlist/{username}` | Removes a name added at runtime. 409 for a name from the environment, 404 for an unknown one. Existing accounts stay. |
+
+### Comparisons (session-gated)
+
+Two users see each other's listening only after one of them accepted the
+other's invite. Either side can end it.
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/comparisons` | `{"pairs": [{"id", "partner", "created_at"}], "invites": [{"token", "created_at"}]}`, the open invites being the user's own. |
+| `POST` | `/comparisons/invites` | Creates an invite token. It works once. |
+| `GET` | `/comparisons/invites/{token}` | `{"inviter", "own"}` for an open invite, 404 for a used, revoked or unknown one. |
+| `POST` | `/comparisons/invites/{token}/accept` | Stores the pair and returns it. 409 for one's own invite or when the two already compare; the invite then stays open. |
+| `DELETE` | `/comparisons/invites/{token}` | Revokes one of the user's open invites. |
+| `GET` | `/comparisons/{id}` | Takes the range parameters of `/stats`, resolved in the viewer's timezone, and `limit` (default 10, at most 50). Returns `overlap`, `listens` (`you`, `partner`), `shared_artists`, `shared` (`artist`, `you`, `partner`), `only_you` and `only_partner` (`artist`, `count`). `overlap` is the sum over all artists of the smaller of the two listen shares, from 0 (no artist in common) to 1 (the same mix), and `null` while one side has no listens. 404 for anyone outside the pair. |
+| `DELETE` | `/comparisons/{id}` | Ends the pair, from either side. |
 
 ### Shares (session-gated)
 
@@ -191,6 +222,14 @@ tidalwave-backfill-tags
 ```bash
 tidalwave-backfill-years
 ```
+
+**Weekly report**: posts one Discord embed per user with a saved webhook. It covers the last full ISO week (Monday to Sunday) in the user's timezone: listening time and listens with the change against the week before, the top artist, the top track and the artists first heard that week. A week without listens sends nothing. A failing webhook is logged and the run goes on with the next user; the command exits 0 either way. The message links to `TIDALWAVE_PUBLIC_BASE_URL`.
+
+```bash
+tidalwave-weekly-report
+```
+
+The week is the one that has ended in each user's timezone when the command runs. Run on Monday at 08:00 in Berlin, that is the week just past nearly everywhere, but in Los Angeles and further west it is still Sunday, so those users get the week before. There is no report by mail, since tidalwave has no SMTP configuration.
 
 All commands read configuration from the same `TIDALWAVE_*` environment variables as the server.
 
