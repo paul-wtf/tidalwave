@@ -56,7 +56,7 @@
 /* Header wraps to a fixed two-row layout below this width (see
    Header.svelte) — --bar-h must match its real rendered height exactly,
    or the frame's top border and the concave corners drift off the bar. */
-@media (max-width: 640px) {
+@media (max-width: 999px) {
   :root {
     --bar-h: 112px;
   }

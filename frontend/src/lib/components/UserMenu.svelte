@@ -145,6 +145,7 @@
     <button
       type="button"
       class:compact={$compactHeader}
+      title={$compactHeader ? undefined : user.username}
       aria-expanded={open}
       aria-controls="user-menu-panel"
       onclick={() => (open = !open)}
@@ -401,6 +402,12 @@
   }
   button:hover:not(:disabled) {
     background: var(--surface1);
+  }
+  .menu > button:not(.compact) {
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .compact {
     width: 2.2rem;

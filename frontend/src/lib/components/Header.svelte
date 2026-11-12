@@ -80,12 +80,12 @@
     flex-shrink: 0;
   }
 
-  /* Below 640px the bar switches to a fixed two-row layout instead of
+  /* Below 1000px the bar switches to a fixed two-row layout instead of
      wrapping/overflowing organically — --bar-h in tokens.css has a matching
      media-query override so the frame border stays lined up with the real
      header height. Each row scrolls horizontally on overflow rather than
      wrapping further, so the total height stays deterministic. */
-  @media (max-width: 640px) {
+  @media (max-width: 999px) {
     header {
       flex-direction: column;
       align-items: stretch;

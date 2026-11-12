@@ -106,9 +106,9 @@
     white-space: nowrap;
   }
 
-  /* Seven or eight entries do not fit next to the brand on a phone, so
-     they fold into one menu there; the header keeps its two fixed rows. */
-  @media (max-width: 640px) {
+  /* Below 1500px the links and the actions do not fit one row (about
+     1440px with Admin and a long username), so the links fold into one menu. */
+  @media (max-width: 1499px) {
     .toggle {
       display: inline-flex;
       align-items: center;
@@ -136,10 +136,11 @@
       display: none;
     }
     .links.open {
+      --gutter: clamp(1rem, 4vw, 2rem);
       position: fixed;
       top: var(--bar-h);
-      left: clamp(1rem, 4vw, 1.5rem);
-      right: clamp(1rem, 4vw, 1.5rem);
+      left: var(--gutter);
+      width: min(26rem, calc(100vw - 2 * var(--gutter)));
       z-index: 10;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -155,6 +156,11 @@
     }
     .links a[aria-current='page'] {
       background: var(--surface1);
+    }
+  }
+  @media (max-width: 999px) {
+    .links.open {
+      --gutter: clamp(1rem, 4vw, 1.5rem);
     }
   }
 </style>

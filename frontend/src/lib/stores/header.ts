@@ -1,7 +1,7 @@
 import { readable, writable } from 'svelte/store';
 
 // Must match the max-width of the two-row header in Header.svelte and tokens.css.
-export const COMPACT_HEADER = '(max-width: 640px)';
+export const COMPACT_HEADER = '(max-width: 999px)';
 
 export const compactHeader = readable(false, (set) => {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
