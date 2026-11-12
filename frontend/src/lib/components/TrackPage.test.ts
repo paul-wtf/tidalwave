@@ -129,4 +129,13 @@ describe('TrackPage', () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(heading()).toHaveTextContent('Fast');
   });
+
+  it('puts the trend chart under the header so both share the cover colour', async () => {
+    mockApi(routes('/stats'));
+    const { container } = render(TrackPage);
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument());
+    const tinted = container.querySelector<HTMLElement>('.tinted')!;
+    expect(tinted).toContainElement(screen.getByRole('heading', { level: 1 }));
+    expect(tinted).toContainElement(screen.getByRole('img', { name: 'Listens over time' }));
+  });
 });

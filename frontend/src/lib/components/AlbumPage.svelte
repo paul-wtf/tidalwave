@@ -76,8 +76,8 @@
       {#snippet links()}
         <a href={artistHref(base, detail!.artist)}>{detail!.artist}</a>
       {/snippet}
+      <AreaTrend title="Listens over time" points={trend} />
     </DetailHeader>
-    <AreaTrend title="Listens over time" points={trend} />
     <TopList title="Tracks" items={tracks} initial={100} />
   </div>
 {/if}

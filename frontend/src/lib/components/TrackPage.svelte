@@ -78,8 +78,8 @@
           · <a href={albumHref(base, detail!.artist, detail!.album)}>{detail!.album}</a>
         {/if}
       {/snippet}
+      <AreaTrend title="Listens over time" points={trend} />
     </DetailHeader>
-    <AreaTrend title="Listens over time" points={trend} />
     <RecentList items={recent} {base} {tz} />
   </div>
 {/if}
