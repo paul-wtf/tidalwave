@@ -9,11 +9,14 @@
     { href: '/insights', label: 'Insights' }
   ];
 
-  let { links = DEFAULT_LINKS }: { links?: { href: string; label: string }[] } = $props();
+  let { links = DEFAULT_LINKS, admin = false }:
+    { links?: { href: string; label: string }[]; admin?: boolean } = $props();
+
+  const shown = $derived(admin ? [...links, { href: '/admin', label: 'Admin' }] : links);
 </script>
 
 <nav aria-label="Sections">
-  {#each links as link (link.href)}
+  {#each shown as link (link.href)}
     <a href={link.href} aria-current={$page.url.pathname === link.href ? 'page' : undefined}>
       {link.label}
     </a>

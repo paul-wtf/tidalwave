@@ -16,4 +16,16 @@ describe('Nav', () => {
     expect(screen.getByRole('link', { name: 'Insights' })).toHaveAttribute('href', '/insights');
     expect(screen.getByRole('link', { name: 'Insights' })).toHaveAttribute('aria-current', 'page');
   });
+
+  it('has no Admin link unless asked for one', () => {
+    render(Nav);
+    expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
+  });
+
+  it('ends with an Admin link for admins', () => {
+    render(Nav, { admin: true });
+    const links = screen.getAllByRole('link');
+    expect(links.at(-1)).toHaveTextContent('Admin');
+    expect(links.at(-1)).toHaveAttribute('href', '/admin');
+  });
 });

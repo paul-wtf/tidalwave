@@ -18,7 +18,7 @@
 
 <Header>
   {#snippet nav()}
-    {#if $auth.user}<Nav />{/if}
+    {#if $auth.user}<Nav admin={$auth.user.is_admin} />{/if}
   {/snippet}
   {#if $auth.user}
     <Search />
