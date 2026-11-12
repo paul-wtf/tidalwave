@@ -92,6 +92,7 @@ Hours, weekdays, days and period buckets are computed in the user's timezone
 | `GET` | `/stats/hour-weekday` | | 7 rows (Monday to Sunday) of 24 hourly listen counts. |
 | `GET` | `/stats/history` | `bucket` (`day`\|`week`\|`month`, default `day`) | Chronological series: `[{"period": <iso>, "count": N}]`. |
 | `GET` | `/stats/metrics-over-time` | `bucket`, `artist`, `album`, `track` | Per period: listens, distinct artists and albums, seconds. |
+| `GET` | `/stats/search` | `q` | Up to five artists, albums and tracks whose name contains `q`, ignoring case. Ordered by listens in the range, then by listens overall; `count` is the listens in the range. |
 | `GET` | `/stats/artist` | `artist` | Detail for one artist: listens, seconds, rank, first and last listen, cover. 404 without any listen. |
 | `GET` | `/stats/album` | `artist`, `album` | Detail for one album. |
 | `GET` | `/stats/track` | `artist`, `track` | Detail for one track, with its most-listened album. |
