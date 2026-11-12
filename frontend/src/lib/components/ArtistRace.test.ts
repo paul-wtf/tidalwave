@@ -20,7 +20,10 @@ const allowMotion = () =>
 
 describe('ArtistRace', () => {
   beforeEach(() => range.set({ kind: 'rolling', key: '30d' }));
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it('opens on the final standings with the last date', async () => {
     mockApi({ '/stats/artist-race': race });
@@ -53,6 +56,24 @@ describe('ArtistRace', () => {
     expect(places()).toEqual(['2', '1', '0']);
     expect(row('Early')).toHaveTextContent('3');
     expect(scrubber).toHaveAttribute('aria-valuetext', '1 Nov 2026');
+  });
+
+  it('shows the standings without Play or scrubber when there is one period', async () => {
+    allowMotion();
+    mockApi({ '/stats/artist-race': {
+      bucket: 'month', periods: ['2026-11-01T00:00:00'],
+      artists: [
+        { artist: 'Late', image_url: null, totals: [7] },
+        { artist: 'Early', image_url: null, totals: [3] }
+      ]
+    } });
+    render(ArtistRace);
+    await waitFor(() => expect(screen.getByText('Late')).toBeInTheDocument());
+    expect(row('Late').dataset.rank).toBe('0');
+    expect(row('Late')).toHaveTextContent('7');
+    expect(screen.getByText('Nov 2026')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
+    expect(screen.queryByRole('slider')).toBeNull();
   });
 
   it('shows only the scrubber under reduced motion', async () => {

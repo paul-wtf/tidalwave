@@ -75,8 +75,8 @@ describe('TopPage', () => {
       '/stats/metrics-over-time': [],
       '/stats/top-artists': [{ artist: 'Kavinsky', count: 12, image_url: null }],
       '/stats/artist-race': {
-        bucket: 'day', periods: ['2026-11-01T00:00:00'],
-        artists: [{ artist: 'Kavinsky', image_url: null, totals: [12] }]
+        bucket: 'day', periods: ['2026-10-01T00:00:00', '2026-11-01T00:00:00'],
+        artists: [{ artist: 'Kavinsky', image_url: null, totals: [5, 12] }]
       }
     });
     render(TopPage, { props: { kind: 'artists' } });
@@ -99,8 +99,8 @@ describe('TopPage', () => {
       '/shared/TOK/metrics-over-time': [],
       '/shared/TOK/top-artists': [{ artist: 'Kavinsky', count: 12, image_url: null }],
       '/shared/TOK/artist-race': {
-        bucket: 'month', periods: ['2026-11-01T00:00:00'],
-        artists: [{ artist: 'Kavinsky', image_url: null, totals: [12] }]
+        bucket: 'month', periods: ['2026-10-01T00:00:00', '2026-11-01T00:00:00'],
+        artists: [{ artist: 'Kavinsky', image_url: null, totals: [5, 12] }]
       }
     });
     render(TopPage, { props: { kind: 'artists', token: 'TOK' } });

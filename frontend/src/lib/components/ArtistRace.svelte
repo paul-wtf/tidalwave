@@ -89,26 +89,28 @@
           </li>
         {/each}
       </ol>
-      <div class="controls">
-        {#if !still}
-          <button type="button" onclick={() => (playing ? pause() : play())}>
-            {playing ? 'Pause' : 'Play'}
-          </button>
-        {/if}
-        <input
-          type="range"
-          min="0"
-          max={last}
-          step="1"
-          value={frame}
-          aria-label="Position in the race"
-          aria-valuetext={date}
-          oninput={(e) => {
-            pause();
-            frame = Number(e.currentTarget.value);
-          }}
-        />
-      </div>
+      {#if last > 0}
+        <div class="controls">
+          {#if !still}
+            <button type="button" onclick={() => (playing ? pause() : play())}>
+              {playing ? 'Pause' : 'Play'}
+            </button>
+          {/if}
+          <input
+            type="range"
+            min="0"
+            max={last}
+            step="1"
+            value={frame}
+            aria-label="Position in the race"
+            aria-valuetext={date}
+            oninput={(e) => {
+              pause();
+              frame = Number(e.currentTarget.value);
+            }}
+          />
+        </div>
+      {/if}
     {/if}
   {/if}
 </section>
