@@ -8,7 +8,7 @@ def test_tables_registered():
     names = set(Base.metadata.tables)
     assert names == {
         "users", "listens", "sync_state", "shares", "track_durations", "album_art", "artist_tags",
-        "album_years", "allowlist_entries",
+        "album_years", "allowlist_entries", "compare_invites", "compare_pairs",
     }
 
 
