@@ -67,6 +67,13 @@ export function formatLongDateTime(iso: string, timeZone: string | null): string
   }).format(instant);
 }
 
+/** Label for a period as the stats endpoints return it: a local wall-clock ISO string. */
+export function formatPeriod(period: string, bucket: 'day' | 'week' | 'month'): string {
+  if (bucket !== 'month') return formatLongDate(period, null);
+  return new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' })
+    .format(wallClock(period));
+}
+
 export function durationStat(
   listens: number, seconds: number
 ): { value: string | number; format?: (n: number) => string; sub?: string } {

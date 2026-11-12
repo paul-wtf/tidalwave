@@ -96,6 +96,8 @@ export interface Genres {
   artists: number;
   tagged_artists: number;
 }
+export interface RaceArtist { artist: string; image_url: string | null; totals: number[]; }
+export interface ArtistRace { bucket: Bucket; periods: string[]; artists: RaceArtist[]; }
 export interface AlbumRuns {
   total: number;
   runs: {
@@ -151,6 +153,7 @@ export interface StatsApi {
   genres(limit: number, p?: StatsParams): Promise<Genres>;
   genre(name: string, p?: StatsParams): Promise<GenreDetail>;
   albumRuns(limit: number, p?: StatsParams): Promise<AlbumRuns>;
+  artistRace(bucket?: Bucket, p?: StatsParams): Promise<ArtistRace>;
   decades(p?: StatsParams): Promise<Decades>;
   discoveries(p?: StatsParams): Promise<Discoveries>;
   onThisDay(): Promise<OnThisDayYear[]>;
@@ -182,6 +185,7 @@ export function statsApi(token?: string): StatsApi {
     genres: (limit, p) => get('/genres', { limit, ...p }),
     genre: (name, p) => get('/genre', { genre: name, ...p }),
     albumRuns: (limit, p) => get('/album-runs', { limit, ...p }),
+    artistRace: (bucket, p) => get('/artist-race', { bucket, ...p }),
     decades: (p) => get('/decades', { ...p }),
     discoveries: (p) => get('/discoveries', { ...p }),
     onThisDay: () => get('/on-this-day', {}),
