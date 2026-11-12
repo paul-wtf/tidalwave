@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
+import { PLATFORMS } from '$lib/platforms';
 import TopList from './TopList.svelte';
 
 describe('TopList', () => {
@@ -27,8 +28,7 @@ describe('TopList', () => {
       'href',
       'https://open.spotify.com/search/Daft%20Punk%20Around%20the%20World'
     );
-    // All four linkhop platforms are offered.
-    expect(screen.getAllByRole('link')).toHaveLength(4);
+    expect(screen.getAllByRole('link')).toHaveLength(PLATFORMS.length);
   });
 
   it('renders items with identical labels (same track title, different artists)', () => {
