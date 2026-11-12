@@ -83,4 +83,67 @@ describe('UserMenu', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/log out/i);
     expect(get(auth).user?.username).toBe('paul');
   });
+
+  it('links to the CSV and JSON export', async () => {
+    auth.set({ user: me(), loading: false });
+    render(UserMenu);
+    await userEvent.click(screen.getByRole('button', { name: /paul/ }));
+    expect(screen.getByText('Export my data')).toBeInTheDocument();
+    const csv = screen.getByRole('link', { name: 'CSV' });
+    expect(csv).toHaveAttribute('href', '/auth/export?format=csv');
+    expect(csv).toHaveAttribute('download');
+    expect(screen.getByRole('link', { name: 'JSON' })).toHaveAttribute('href', '/auth/export?format=json');
+  });
+
+  it('asks for the username before it deletes the account', async () => {
+    auth.set({ user: me(), loading: false });
+    const requests: { method: string; url: string }[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => {
+      requests.push({ method: init?.method ?? 'GET', url: String(u) });
+      return new Response(null, { status: 204 });
+    }));
+    render(UserMenu);
+    await userEvent.click(screen.getByRole('button', { name: /paul/ }));
+    expect(screen.queryByLabelText(/Type paul to confirm/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete account' }));
+
+    expect(screen.getByText(/all your listens, your share links and your sync state/)).toBeInTheDocument();
+    const confirm = screen.getByRole('button', { name: 'Delete account for good' });
+    expect(confirm).toBeDisabled();
+    const field = screen.getByLabelText(/Type paul to confirm/);
+    await userEvent.type(field, 'Paul');
+    expect(confirm).toBeDisabled();
+    await userEvent.clear(field);
+    await userEvent.type(field, 'paul');
+    expect(confirm).toBeEnabled();
+    expect(requests).toEqual([]);
+
+    await userEvent.click(confirm);
+    expect(requests).toEqual([{ method: 'DELETE', url: '/auth/me' }]);
+    await vi.waitFor(() => expect(get(auth)).toEqual({ user: null, loading: false }));
+  });
+
+  it('backs out of the deletion with Cancel', async () => {
+    auth.set({ user: me(), loading: false });
+    render(UserMenu);
+    await userEvent.click(screen.getByRole('button', { name: /paul/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete account' }));
+    await userEvent.type(screen.getByLabelText(/Type paul to confirm/), 'paul');
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByLabelText(/Type paul to confirm/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete account' }));
+    expect(screen.getByLabelText(/Type paul to confirm/)).toHaveValue('');
+  });
+
+  it('keeps the user and shows an alert when the deletion fails', async () => {
+    auth.set({ user: me(), loading: false });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 500 })));
+    render(UserMenu);
+    await userEvent.click(screen.getByRole('button', { name: /paul/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete account' }));
+    await userEvent.type(screen.getByLabelText(/Type paul to confirm/), 'paul');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete account for good' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/delete/i);
+    expect(get(auth).user?.username).toBe('paul');
+  });
 });

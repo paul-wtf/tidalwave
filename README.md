@@ -22,6 +22,8 @@ for the detail pages and Insights.
   heatmap, a weekday by hour grid and discoveries.
 - Rolling, calendar and custom ranges, resolved in each user's timezone.
 - Search across artists, albums and tracks from the header (`/` or Ctrl+K).
+- Export of all your listens as CSV or JSON, and account deletion, from the
+  user menu.
 - Read-only share links, revocable from a list. A link covers all time, a
   fixed range, or a range that keeps moving, such as the last 30 days.
 

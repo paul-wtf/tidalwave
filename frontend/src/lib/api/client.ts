@@ -177,6 +177,11 @@ export const api = {
     return (await res.json()) as Me;
   },
   updateMe: (body: { timezone: string }) => request<Me>('/auth/me', json('PATCH', body)),
+  exportUrl: (format: 'csv' | 'json') => `/auth/export?format=${format}`,
+  async deleteAccount(): Promise<void> {
+    const res = await fetch('/auth/me', { method: 'DELETE', credentials: 'include' });
+    if (!res.ok) throw new ApiError(res.status, '/auth/me');
+  },
   async logout(): Promise<void> {
     const res = await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
     if (!res.ok) throw new ApiError(res.status, '/auth/logout');
