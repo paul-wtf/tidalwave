@@ -68,19 +68,7 @@ async def test_head_upgrades_a_database_at_the_previous_revision(scratch):
 
     assert await conn.fetchval("SELECT version_num FROM alembic_version") == head
     assert await conn.fetchval("SELECT count(*) FROM listens") == 1
-    await conn.execute(
-        "INSERT INTO users (lastfm_username, lastfm_session_key) VALUES ('bob', 'sk')"
-    )
-    await conn.execute(
-        "INSERT INTO compare_pairs (low_user_id, high_user_id) "
-        "SELECT min(id), max(id) FROM users"
-    )
-    assert await conn.fetchval("SELECT count(*) FROM compare_pairs") == 1
-    with pytest.raises(asyncpg.CheckViolationError):
-        await conn.execute(
-            "INSERT INTO compare_pairs (low_user_id, high_user_id) "
-            "SELECT max(id), min(id) FROM users"
-        )
+    assert await conn.fetchval("SELECT discord_webhook_url FROM users") is None
 
 
 async def test_migrations_create_the_columns_the_models_declare(scratch):

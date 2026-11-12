@@ -39,6 +39,7 @@ class User(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     timezone: Mapped[str | None] = mapped_column(String(64))
+    discord_webhook_url: Mapped[str | None] = mapped_column(Text)
 
 
 class Listen(Base):

@@ -30,6 +30,11 @@ def test_backfill_years_cli_registered():
     assert _scripts()["tidalwave-backfill-years"] == "tidalwave.cli:backfill_years"
 
 
+def test_weekly_report_cli_registered():
+    assert callable(cli.weekly_report)
+    assert _scripts()["tidalwave-weekly-report"] == "tidalwave.cli:weekly_report"
+
+
 async def test_poll_saves_the_lastfm_work_before_it_asks_musicbrainz(monkeypatch):
     events: list[object] = []
 
