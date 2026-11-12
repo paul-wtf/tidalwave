@@ -124,6 +124,7 @@ describe('ImportPage', () => {
     await userEvent.click(within(item).getByRole('button', { name: 'Remove 8,714 listens' }));
     expect(seen).toContain('DELETE /imports/7');
     await vi.waitFor(() => expect(item).toHaveTextContent('Undone'));
+    expect(item).toHaveTextContent('8,714 added, then removed');
     expect(within(item).queryByRole('button', { name: 'Undo' })).toBeNull();
   });
 });

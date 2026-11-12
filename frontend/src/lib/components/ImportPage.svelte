@@ -157,7 +157,9 @@
                 {/if}
               </div>
               <div class="counts">
-                <span class="added">{n(job.added)} added</span>
+                <span class="added">
+                  {n(job.added)} {job.status === 'undone' ? 'added, then removed' : 'added'}
+                </span>
                 <span>{n(job.duplicates)} already there</span>
                 <span>{n(job.too_short)} too short</span>
                 <span>{n(job.skipped)} skipped</span>
