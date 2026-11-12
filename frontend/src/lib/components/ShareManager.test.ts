@@ -240,6 +240,7 @@ describe('ShareManager in the compact header', () => {
 
     shareOpen.set(true);
     expect(await screen.findByText('Mine')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Copy' })).toHaveFocus());
 
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByText('Mine')).toBeNull();

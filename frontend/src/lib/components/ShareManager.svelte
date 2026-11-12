@@ -1,6 +1,6 @@
 <!-- frontend/src/lib/components/ShareManager.svelte -->
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, tick } from 'svelte';
   import { api, type Share, type ShareCreate } from '$lib/api/client';
   import { auth } from '$lib/stores/auth';
   import { range, rangeLabel, toParams, movingKey, movingLabel } from '$lib/stores/range';
@@ -13,6 +13,7 @@
   let label = $state('');
   let scope = $state<'all' | 'current' | 'moving'>('all');
   let root: HTMLDivElement | undefined = $state();
+  let panel: HTMLDivElement | undefined = $state();
 
   const tz = $derived($auth.user?.timezone ?? 'UTC');
   const isAll = $derived($range.kind === 'rolling' && $range.key === 'all');
@@ -58,8 +59,15 @@
   const open = $derived($shareOpen);
   onDestroy(() => shareOpen.set(false));
 
+  async function openPanel() {
+    await load();
+    if (!$compactHeader) return;
+    await tick();
+    panel?.querySelector<HTMLElement>('button, input')?.focus();
+  }
+
   $effect(() => {
-    if (open) void load();
+    if (open) void openPanel();
   });
 
   function toggle() {
@@ -134,7 +142,7 @@
     <button type="button" aria-expanded={open} aria-controls="share-panel" onclick={toggle}>Share</button>
   {/if}
   {#if open}
-    <div class="panel" id="share-panel">
+    <div class="panel" id="share-panel" bind:this={panel}>
       {#if loaded && shares.length === 0}
         <p class="muted">No active links</p>
       {/if}
