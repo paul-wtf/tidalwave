@@ -1,3 +1,7 @@
+import logging
+
+import respx
+
 from tidalwave import cli
 
 
@@ -73,3 +77,41 @@ async def test_poll_saves_the_lastfm_work_before_it_asks_musicbrainz(monkeypatch
         "poll", "durations", "covers", "tags", "commit",
         ("years", {"max_albums": 7}), "http://mirror.test/ws/2", "commit",
     ]
+
+
+@respx.mock
+async def test_poll_keeps_request_urls_with_keys_out_of_the_log(monkeypatch, caplog):
+    respx.get("https://ws.audioscrobbler.com/2.0/").respond(json={})
+
+    class Session:
+        async def commit(self):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return None
+
+    async def poll(session, client, **kwargs):
+        await client._http.get(
+            "https://ws.audioscrobbler.com/2.0/", params={"api_key": "API-KEY-1", "sk": "SESSION-KEY-1"}
+        )
+        return {"alice": 1}
+
+    async def nothing(session, client, **kwargs):
+        return 0
+
+    monkeypatch.setattr(cli, "make_engine", lambda settings: None)
+    monkeypatch.setattr(cli, "make_session_factory", lambda engine: Session)
+    monkeypatch.setattr(cli, "poll_all_users", poll)
+    for step in ("fill_missing_durations", "fill_missing_covers", "fill_missing_artist_tags",
+                 "fill_missing_album_years"):
+        monkeypatch.setattr(cli, step, nothing)
+    caplog.set_level(logging.INFO)
+
+    await cli._poll()
+
+    assert "poll report: {'alice': 1}" in caplog.text
+    assert "API-KEY-1" not in caplog.text
+    assert "SESSION-KEY-1" not in caplog.text
