@@ -17,7 +17,7 @@ from sqlalchemy import select, text, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.auth.registration import RegistrationDenied
-from tidalwave.auth.service import upsert_user_from_session
+from tidalwave.auth.service import delete_account, upsert_user_from_session
 from tidalwave.auth.session import COOKIE_NAME, SessionCodec, current_user
 from tidalwave.models.db import Listen, User
 from tidalwave.config import Settings
@@ -134,9 +134,7 @@ async def update_me(
 async def delete_me(
     user: User = Depends(current_user), session: AsyncSession = Depends(get_session)
 ) -> Response:
-    # listens, shares and sync_state go with the row through ON DELETE CASCADE.
-    await session.delete(user)
-    await session.flush()
+    await delete_account(session, user)
     resp = Response(status_code=204)
     resp.delete_cookie(COOKIE_NAME)
     return resp

@@ -161,3 +161,23 @@ class Share(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     label: Mapped[str | None] = mapped_column(Text)
     range_key: Mapped[str | None] = mapped_column(String(16))
+
+
+class AllowlistEntry(Base):
+    """A Last.fm username an admin allowed to register at runtime, next to the
+    ones in TIDALWAVE_REGISTRATION_ALLOWLIST."""
+
+    __tablename__ = "allowlist_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    lastfm_username: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+Index(
+    "uq_allowlist_entry_username",
+    func.lower(AllowlistEntry.lastfm_username),
+    unique=True,
+)

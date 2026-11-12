@@ -68,10 +68,11 @@ async def test_head_upgrades_a_database_at_the_previous_revision(scratch):
 
     assert await conn.fetchval("SELECT version_num FROM alembic_version") == head
     assert await conn.fetchval("SELECT count(*) FROM listens") == 1
-    await conn.execute("INSERT INTO album_years (artist, album) VALUES ('Kavinsky', 'OutRun')")
-    row = await conn.fetchrow("SELECT * FROM album_years")
-    assert row["year"] is None
-    assert row["fetched_at"] is not None
+    await conn.execute("INSERT INTO allowlist_entries (lastfm_username) VALUES ('Carol')")
+    row = await conn.fetchrow("SELECT * FROM allowlist_entries")
+    assert row["created_at"] is not None
+    with pytest.raises(asyncpg.UniqueViolationError):
+        await conn.execute("INSERT INTO allowlist_entries (lastfm_username) VALUES ('CAROL')")
 
 
 async def test_migrations_create_the_columns_the_models_declare(scratch):

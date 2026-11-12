@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from tidalwave.auth.allowlist import runtime_usernames
 from tidalwave.auth.registration import ensure_allowed
 from tidalwave.models.db import User
 
@@ -25,6 +26,8 @@ async def upsert_user_from_session(
         await session.flush()
         return existing
 
+    if mode != "open":
+        allowlist = [*allowlist, *await runtime_usernames(session)]
     ensure_allowed(username, mode=mode, allowlist=allowlist)
     is_first = (await session.execute(select(func.count()).select_from(User))).scalar_one() == 0
     user = User(
@@ -35,3 +38,9 @@ async def upsert_user_from_session(
     session.add(user)
     await session.flush()
     return user
+
+
+async def delete_account(session: AsyncSession, user: User) -> None:
+    # Everything a user owns references users.id with ON DELETE CASCADE.
+    await session.delete(user)
+    await session.flush()
