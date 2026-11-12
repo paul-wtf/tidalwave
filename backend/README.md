@@ -102,6 +102,7 @@ Hours, weekdays, days and period buckets are computed in the user's timezone
 | `GET` | `/stats/records` | | Longest and current streak, busiest day, longest session. |
 | `GET` | `/stats/heatmap` | | Listens per day, at most 366 days. |
 | `GET` | `/stats/on-this-day` | | Listens on today's date in earlier years. Ignores the range parameters. |
+| `GET` | `/stats/now-playing` | | The track Last.fm reports as playing right now (`track`, `artist`, `album`, `image_url`), or `null`. Takes no range. The answer is kept in memory for 15 seconds per user, and a Last.fm failure yields `null`. |
 | `GET` | `/stats/milestones` | | Round listen counts reached so far and the next one. Ignores the range parameters. |
 
 ### Shares (session-gated)
@@ -118,7 +119,8 @@ Every `/stats/...` endpoint above also exists as `/shared/{token}/...` and
 returns the share owner's data, limited to the share's range. Range parameters
 can narrow that range and never widen it. A revoked or unknown token is a 404.
 `previous` in the summary is always `null` here, because the period before
-lies outside the share.
+lies outside the share. `/shared/{token}/now-playing` always returns `null`
+for the same reason and never asks Last.fm.
 
 A share created with `range_key` (`rolling_7d`, `rolling_30d`, `rolling_365d`,
 `this_week`, `this_month`, `this_year`) stores the symbol instead of two

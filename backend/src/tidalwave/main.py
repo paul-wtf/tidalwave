@@ -43,6 +43,7 @@ def create_app() -> FastAPI:
     app.state.engine = engine
     app.state.session_factory = make_session_factory(engine)
     app.state.http = httpx.AsyncClient(timeout=15.0)
+    app.state.now_playing = {}
     app.add_middleware(SharedCors)
     app.include_router(health.router)
     app.include_router(auth.router)

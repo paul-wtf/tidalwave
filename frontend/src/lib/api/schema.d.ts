@@ -431,6 +431,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stats/now-playing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Now Playing */
+        get: operations["now_playing_stats_now_playing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/shared/{token}/top-artists": {
         parameters: {
             query?: never;
@@ -746,6 +763,23 @@ export interface paths {
         };
         /** Search */
         get: operations["search_shared__token__search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shared/{token}/now-playing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Now Playing */
+        get: operations["now_playing_shared__token__now_playing_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1744,6 +1778,42 @@ export interface operations {
             };
         };
     };
+    now_playing_stats_now_playing_get: {
+        parameters: {
+            query?: {
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    } | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     top_artists_shared__token__top_artists_get: {
         parameters: {
             query?: {
@@ -2474,6 +2544,44 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    now_playing_shared__token__now_playing_get: {
+        parameters: {
+            query?: {
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    } | null;
                 };
             };
             /** @description Validation Error */
