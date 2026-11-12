@@ -23,4 +23,23 @@ describe('AreaTrend', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: /bucket/i }), 'week');
     expect(onBucketChange).toHaveBeenCalledWith('week');
   });
+
+  const points = (values: number[]) =>
+    values.map((value, i) => ({ period: `2024-06-0${i + 1}T00:00:00`, value }));
+
+  it('marks the curve to be drawn in', () => {
+    const { container } = render(AreaTrend, { props: { title: 'Trend', points: points([3, 5, 2]) } });
+    expect(container.querySelector('svg')).toHaveClass('draw');
+  });
+
+  it('redraws the curve when the data changes and keeps it otherwise', async () => {
+    const { container, rerender } = render(AreaTrend, {
+      props: { title: 'Trend', points: points([3, 5, 2]) }
+    });
+    const first = container.querySelector('svg');
+    await rerender({ points: points([3, 5, 2]) });
+    expect(container.querySelector('svg')).toBe(first);
+    await rerender({ points: points([1, 9, 4]) });
+    expect(container.querySelector('svg')).not.toBe(first);
+  });
 });

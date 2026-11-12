@@ -20,8 +20,10 @@ if (typeof globalThis.localStorage === 'undefined') {
 if (typeof window !== 'undefined' && !window.matchMedia) {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
+    // Tests prefer reduced motion, so no component waits on animation frames
+    // unless a test stubs matchMedia to allow motion.
     value: (query: string) => ({
-      matches: false,
+      matches: query.includes('prefers-reduced-motion'),
       media: query,
       onchange: null,
       addListener: () => {},

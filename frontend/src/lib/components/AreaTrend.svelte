@@ -72,16 +72,18 @@
       </div>
       <div class="plot-main">
         <div class="areachart">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" style="stop-color: var(--accent); stop-opacity: 0.25" />
-                <stop offset="100%" style="stop-color: var(--accent); stop-opacity: 0" />
-              </linearGradient>
-            </defs>
-            <path class="area" d={areaPath} fill="url(#{gradientId})" />
-            <path class="line" d={linePath} vector-effect="non-scaling-stroke" />
-          </svg>
+          {#key linePath}
+            <svg class="draw" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" style="stop-color: var(--accent); stop-opacity: 0.25" />
+                  <stop offset="100%" style="stop-color: var(--accent); stop-opacity: 0" />
+                </linearGradient>
+              </defs>
+              <path class="area" d={areaPath} fill="url(#{gradientId})" />
+              <path class="line" d={linePath} vector-effect="non-scaling-stroke" />
+            </svg>
+          {/key}
           <div class="hovers">
             {#each coords as c (c.point.period)}
               <div class="hcol" title="{formatDate(c.point.period)} — {formatValue(c.point.value)}"></div>
@@ -155,6 +157,22 @@
     stroke: var(--accent);
     stroke-width: 2;
     stroke-linejoin: round;
+  }
+  .draw {
+    animation: draw-in 900ms var(--ease-out) both;
+  }
+  @keyframes draw-in {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .draw {
+      animation: none;
+    }
   }
   .hovers {
     position: absolute;

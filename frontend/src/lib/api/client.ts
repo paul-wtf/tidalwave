@@ -84,6 +84,11 @@ export interface Heatmap {
   end: string;
   days: { date: string; listens: number }[];
 }
+export interface Milestones {
+  total: number;
+  reached: { count: number; played_at: string; track: string; artist: string; album: string | null }[];
+  next: { count: number; remaining: number } | null;
+}
 export type Bucket = 'day' | 'week' | 'month';
 export type StatsParams = {
   since?: string; until?: string; start?: string; end?: string;
@@ -107,6 +112,7 @@ export interface StatsApi {
   topAlbums(limit: number, p?: StatsParams): Promise<AlbumCount[]>;
   clock(p?: StatsParams): Promise<number[]>;
   weekday(p?: StatsParams): Promise<number[]>;
+  hourWeekday(p?: StatsParams): Promise<number[][]>;
   history(bucket: Bucket, p?: StatsParams): Promise<HistoryPoint[]>;
   metricsOverTime(bucket: Bucket, p?: StatsParams): Promise<MetricPoint[]>;
   recent(limit: number, p?: StatsParams): Promise<RecentItem[]>;
@@ -117,6 +123,7 @@ export interface StatsApi {
   onThisDay(): Promise<OnThisDayYear[]>;
   records(p?: StatsParams): Promise<Records>;
   heatmap(p?: StatsParams): Promise<Heatmap>;
+  milestones(): Promise<Milestones>;
 }
 
 export function statsApi(token?: string): StatsApi {
@@ -130,6 +137,7 @@ export function statsApi(token?: string): StatsApi {
     topAlbums: (limit, p) => get('/top-albums', { limit, ...p }),
     clock: (p) => get('/clock', { ...p }),
     weekday: (p) => get('/weekday', { ...p }),
+    hourWeekday: (p) => get('/hour-weekday', { ...p }),
     history: (bucket, p) => get('/history', { bucket, ...p }),
     metricsOverTime: (bucket, p) => get('/metrics-over-time', { bucket, ...p }),
     recent: (limit, p) => get('/recent', { limit, ...p }),
@@ -139,7 +147,8 @@ export function statsApi(token?: string): StatsApi {
     discoveries: (p) => get('/discoveries', { ...p }),
     onThisDay: () => get('/on-this-day', {}),
     records: (p) => get('/records', { ...p }),
-    heatmap: (p) => get('/heatmap', { ...p })
+    heatmap: (p) => get('/heatmap', { ...p }),
+    milestones: () => get('/milestones', {})
   };
 }
 

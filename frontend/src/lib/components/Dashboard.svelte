@@ -6,7 +6,7 @@
   } from '$lib/api/client';
   import { auth, loadMe } from '$lib/stores/auth';
   import { rangeQuery } from '$lib/stores/range';
-  import { formatCount, formatDuration } from '$lib/format';
+  import { formatDuration } from '$lib/format';
   import { artistItems, trackItems, albumItems, type ListItem } from '$lib/listItems';
   import StatCard from './StatCard.svelte';
   import AreaTrend from './AreaTrend.svelte';
@@ -14,6 +14,7 @@
   import ListeningClock from './ListeningClock.svelte';
   import WeekdayChart from './WeekdayChart.svelte';
   import RecentList from './RecentList.svelte';
+  import TrendWave from './TrendWave.svelte';
 
   // `token` switches to shared-link mode: data comes from the shared endpoints
   // (range fixed by the share) instead of the global range store.
@@ -84,19 +85,21 @@
 {#if error}
   <p class="error">{errorMessage}</p>
 {:else}
+  <TrendWave values={metrics.map((m) => m.listens)} />
   <div class="dashboard">
     <div class="row stats">
-      <StatCard label="Songs listened" value={formatCount(summary.total_listens)}
+      <StatCard label="Songs listened" value={summary.total_listens}
         delta={change(summary.total_listens, prev?.total_listens)} />
       <StatCard
         label="Time listened"
-        value={formatDuration(summary.total_seconds)}
+        value={summary.total_seconds}
+        format={formatDuration}
         delta={change(summary.total_seconds, prev?.total_seconds)}
         sub={timePending ? 'resolving durations…' : undefined}
       />
-      <StatCard label="Artists" value={formatCount(summary.distinct_artists)}
+      <StatCard label="Artists" value={summary.distinct_artists}
         delta={change(summary.distinct_artists, prev?.distinct_artists)} />
-      <StatCard label="Albums" value={formatCount(summary.distinct_albums)}
+      <StatCard label="Albums" value={summary.distinct_albums}
         delta={change(summary.distinct_albums, prev?.distinct_albums)} />
     </div>
     <div class="row trends">

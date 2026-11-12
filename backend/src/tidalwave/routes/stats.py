@@ -69,6 +69,13 @@ def make_stats_router(scope_dep) -> APIRouter:
     ) -> list[int]:
         return await queries.listening_weekday(session, scope)
 
+    @router.get("/hour-weekday")
+    async def hour_weekday(
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> list[list[int]]:
+        return await queries.listening_hour_weekday(session, scope)
+
     @router.get("/history")
     async def history(
         bucket: Literal["day", "week", "month"] = "day",
@@ -170,6 +177,13 @@ def make_stats_router(scope_dep) -> APIRouter:
         session: AsyncSession = Depends(get_session),
     ) -> dict:
         return await insights.records(session, scope)
+
+    @router.get("/milestones")
+    async def milestones(
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await insights.milestones(session, scope)
 
     @router.get("/heatmap")
     async def heatmap(

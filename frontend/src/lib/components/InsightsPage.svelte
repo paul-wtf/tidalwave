@@ -2,6 +2,7 @@
   import {
     statsApi,
     type Discoveries as DiscoveriesData, type Heatmap as HeatmapData,
+    type Milestones as MilestonesData,
     type OnThisDayYear, type Records as RecordsData
   } from '$lib/api/client';
   import { auth } from '$lib/stores/auth';
@@ -9,7 +10,9 @@
   import { range, rangeQuery } from '$lib/stores/range';
   import OnThisDay from './OnThisDay.svelte';
   import Records from './Records.svelte';
+  import Milestones from './Milestones.svelte';
   import Heatmap from './Heatmap.svelte';
+  import HourWeekdayGrid from './HourWeekdayGrid.svelte';
   import Discoveries from './Discoveries.svelte';
 
   let { token }: { token?: string } = $props();
@@ -20,7 +23,9 @@
 
   let onThisDay = $state<OnThisDayYear[]>([]);
   let records = $state<RecordsData | null>(null);
+  let milestones = $state<MilestonesData | null>(null);
   let heatmap = $state<HeatmapData | null>(null);
+  let hourWeekday = $state<number[][]>([]);
   let discoveries = $state<DiscoveriesData | null>(null);
   let error = $state(false);
 
@@ -34,11 +39,13 @@
       () => Promise.all([
         client.onThisDay(),
         client.records(params),
+        shared ? Promise.resolve(null) : client.milestones(),
         client.heatmap(params),
+        client.hourWeekday(params),
         skipDiscoveries ? Promise.resolve(null) : client.discoveries(params)
       ]),
-      ([o, r, h, d]) => {
-        onThisDay = o; records = r; heatmap = h; discoveries = d;
+      ([o, r, m, h, g, d]) => {
+        onThisDay = o; records = r; milestones = m; heatmap = h; hourWeekday = g; discoveries = d;
       },
       (st) => (error = st !== 'ok')
     );
@@ -51,7 +58,9 @@
   <div class="dashboard">
     <OnThisDay years={onThisDay} {base} />
     <Records {records} {tz} />
+    {#if milestones}<Milestones {milestones} {base} {tz} />{/if}
     <Heatmap {heatmap} />
+    <HourWeekdayGrid grid={hourWeekday} {tz} />
     {#if allTime}
       <section class="glass">
         <h2>Discoveries</h2>

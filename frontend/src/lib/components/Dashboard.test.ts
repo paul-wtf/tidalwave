@@ -127,4 +127,28 @@ describe('Dashboard', () => {
     render(Dashboard, { token: 'tok' });
     await waitFor(() => expect(screen.getByText('By hour (local time)')).toBeInTheDocument());
   });
+
+  const summary = {
+    total_listens: 42, distinct_artists: 5, distinct_tracks: 30, distinct_albums: 8, total_seconds: 7200
+  };
+  const point = (day: number, listens: number) => ({
+    period: `2026-11-0${day}T00:00:00`, listens, artists: 1, albums: 1, seconds: 60
+  });
+
+  it('turns the listening trend into the background wave', async () => {
+    mockApi({
+      ...rest, '/stats/summary': summary,
+      '/stats/metrics-over-time': [point(1, 3), point(2, 9), point(3, 5)]
+    });
+    const { container } = render(Dashboard);
+    await waitFor(() => expect(container.querySelector('.wave')).not.toBeNull());
+    expect(container.querySelectorAll('.wave path.layer')).toHaveLength(4);
+  });
+
+  it('keeps the static background without a trend', async () => {
+    mockApi({ ...rest, '/stats/summary': summary });
+    const { container } = render(Dashboard);
+    await waitFor(() => expect(screen.getByText('42')).toBeInTheDocument());
+    expect(container.querySelector('.wave')).toBeNull();
+  });
 });

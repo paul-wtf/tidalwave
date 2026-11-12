@@ -7,7 +7,7 @@
   import { auth } from '$lib/stores/auth';
   import { loadDetail } from '$lib/detailLoader';
   import { rangeQuery } from '$lib/stores/range';
-  import { formatCount, durationStat, formatLongDate } from '$lib/format';
+  import { durationStat, formatLongDate } from '$lib/format';
   import { artistHref, albumHref } from '$lib/links';
   import DetailHeader from './DetailHeader.svelte';
   import AreaTrend from './AreaTrend.svelte';
@@ -66,7 +66,7 @@
       query={`${detail.artist} ${detail.track}`}
       image={detail.image_url}
       stats={[
-        { label: 'Listens', value: formatCount(detail.listens) },
+        { label: 'Listens', value: detail.listens },
         { label: 'Time listened', ...durationStat(detail.listens, detail.seconds) },
         { label: 'First listen', value: formatLongDate(detail.first_listen, tz), compact: true },
         { label: 'Last listen', value: formatLongDate(detail.last_listen, tz), compact: true }
@@ -78,8 +78,8 @@
           · <a href={albumHref(base, detail!.artist, detail!.album)}>{detail!.album}</a>
         {/if}
       {/snippet}
+      <AreaTrend title="Listens over time" points={trend} />
     </DetailHeader>
-    <AreaTrend title="Listens over time" points={trend} />
     <RecentList items={recent} {base} {tz} />
   </div>
 {/if}
