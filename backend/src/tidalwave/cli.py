@@ -32,9 +32,17 @@ def _client(http: httpx.AsyncClient, settings: Settings) -> LastfmClient:
     return LastfmClient(http, api_key=settings.lastfm_api_key, api_secret=settings.lastfm_api_secret)
 
 
+def _setup_logging(settings: Settings) -> None:
+    logging.basicConfig(level=settings.log_level)
+    # httpx logs every request URL at INFO; Last.fm URLs carry the API key and
+    # the user's session key, Discord webhook URLs their token.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+
 async def _poll() -> None:
     settings = Settings()
-    logging.basicConfig(level=settings.log_level)
+    _setup_logging(settings)
     factory = make_session_factory(make_engine(settings))
     async with httpx.AsyncClient(timeout=15.0) as http, session_scope(factory) as session:
         client = _client(http, settings)
@@ -65,6 +73,7 @@ async def _poll() -> None:
 
 async def _backfill(username: str) -> None:
     settings = Settings()
+    _setup_logging(settings)
     factory = make_session_factory(make_engine(settings))
     async with httpx.AsyncClient(timeout=15.0) as http, session_scope(factory) as session:
         user = (
@@ -77,7 +86,7 @@ async def _backfill(username: str) -> None:
 
 async def _backfill_durations(username: str | None) -> None:
     settings = Settings()
-    logging.basicConfig(level=settings.log_level)
+    _setup_logging(settings)
     factory = make_session_factory(make_engine(settings))
     async with httpx.AsyncClient(timeout=15.0) as http, session_scope(factory) as session:
         user_id: int | None = None
@@ -93,7 +102,7 @@ async def _backfill_durations(username: str | None) -> None:
 
 async def _backfill_covers() -> None:
     settings = Settings()
-    logging.basicConfig(level=settings.log_level)
+    _setup_logging(settings)
     factory = make_session_factory(make_engine(settings))
     async with httpx.AsyncClient(timeout=15.0) as http, session_scope(factory) as session:
         written = await fill_missing_covers(session, _client(http, settings))
@@ -103,7 +112,7 @@ async def _backfill_covers() -> None:
 
 async def _backfill_tags() -> None:
     settings = Settings()
-    logging.basicConfig(level=settings.log_level)
+    _setup_logging(settings)
     factory = make_session_factory(make_engine(settings))
     async with httpx.AsyncClient(timeout=15.0) as http, session_scope(factory) as session:
         written = await fill_missing_artist_tags(session, _client(http, settings))
@@ -113,7 +122,7 @@ async def _backfill_tags() -> None:
 
 async def _backfill_years() -> None:
     settings = Settings()
-    logging.basicConfig(level=settings.log_level)
+    _setup_logging(settings)
     factory = make_session_factory(make_engine(settings))
     async with httpx.AsyncClient(timeout=15.0) as http, session_scope(factory) as session:
         client = MusicBrainzClient(http, base_url=settings.musicbrainz_url)
@@ -124,7 +133,7 @@ async def _backfill_years() -> None:
 
 async def _weekly_report() -> None:
     settings = Settings()
-    logging.basicConfig(level=settings.log_level)
+    _setup_logging(settings)
     factory = make_session_factory(make_engine(settings))
     async with httpx.AsyncClient(timeout=15.0) as http, session_scope(factory) as session:
         report = await send_weekly_reports(

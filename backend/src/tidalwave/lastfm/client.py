@@ -22,6 +22,14 @@ class LastfmError(Exception):
         return f"Last.fm error {self.code}: {self.message}"
 
 
+def _raise_for_status(resp: httpx.Response) -> None:
+    # httpx's own message quotes the request URL, which holds the keys.
+    if resp.is_error:
+        raise httpx.HTTPStatusError(
+            f"Last.fm answered {resp.status_code}", request=resp.request, response=resp
+        ) from None
+
+
 @dataclass(frozen=True, slots=True)
 class RecentTracksPage:
     scrobbles: tuple[Scrobble, ...]
@@ -43,11 +51,11 @@ class LastfmClient:
         try:
             data = resp.json()
         except ValueError:
-            resp.raise_for_status()
+            _raise_for_status(resp)
             raise
         if "error" in data:
             raise LastfmError(int(data["error"]), data.get("message", ""))
-        resp.raise_for_status()
+        _raise_for_status(resp)
         return data
 
     async def get_session(self, token: str) -> tuple[str, str]:
