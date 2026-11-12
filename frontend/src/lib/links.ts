@@ -9,3 +9,5 @@ export const albumHref = (base: string, artist: string, album: string) =>
 
 export const trackHref = (base: string, artist: string, track: string) =>
   href(base, 'track', { artist, track });
+
+export const genreHref = (base: string, genre: string) => href(base, 'genre', { genre });

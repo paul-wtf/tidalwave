@@ -91,6 +91,12 @@ export interface Milestones {
   reached: { count: number; played_at: string; track: string; artist: string; album: string | null }[];
   next: { count: number; remaining: number } | null;
 }
+export interface Genres {
+  genres: { genre: string; listens: number; artists: number }[];
+  artists: number;
+  tagged_artists: number;
+}
+export interface GenreDetail { genre: string; listens: number; seconds: number; artists: number; }
 export interface NowPlaying {
   track: string; artist: string; album: string | null; image_url: string | null;
 }
@@ -103,7 +109,7 @@ export type Bucket = 'day' | 'week' | 'month';
 export type StatsParams = {
   since?: string; until?: string; start?: string; end?: string;
   calendar?: 'week' | 'month' | 'year';
-  artist?: string; album?: string; track?: string;
+  artist?: string; album?: string; track?: string; genre?: string;
 };
 
 function qs(params: Record<string, string | number | boolean | undefined | null>): string {
@@ -129,6 +135,8 @@ export interface StatsApi {
   artist(name: string, p?: StatsParams): Promise<ArtistDetail>;
   album(artist: string, album: string, p?: StatsParams): Promise<AlbumDetail>;
   track(artist: string, track: string, p?: StatsParams): Promise<TrackDetail>;
+  genres(limit: number, p?: StatsParams): Promise<Genres>;
+  genre(name: string, p?: StatsParams): Promise<GenreDetail>;
   discoveries(p?: StatsParams): Promise<Discoveries>;
   onThisDay(): Promise<OnThisDayYear[]>;
   records(p?: StatsParams): Promise<Records>;
@@ -156,6 +164,8 @@ export function statsApi(token?: string): StatsApi {
     artist: (name, p) => get('/artist', { artist: name, ...p }),
     album: (artist, album, p) => get('/album', { artist, album, ...p }),
     track: (artist, track, p) => get('/track', { artist, track, ...p }),
+    genres: (limit, p) => get('/genres', { limit, ...p }),
+    genre: (name, p) => get('/genre', { genre: name, ...p }),
     discoveries: (p) => get('/discoveries', { ...p }),
     onThisDay: () => get('/on-this-day', {}),
     records: (p) => get('/records', { ...p }),
