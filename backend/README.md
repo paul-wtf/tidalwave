@@ -40,6 +40,9 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `TIDALWAVE_REGISTRATION_ALLOWLIST` | *(empty)* | Comma-separated list of Last.fm usernames permitted to register when `REGISTRATION_MODE=allowlist`. Example: `alice,bob`. |
 | `TIDALWAVE_SESSION_SECRET` | `dev-insecure-change-me` | Secret used to sign the session cookie with itsdangerous. **Must be set to a strong random value in production.** |
 | `TIDALWAVE_FRONTEND_URL` | *(empty)* | Base URL the backend fetches the frontend's `index.html` from, to serve `/s/<token>` with link-preview tags. Needs the ingress to route `/s/` to the backend. Empty: `/s/<token>` on the backend answers with a small page that carries the tags and forwards to `/?share=<token>`. |
+| `TIDALWAVE_LINKHOP_URL` | *(empty)* | Base URL of a [linkhop](https://github.com/paul-wtf/linkhop) instance, `http://` or `https://`. When set, the frontend shows one more icon next to the platform links, which opens `<url>/?q=<artist title>` there. Empty: no icon. |
+| `TIDALWAVE_MUSICBRAINZ_URL` | `https://musicbrainz.org/ws/2` | Base URL of the MusicBrainz API, which the poll asks for album release years. Point it at a mirror if you run one. |
+| `TIDALWAVE_MUSICBRAINZ_BUDGET` | `30` | Albums whose release year one poll run looks up. MusicBrainz allows one request per second and an album takes one or two, so 30 albums add up to a minute to a run. `0` turns the lookups off. |
 | `TIDALWAVE_LOG_LEVEL` | `INFO` | Python logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
 
 ---
@@ -70,6 +73,7 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `GET` | `/auth/login` | None | Redirects to Last.fm authorization page. |
 | `GET` | `/auth/callback` | None | Receives Last.fm token, creates/logs in user, sets session cookie. |
 | `POST` | `/auth/logout` | None | Clears session cookie. |
+| `GET` | `/auth/config` | None | Settings the static frontend reads at start, also in share views: `{"linkhop_url": <url or null>}`. |
 | `GET` | `/auth/me` | Session | Username, admin flag, timezone, `disconnected`, `last_synced_at` and `last_played_at`. |
 | `PATCH` | `/auth/me` | Session | Sets the timezone: `{"timezone": "<IANA name>"}`, 422 for an unknown name. |
 | `DELETE` | `/auth/me` | Session | Deletes the user with their listens, shares and sync state, and clears the session cookie. The shared `album_art` and `track_durations` caches stay. |
@@ -86,7 +90,7 @@ Hours, weekdays, days and period buckets are computed in the user's timezone
 | Method | Path | Extra query params | Description |
 |---|---|---|---|
 | `GET` | `/stats/summary` | `compare`, `calendar` (`week`\|`month`\|`year`) | `total_listens`, `distinct_artists`, `distinct_tracks`, `distinct_albums`, `total_seconds`. With `compare=true` also `previous`, the same totals for the period before (`null` for all time). |
-| `GET` | `/stats/top-artists` | `limit` (default 20) | Top artists by listen count, each with the cover of their most-listened album. |
+| `GET` | `/stats/top-artists` | `limit` (default 20), `genre` | Top artists by listen count, each with the cover of their most-listened album. `genre` keeps the artists with that tag. |
 | `GET` | `/stats/top-tracks` | `limit`, `artist`, `album`, `track` | Top tracks by listen count. |
 | `GET` | `/stats/top-albums` | `limit`, `artist`, `album`, `track` | Top albums by listen count, keyed by `(artist, album)`, with cover. |
 | `GET` | `/stats/recent` | `limit` (default 50), `artist`, `album`, `track` | Most recent listens. |
@@ -94,12 +98,17 @@ Hours, weekdays, days and period buckets are computed in the user's timezone
 | `GET` | `/stats/weekday` | | 7 listen counts by ISO weekday (index 0 = Monday). |
 | `GET` | `/stats/hour-weekday` | | 7 rows (Monday to Sunday) of 24 hourly listen counts. |
 | `GET` | `/stats/history` | `bucket` (`day`\|`week`\|`month`, default `day`) | Chronological series: `[{"period": <iso>, "count": N}]`. |
-| `GET` | `/stats/metrics-over-time` | `bucket`, `artist`, `album`, `track` | Per period: listens, distinct artists and albums, seconds. |
+| `GET` | `/stats/metrics-over-time` | `bucket`, `artist`, `album`, `track`, `genre` | Per period: listens, distinct artists and albums, seconds. `genre` keeps the listens of artists with that tag. |
 | `GET` | `/stats/search` | `q` | Up to five artists, albums and tracks whose name contains `q`, ignoring case. Ordered by listens in the range, then by listens overall; `count` is the listens in the range. |
 | `GET` | `/stats/artist` | `artist` | Detail for one artist: listens, seconds, rank, first and last listen, cover. 404 without any listen. |
 | `GET` | `/stats/album` | `artist`, `album` | Detail for one album. |
 | `GET` | `/stats/track` | `artist`, `track` | Detail for one track, with its most-listened album. |
+| `GET` | `/stats/artist-race` | `bucket` (`day`\|`week`\|`month`), `limit` (default 10) | The whole race of the top artists in one response: `{"bucket", "periods": [<iso>], "artists": [{"artist", "image_url", "totals": [N per period]}]}`. `totals` are running listen counts since the start of the range. It lists every artist that is among the top `limit` at the end of some period, so ranking them by their total at a period gives the top `limit` of that period. Without `bucket` the server picks days for ranges up to 92 days and months beyond. |
+| `GET` | `/stats/album-runs` | `limit`, `artist`, `album` | Times an album was played through, newest first: `{"total": N, "runs": [{"artist", "album", "started_at", "tracks", "listens", "seconds", "image_url"}]}`. A run is at least six different tracks of one album in a row with pauses of at most ten minutes, a heuristic, because Last.fm does not say how many tracks an album has. `artist` and `album` keep the runs of one album. |
+| `GET` | `/stats/decades` | | Listens by the decade their album first came out: `{"decades": [{"decade": 1990, "listens": N}], "known": N, "unknown": N, "pending": N}`. Decades between the first and the last one are listed even when empty. `unknown` counts the listens without a known year, and `pending` the part of them that carries a MusicBrainz id and has not been looked up yet. |
 | `GET` | `/stats/discoveries` | `limit` | New artists, new tracks and rediscoveries in the range. |
+| `GET` | `/stats/genres` | `limit` | Genres ranked by the listens of their artists: `{"genres": [{"genre", "listens", "artists"}], "artists": N, "tagged_artists": M}`. An artist's listens count in full for each of its first three tags. `artists` is the number of artists in the range and `tagged_artists` how many of them have been looked up on Last.fm, so a client can tell when the ranking is still filling in. |
+| `GET` | `/stats/genre` | `genre` | Totals for one genre in the range: listens, seconds and artists. 404 when no artist the user has listened to carries the tag among its first three. |
 | `GET` | `/stats/records` | | Longest and current streak, busiest day, longest session. |
 | `GET` | `/stats/heatmap` | | Listens per day, at most 366 days. |
 | `GET` | `/stats/on-this-day` | | Listens on today's date in earlier years. Ignores the range parameters. |
@@ -169,6 +178,18 @@ tidalwave-backfill <lastfm-username>
 
 ```bash
 tidalwave-backfill-covers
+```
+
+**Genre tags**: the poll asks Last.fm for the tags of up to 50 artists per run (`artist.getTopTags`) and keeps the ones that describe the music. This fetches the tags for every artist that has none yet:
+
+```bash
+tidalwave-backfill-tags
+```
+
+**Release years**: the poll looks up the release year of up to `TIDALWAVE_MUSICBRAINZ_BUDGET` albums per run on MusicBrainz, using the album and track ids Last.fm sends with a scrobble. Albums whose scrobbles carry neither id stay without a year. This works through every album that has not been asked for yet, at one request per second:
+
+```bash
+tidalwave-backfill-years
 ```
 
 All commands read configuration from the same `TIDALWAVE_*` environment variables as the server.

@@ -22,6 +22,7 @@ const rows = {
 };
 const routes = (prefix: string, name = 'Discovery') => ({
   [`${prefix}/album`]: detail(name),
+  [`${prefix}/album-runs`]: { total: 0, runs: [] },
   [`${prefix}/metrics-over-time`]: [],
   [`${prefix}/recent`]: rows.recent,
   [`${prefix}/top-tracks`]: rows.topTracks,
@@ -49,6 +50,31 @@ describe('AlbumPage', () => {
     await waitFor(() => expect(section('Tracks').getByText('Aerodynamic — Daft Punk')).toBeInTheDocument());
     expect(calls.some((c) => c.startsWith('/stats/top-tracks?') && c.includes('album=Discovery'))).toBe(true);
     expect(screen.getByRole('link', { name: 'Daft Punk' })).toHaveAttribute('href', '/artist?artist=Daft+Punk');
+  });
+
+  it('says how often the album was played through', async () => {
+    const { calls } = mockApi({
+      ...routes('/stats'),
+      '/stats/album-runs': {
+        total: 3,
+        runs: [{
+          artist: 'Daft Punk', album: 'Discovery', started_at: '2026-11-05T10:00:00Z',
+          tracks: 14, listens: 14, seconds: 3660, image_url: null
+        }]
+      }
+    });
+    render(AlbumPage);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Played through 3 times' })).toBeInTheDocument());
+    const call = calls.find((c) => c.startsWith('/stats/album-runs?'))!;
+    expect(call).toContain('artist=Daft+Punk');
+    expect(call).toContain('album=Discovery');
+  });
+
+  it('leaves the section out when the album was never played through', async () => {
+    mockApi(routes('/stats'));
+    render(AlbumPage);
+    await waitFor(() => expect(heading()).toBeInTheDocument());
+    expect(screen.queryByRole('heading', { name: /Played through/ })).toBeNull();
   });
 
   it('shows a dash while durations resolve', async () => {
@@ -107,6 +133,7 @@ describe('AlbumPage', () => {
         const name = u.searchParams.get('album') ?? '';
         const map: Record<string, unknown> = {
           '/stats/album': detail(name),
+          '/stats/album-runs': { total: 0, runs: [] },
           '/stats/metrics-over-time': [],
           '/stats/recent': [],
           '/stats/top-tracks': [],

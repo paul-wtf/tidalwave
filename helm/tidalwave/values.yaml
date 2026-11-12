@@ -30,6 +30,12 @@ poller:
   enabled: true
   # -- Cron schedule; default every 5 minutes
   schedule: "*/5 * * * *"
+  # -- Albums whose release year one run looks up on MusicBrainz. MusicBrainz
+  # allows one request per second, so this bounds how long a run takes.
+  # 0 turns the lookups off.
+  releaseYearBudget: 30
+  # -- MusicBrainz API base URL, for a mirror. Empty: https://musicbrainz.org/ws/2
+  musicbrainzUrl: ""
 
 # -- Ingress
 ingress:
@@ -55,6 +61,10 @@ config:
   # (owner, range, listens, top artist, cover). Routes /s/ to the backend,
   # which wraps the frontend's index.html.
   sharePreviews: true
+  # -- Base URL of a linkhop instance, e.g. https://linkhop.example. When set,
+  # every item gets a link that opens it as a search there, next to the
+  # links to the single services.
+  linkhopUrl: ""
 
 # -- Sensitive credentials
 secrets:

@@ -59,6 +59,21 @@ export function formatLongDate(iso: string, timeZone: string | null): string {
   }).format(instant);
 }
 
+export function formatLongDateTime(iso: string, timeZone: string | null): string {
+  const instant = timeZone === null ? wallClock(iso) : new Date(iso);
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    timeZone: timeZone ?? 'UTC'
+  }).format(instant);
+}
+
+/** Label for a period as the stats endpoints return it: a local wall-clock ISO string. */
+export function formatPeriod(period: string, bucket: 'day' | 'week' | 'month'): string {
+  if (bucket !== 'month') return formatLongDate(period, null);
+  return new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' })
+    .format(wallClock(period));
+}
+
 export function durationStat(
   listens: number, seconds: number
 ): { value: string | number; format?: (n: number) => string; sub?: string } {

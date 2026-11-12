@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  weekdayName, formatRelative, formatLocalDate, formatLongDate, formatDateTime,
+  weekdayName, formatRelative, formatLocalDate, formatLongDate, formatLongDateTime, formatPeriod, formatDateTime,
   durationStat, formatDuration
 } from './format';
 
@@ -70,5 +70,23 @@ describe('durationStat', () => {
 
   it('shows a dash while durations are still being resolved', () => {
     expect(durationStat(3, 0)).toEqual({ value: '–', sub: 'resolving durations…' });
+  });
+});
+
+describe('formatLongDateTime', () => {
+  it('adds the time of day in the given timezone', () => {
+    expect(formatLongDateTime('2026-11-10T19:15:00Z', 'Europe/Berlin')).toBe('10 Nov 2026, 20:15');
+  });
+
+  it('keeps the wall clock of the timestamp without a timezone', () => {
+    expect(formatLongDateTime('2026-11-10T20:15:00+01:00', null)).toBe('10 Nov 2026, 20:15');
+  });
+});
+
+describe('formatPeriod', () => {
+  it('names the day of a daily or weekly bucket and the month of a monthly one', () => {
+    expect(formatPeriod('2026-11-04T00:00:00', 'day')).toBe('4 Nov 2026');
+    expect(formatPeriod('2026-11-02T00:00:00', 'week')).toBe('2 Nov 2026');
+    expect(formatPeriod('2026-11-01T00:00:00', 'month')).toBe('Nov 2026');
   });
 });

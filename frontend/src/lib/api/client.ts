@@ -91,6 +91,27 @@ export interface Milestones {
   reached: { count: number; played_at: string; track: string; artist: string; album: string | null }[];
   next: { count: number; remaining: number } | null;
 }
+export interface Genres {
+  genres: { genre: string; listens: number; artists: number }[];
+  artists: number;
+  tagged_artists: number;
+}
+export interface RaceArtist { artist: string; image_url: string | null; totals: number[]; }
+export interface ArtistRace { bucket: Bucket; periods: string[]; artists: RaceArtist[]; }
+export interface AlbumRuns {
+  total: number;
+  runs: {
+    artist: string; album: string; started_at: string; tracks: number; listens: number;
+    seconds: number; image_url: string | null;
+  }[];
+}
+export interface Decades {
+  decades: { decade: number; listens: number }[];
+  known: number;
+  unknown: number;
+  pending: number;
+}
+export interface GenreDetail { genre: string; listens: number; seconds: number; artists: number; }
 export interface NowPlaying {
   track: string; artist: string; album: string | null; image_url: string | null;
 }
@@ -103,7 +124,7 @@ export type Bucket = 'day' | 'week' | 'month';
 export type StatsParams = {
   since?: string; until?: string; start?: string; end?: string;
   calendar?: 'week' | 'month' | 'year';
-  artist?: string; album?: string; track?: string;
+  artist?: string; album?: string; track?: string; genre?: string;
 };
 
 function qs(params: Record<string, string | number | boolean | undefined | null>): string {
@@ -129,6 +150,11 @@ export interface StatsApi {
   artist(name: string, p?: StatsParams): Promise<ArtistDetail>;
   album(artist: string, album: string, p?: StatsParams): Promise<AlbumDetail>;
   track(artist: string, track: string, p?: StatsParams): Promise<TrackDetail>;
+  genres(limit: number, p?: StatsParams): Promise<Genres>;
+  genre(name: string, p?: StatsParams): Promise<GenreDetail>;
+  albumRuns(limit: number, p?: StatsParams): Promise<AlbumRuns>;
+  artistRace(bucket?: Bucket, p?: StatsParams): Promise<ArtistRace>;
+  decades(p?: StatsParams): Promise<Decades>;
   discoveries(p?: StatsParams): Promise<Discoveries>;
   onThisDay(): Promise<OnThisDayYear[]>;
   records(p?: StatsParams): Promise<Records>;
@@ -156,6 +182,11 @@ export function statsApi(token?: string): StatsApi {
     artist: (name, p) => get('/artist', { artist: name, ...p }),
     album: (artist, album, p) => get('/album', { artist, album, ...p }),
     track: (artist, track, p) => get('/track', { artist, track, ...p }),
+    genres: (limit, p) => get('/genres', { limit, ...p }),
+    genre: (name, p) => get('/genre', { genre: name, ...p }),
+    albumRuns: (limit, p) => get('/album-runs', { limit, ...p }),
+    artistRace: (bucket, p) => get('/artist-race', { bucket, ...p }),
+    decades: (p) => get('/decades', { ...p }),
     discoveries: (p) => get('/discoveries', { ...p }),
     onThisDay: () => get('/on-this-day', {}),
     records: (p) => get('/records', { ...p }),
@@ -181,6 +212,7 @@ export const api = {
     if (!res.ok) throw new ApiError(res.status, '/auth/me');
     return (await res.json()) as Me;
   },
+  config: () => request<{ linkhop_url: string | null }>('/auth/config'),
   updateMe: (body: { timezone: string }) => request<Me>('/auth/me', json('PATCH', body)),
   exportUrl: (format: 'csv' | 'json') => `/auth/export?format=${format}`,
   async deleteAccount(): Promise<void> {

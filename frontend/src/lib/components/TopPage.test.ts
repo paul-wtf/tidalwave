@@ -69,4 +69,51 @@ describe('TopPage', () => {
     await screen.findAllByText('No data yet.');
     expect(screen.getByRole('button', { name: 'Collage' })).toBeDisabled();
   });
+
+  it('switches the artists page between the list and the race', async () => {
+    const { calls } = mockApi({
+      '/stats/metrics-over-time': [],
+      '/stats/top-artists': [{ artist: 'Kavinsky', count: 12, image_url: null }],
+      '/stats/artist-race': {
+        bucket: 'day', periods: ['2026-11-01T00:00:00'],
+        artists: [{ artist: 'Kavinsky', image_url: null, totals: [12] }]
+      }
+    });
+    render(TopPage, { props: { kind: 'artists' } });
+    await screen.findByText('Kavinsky');
+    expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true');
+    expect(calls.some((c) => c.includes('artist-race'))).toBe(false);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Race' }));
+    await screen.findByRole('slider', { name: 'Position in the race' });
+    expect(screen.getByRole('button', { name: 'Race' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('heading', { name: 'Top Artists' })).toBeNull();
+    expect(calls.filter((c) => c.includes('artist-race'))).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole('button', { name: 'List' }));
+    expect(screen.getByRole('heading', { name: 'Top Artists' })).toBeInTheDocument();
+  });
+
+  it('offers the race in a share view', async () => {
+    const { calls } = mockApi({
+      '/shared/TOK/metrics-over-time': [],
+      '/shared/TOK/top-artists': [{ artist: 'Kavinsky', count: 12, image_url: null }],
+      '/shared/TOK/artist-race': {
+        bucket: 'month', periods: ['2026-11-01T00:00:00'],
+        artists: [{ artist: 'Kavinsky', image_url: null, totals: [12] }]
+      }
+    });
+    render(TopPage, { props: { kind: 'artists', token: 'TOK' } });
+    await screen.findByText('Kavinsky');
+    await userEvent.click(screen.getByRole('button', { name: 'Race' }));
+    await screen.findByRole('slider');
+    expect(calls.every((c) => c.startsWith('/shared/TOK/'))).toBe(true);
+  });
+
+  it.each(['tracks', 'albums'] as const)('has no race on the %s page', async (kind) => {
+    mockApi({ '/stats/metrics-over-time': [], '/stats/top-tracks': [], '/stats/top-albums': [] });
+    render(TopPage, { props: { kind } });
+    await screen.findAllByText('No data yet.');
+    expect(screen.queryByRole('button', { name: 'Race' })).toBeNull();
+  });
 });

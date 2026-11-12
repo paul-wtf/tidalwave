@@ -6,6 +6,7 @@
   import TopList from './TopList.svelte';
   import AreaTrend from './AreaTrend.svelte';
   import CollageDialog from './CollageDialog.svelte';
+  import ArtistRace from './ArtistRace.svelte';
 
   // `token` switches to shared-link mode (data from the shared endpoints).
   let { kind, token, errorMessage = 'Could not load your stats. Please try again.' }:
@@ -20,6 +21,8 @@
   let error = $state(false);
   let albums = $state<AlbumCount[]>([]);
   let collageOpen = $state(false);
+  let view = $state<'list' | 'race'>('list');
+  const racing = $derived(kind === 'artists' && view === 'race');
 
   $effect(() => {
     const shared = token != null;
@@ -60,19 +63,32 @@
   <p class="error">{errorMessage}</p>
 {:else}
   <div class="dashboard">
-    <AreaTrend title={TRENDS[kind]} points={trend} />
-    <TopList title={TITLES[kind]} items={items} initial={1000} covers={kind !== 'tracks'}>
-      {#snippet actions()}
-        {#if kind === 'albums'}
-          <button
-            type="button"
-            class="collage"
-            disabled={!albums.some((a) => a.album != null)}
-            onclick={() => (collageOpen = true)}
-          >Collage</button>
-        {/if}
-      {/snippet}
-    </TopList>
+    {#if kind === 'artists'}
+      <div class="views" role="group" aria-label="View">
+        {#each ['list', 'race'] as const as v (v)}
+          <button type="button" class="view" aria-pressed={view === v} onclick={() => (view = v)}>
+            {v === 'list' ? 'List' : 'Race'}
+          </button>
+        {/each}
+      </div>
+    {/if}
+    {#if racing}
+      <ArtistRace {token} />
+    {:else}
+      <AreaTrend title={TRENDS[kind]} points={trend} />
+      <TopList title={TITLES[kind]} items={items} initial={1000} covers={kind !== 'tracks'}>
+        {#snippet actions()}
+          {#if kind === 'albums'}
+            <button
+              type="button"
+              class="collage"
+              disabled={!albums.some((a) => a.album != null)}
+              onclick={() => (collageOpen = true)}
+            >Collage</button>
+          {/if}
+        {/snippet}
+      </TopList>
+    {/if}
   </div>
   {#if collageOpen}
     <CollageDialog {albums} onclose={() => (collageOpen = false)} />
@@ -80,6 +96,30 @@
 {/if}
 
 <style>
+  .views {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .view {
+    border: 0;
+    border-radius: var(--r-sm);
+    padding: 0.4rem 0.95rem;
+    background: var(--base);
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition:
+      background var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+  .view:hover {
+    color: var(--text);
+  }
+  .view[aria-pressed='true'] {
+    background: var(--surface0);
+    color: var(--text);
+  }
   .collage {
     border: 0;
     border-radius: var(--r-sm);

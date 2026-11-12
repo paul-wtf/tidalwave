@@ -14,6 +14,7 @@ from sqlalchemy import (
     func,
     text,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -95,6 +96,40 @@ class AlbumArt(Base):
     artist: Mapped[str] = mapped_column(Text, nullable=False)
     album: Mapped[str] = mapped_column(Text, nullable=False)
     image_url: Mapped[str | None] = mapped_column(Text)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class AlbumYear(Base):
+    """Release year of an album from MusicBrainz. NULL means MusicBrainz was
+    asked and has no date for it."""
+
+    __tablename__ = "album_years"
+    __table_args__ = (UniqueConstraint("artist", "album", name="uq_album_year"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    artist: Mapped[str] = mapped_column(Text, nullable=False)
+    album: Mapped[str] = mapped_column(Text, nullable=False)
+    year: Mapped[int | None] = mapped_column(Integer)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class ArtistTags(Base):
+    """An artist's genre tags from Last.fm, strongest first.
+
+    An empty list means Last.fm has no usable tag for the artist; the row still
+    exists so the artist is not asked for again.
+    """
+
+    __tablename__ = "artist_tags"
+    __table_args__ = (UniqueConstraint("artist", name="uq_artist_tags"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    artist: Mapped[str] = mapped_column(Text, nullable=False)
+    tags: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)
     fetched_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

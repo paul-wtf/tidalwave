@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.auth.session import COOKIE_NAME, SessionCodec
 from tidalwave.ingest.repository import upsert_listens
-from tidalwave.models.db import Share
+from tidalwave.models.db import AlbumYear, ArtistTags, Share
 from tidalwave.models.domain import Scrobble
 
 
@@ -244,6 +244,12 @@ async def _clamped_share(api, db_session) -> str:
     user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
     user.timezone = "Europe/Berlin"
     await upsert_listens(db_session, user.id, _clamp_listens())
+    db_session.add_all([
+        ArtistTags(artist="Ana", tags=["pop"]),
+        ArtistTags(artist="Ghost", tags=["ghostcore"]),
+        AlbumYear(artist="Ana", album="Rec", year=1994),
+        AlbumYear(artist="Ghost", album="Boo", year=1966),
+    ])
     db_session.add(Share(
         share_token="clamped", user_id=user.id,
         range_from=datetime(2026, 2, 28, 23, tzinfo=UTC),
@@ -253,7 +259,8 @@ async def _clamped_share(api, db_session) -> str:
     return "clamped"
 
 
-LEAKS = ("T-before", "T-after", "G-before", "G-after", "Ghost", "2026-02-28", "2026-05-01", "2026-01-05", "2026-07-05")
+LEAKS = ("T-before", "T-after", "G-before", "G-after", "Ghost", "2026-02-28", "2026-05-01", "2026-01-05", "2026-07-05",
+         "ghostcore", "1960")
 
 CLAMP_CASES = {
     "artist": ("artist?artist=Ana", lambda b: b["listens"] == 2),
@@ -281,6 +288,22 @@ CLAMP_CASES = {
     "summary-owner-day": ("summary?start=2026-04-16&end=2026-04-17", lambda b: b["total_listens"] == 1),
     "summary-since-until": ("summary?since=2025-01-01T00:00:00Z&until=2027-01-01T00:00:00Z",
                             lambda b: b["total_listens"] == 2),
+    "genres": ("genres", lambda b: b == {
+        "genres": [{"genre": "pop", "listens": 2, "artists": 1}], "artists": 1, "tagged_artists": 1}),
+    "genre": ("genre?genre=pop", lambda b: b == {
+        "genre": "pop", "listens": 2, "seconds": 0, "artists": 1}),
+    "decades": ("decades", lambda b: b == {
+        "decades": [{"decade": 1990, "listens": 2}], "known": 2, "unknown": 0, "pending": 0}),
+    "artist-race": ("artist-race", lambda b: b == {
+        "bucket": "day", "periods": ["2026-03-10T00:00:00", "2026-04-16T00:00:00"],
+        "artists": [{"artist": "Ana", "image_url": None, "totals": [1, 2]}]}),
+    "artist-race-month": ("artist-race?bucket=month&since=2025-01-01T00:00:00Z",
+                          lambda b: [a["totals"] for a in b["artists"]] == [[1, 2]]),
+    "top-artists-genre": ("top-artists?genre=pop",
+                          lambda b: [(a["artist"], a["count"]) for a in b] == [("Ana", 2)]),
+    "top-artists-other-genre": ("top-artists?genre=ghostcore", lambda b: b == []),
+    "metrics-over-time-genre": ("metrics-over-time?bucket=month&genre=pop",
+                                lambda b: sum(p["listens"] for p in b) == 2),
 }
 
 
@@ -298,7 +321,7 @@ async def test_shared_endpoints_never_leak_outside_the_share_range(api, db_sessi
 
 @pytest.mark.parametrize("path", [
     "artist?artist=Ghost", "album?artist=Ghost&album=Boo", "track?artist=Ghost&track=G-before",
-    "track?artist=Ana&track=T-after",
+    "track?artist=Ana&track=T-after", "genre?genre=ghostcore",
 ])
 async def test_shared_details_outside_the_range_are_404(api, db_session, path):
     client, _ = api
@@ -462,3 +485,34 @@ async def test_only_shared_endpoints_send_cors_headers(api, db_session):
         resp = await client.get(path, headers=headers)
         assert resp.status_code == 200
         assert "access-control-allow-origin" not in resp.headers
+
+
+async def test_shared_album_runs_stay_inside_the_share_range(api, db_session):
+    client, _ = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+
+    def run(artist, album, start, count):
+        return [
+            Scrobble(artist=artist, track_title=f"t{i}", album=album,
+                     played_at=start + timedelta(minutes=4 * i))
+            for i in range(count)
+        ]
+
+    floor = datetime(2026, 3, 1, tzinfo=UTC)
+    await upsert_listens(db_session, user.id, [
+        *run("Ghost", "Boo", datetime(2026, 2, 1, 20, tzinfo=UTC), 8),
+        *run("Edge", "Straddle", floor - timedelta(minutes=12), 8),
+        *run("Ana", "Rec", datetime(2026, 3, 10, 20, tzinfo=UTC), 7),
+    ])
+    db_session.add(Share(share_token="runs", user_id=user.id, range_from=floor,
+                         range_to=datetime(2026, 4, 1, tzinfo=UTC)))
+    await db_session.flush()
+
+    resp = await client.get("/shared/runs/album-runs")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert [(r["artist"], r["album"], r["tracks"]) for r in body["runs"]] == [("Ana", "Rec", 7)]
+    assert "Ghost" not in resp.text and "Straddle" not in resp.text
+    widened = await client.get("/shared/runs/album-runs?since=2026-01-01T00:00:00Z&artist=Ghost&album=Boo")
+    assert widened.json() == {"total": 0, "runs": []}

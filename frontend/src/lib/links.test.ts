@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { artistHref, albumHref, trackHref } from './links';
+import { artistHref, albumHref, trackHref, genreHref } from './links';
 
 const NAME = 'AC/DC & "Friends" #1 ?+ Ünïcode';
 
@@ -28,5 +28,11 @@ describe('links', () => {
     expect(path).toBe('/track');
     expect(params.get('artist')).toBe(NAME);
     expect(params.get('track')).toBe(NAME);
+  });
+
+  it('round-trips a genre name through the genre link', () => {
+    const { path, params } = parse(genreHref('/s/tok', 'drum & bass'));
+    expect(path).toBe('/s/tok/genre');
+    expect(params.get('genre')).toBe('drum & bass');
   });
 });

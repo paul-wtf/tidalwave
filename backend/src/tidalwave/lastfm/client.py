@@ -115,6 +115,30 @@ class LastfmClient:
             raise
         return _extralarge(data.get("album", {}).get("image"))
 
+    async def get_artist_top_tags(self, artist: str) -> list[tuple[str, int]]:
+        """Return the artist's tags as (name, weight), strongest first.
+
+        Last.fm scales the weight to the artist's strongest tag, which gets 100.
+        """
+        try:
+            data = await self._call(
+                {"method": "artist.getTopTags", "artist": artist}, signed=False
+            )
+        except LastfmError as e:
+            if e.code == _NOT_FOUND:
+                return []
+            raise
+        raw = data.get("toptags", {}).get("tag", [])
+        if isinstance(raw, dict):
+            raw = [raw]
+        tags: list[tuple[str, int]] = []
+        for entry in raw:
+            try:
+                tags.append((str(entry["name"]), int(entry["count"])))
+            except (KeyError, TypeError, ValueError):
+                continue
+        return tags
+
 
 def _extralarge(images: object) -> str | None:
     if not isinstance(images, list):

@@ -10,6 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from tidalwave.deps import get_lastfm_client, get_session
 from tidalwave.lastfm.client import LastfmClient
 from tidalwave.stats import details, insights, queries
+from tidalwave.stats import album_runs as album_run_queries
+from tidalwave.stats import decades as decade_queries
+from tidalwave.stats import genres as genre_queries
+from tidalwave.stats import race as race_queries
 from tidalwave.stats import search as search_queries
 from tidalwave.stats.now_playing import now_playing as fetch_now_playing
 from tidalwave.stats.scope import Scope, previous_range
@@ -21,16 +25,21 @@ def _found(detail: dict | None) -> dict:
     return detail
 
 
+def _genre(genre: str | None = None) -> str | None:
+    return genre.strip().lower() if genre is not None else None
+
+
 def make_stats_router(scope_dep) -> APIRouter:
     router = APIRouter(tags=["stats"])
 
     @router.get("/top-artists")
     async def top_artists(
         limit: int = Query(20, ge=1, le=500),
+        genre: str | None = Depends(_genre),
         scope: Scope = Depends(scope_dep),
         session: AsyncSession = Depends(get_session),
     ) -> list[dict]:
-        return await queries.top_artists(session, scope, limit=limit)
+        return await queries.top_artists(session, scope, limit=limit, genre=genre)
 
     @router.get("/top-tracks")
     async def top_tracks(
@@ -106,11 +115,12 @@ def make_stats_router(scope_dep) -> APIRouter:
         artist: str | None = None,
         album: str | None = None,
         track: str | None = None,
+        genre: str | None = Depends(_genre),
         scope: Scope = Depends(scope_dep),
         session: AsyncSession = Depends(get_session),
     ) -> list[dict]:
         return await queries.metrics_over_time(
-            session, scope, bucket=bucket, artist=artist, album=album, track=track
+            session, scope, bucket=bucket, artist=artist, album=album, track=track, genre=genre
         )
 
     @router.get("/summary")
@@ -158,6 +168,50 @@ def make_stats_router(scope_dep) -> APIRouter:
         session: AsyncSession = Depends(get_session),
     ) -> dict:
         return _found(await details.track_detail(session, scope, artist, track))
+
+    @router.get("/genres")
+    async def genres(
+        limit: int = Query(20, ge=1, le=500),
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await genre_queries.genres(session, scope, limit=limit)
+
+    @router.get("/genre")
+    async def genre_detail(
+        genre: str,
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return _found(await genre_queries.genre_detail(session, scope, genre))
+
+    @router.get("/artist-race")
+    async def artist_race(
+        bucket: Literal["day", "week", "month"] | None = None,
+        limit: int = Query(10, ge=1, le=50),
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await race_queries.artist_race(session, scope, bucket=bucket, limit=limit)
+
+    @router.get("/album-runs")
+    async def album_runs(
+        limit: int = Query(20, ge=1, le=500),
+        artist: str | None = None,
+        album: str | None = None,
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await album_run_queries.album_runs(
+            session, scope, limit=limit, artist=artist, album=album
+        )
+
+    @router.get("/decades")
+    async def decades(
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await decade_queries.decades(session, scope)
 
     @router.get("/discoveries")
     async def discoveries(

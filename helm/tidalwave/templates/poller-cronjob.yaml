@@ -36,4 +36,10 @@ spec:
               env:
                 - name: TIDALWAVE_LOG_LEVEL
                   value: {{ .Values.config.logLevel | quote }}
+                - name: TIDALWAVE_MUSICBRAINZ_BUDGET
+                  value: {{ .Values.poller.releaseYearBudget | quote }}
+                {{- with .Values.poller.musicbrainzUrl }}
+                - name: TIDALWAVE_MUSICBRAINZ_URL
+                  value: {{ . | quote }}
+                {{- end }}
 {{- end }}
