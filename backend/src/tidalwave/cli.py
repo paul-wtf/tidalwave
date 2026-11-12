@@ -13,6 +13,7 @@ from tidalwave.ingest.covers import fill_missing_covers
 from tidalwave.ingest.durations import fill_missing_durations
 from tidalwave.ingest.poller import poll_all_users
 from tidalwave.ingest.service import backfill_user
+from tidalwave.ingest.tags import fill_missing_artist_tags
 from tidalwave.lastfm.client import LastfmClient
 from tidalwave.models.db import User
 
@@ -20,6 +21,7 @@ from tidalwave.models.db import User
 # job stays bounded. Historical gaps are filled by `tidalwave-backfill-durations`.
 _POLL_DURATION_BUDGET = 50
 _POLL_COVER_BUDGET = 50
+_POLL_TAG_BUDGET = 50
 
 
 def _client(http: httpx.AsyncClient, settings: Settings) -> LastfmClient:
@@ -35,6 +37,7 @@ async def _poll() -> None:
         report = await poll_all_users(session, client)
         filled = await fill_missing_durations(session, client, max_tracks=_POLL_DURATION_BUDGET)
         covers = await fill_missing_covers(session, client, max_albums=_POLL_COVER_BUDGET)
+        tagged = await fill_missing_artist_tags(session, client, max_artists=_POLL_TAG_BUDGET)
         await session.commit()
         log = logging.getLogger("tidalwave")
         log.info("poll report: %s", report)
@@ -42,6 +45,8 @@ async def _poll() -> None:
             log.info("resolved durations for %s listens", filled)
         if covers:
             log.info("looked up covers for %s albums", covers)
+        if tagged:
+            log.info("looked up tags for %s artists", tagged)
 
 
 async def _backfill(username: str) -> None:
@@ -82,6 +87,16 @@ async def _backfill_covers() -> None:
         logging.getLogger("tidalwave").info("looked up covers for %s albums", written)
 
 
+async def _backfill_tags() -> None:
+    settings = Settings()
+    logging.basicConfig(level=settings.log_level)
+    factory = make_session_factory(make_engine(settings))
+    async with httpx.AsyncClient(timeout=15.0) as http, session_scope(factory) as session:
+        written = await fill_missing_artist_tags(session, _client(http, settings))
+        await session.commit()
+        logging.getLogger("tidalwave").info("looked up tags for %s artists", written)
+
+
 def poll() -> None:
     asyncio.run(_poll())
 
@@ -107,3 +122,10 @@ def backfill_covers() -> None:
         description="Look up missing album covers on Last.fm."
     ).parse_args()
     asyncio.run(_backfill_covers())
+
+
+def backfill_tags() -> None:
+    argparse.ArgumentParser(
+        description="Look up missing artist genre tags on Last.fm."
+    ).parse_args()
+    asyncio.run(_backfill_tags())

@@ -6,7 +6,7 @@ import pytest
 from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.auth.session import COOKIE_NAME, SessionCodec
 from tidalwave.ingest.repository import upsert_listens
-from tidalwave.models.db import Share
+from tidalwave.models.db import ArtistTags, Share
 from tidalwave.models.domain import Scrobble
 
 
@@ -244,6 +244,10 @@ async def _clamped_share(api, db_session) -> str:
     user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
     user.timezone = "Europe/Berlin"
     await upsert_listens(db_session, user.id, _clamp_listens())
+    db_session.add_all([
+        ArtistTags(artist="Ana", tags=["pop"]),
+        ArtistTags(artist="Ghost", tags=["ghostcore"]),
+    ])
     db_session.add(Share(
         share_token="clamped", user_id=user.id,
         range_from=datetime(2026, 2, 28, 23, tzinfo=UTC),
@@ -253,7 +257,8 @@ async def _clamped_share(api, db_session) -> str:
     return "clamped"
 
 
-LEAKS = ("T-before", "T-after", "G-before", "G-after", "Ghost", "2026-02-28", "2026-05-01", "2026-01-05", "2026-07-05")
+LEAKS = ("T-before", "T-after", "G-before", "G-after", "Ghost", "2026-02-28", "2026-05-01", "2026-01-05", "2026-07-05",
+         "ghostcore")
 
 CLAMP_CASES = {
     "artist": ("artist?artist=Ana", lambda b: b["listens"] == 2),
@@ -281,6 +286,15 @@ CLAMP_CASES = {
     "summary-owner-day": ("summary?start=2026-04-16&end=2026-04-17", lambda b: b["total_listens"] == 1),
     "summary-since-until": ("summary?since=2025-01-01T00:00:00Z&until=2027-01-01T00:00:00Z",
                             lambda b: b["total_listens"] == 2),
+    "genres": ("genres", lambda b: b == {
+        "genres": [{"genre": "pop", "listens": 2, "artists": 1}], "artists": 1, "tagged_artists": 1}),
+    "genre": ("genre?genre=pop", lambda b: b == {
+        "genre": "pop", "listens": 2, "seconds": 0, "artists": 1}),
+    "top-artists-genre": ("top-artists?genre=pop",
+                          lambda b: [(a["artist"], a["count"]) for a in b] == [("Ana", 2)]),
+    "top-artists-other-genre": ("top-artists?genre=ghostcore", lambda b: b == []),
+    "metrics-over-time-genre": ("metrics-over-time?bucket=month&genre=pop",
+                                lambda b: sum(p["listens"] for p in b) == 2),
 }
 
 
@@ -298,7 +312,7 @@ async def test_shared_endpoints_never_leak_outside_the_share_range(api, db_sessi
 
 @pytest.mark.parametrize("path", [
     "artist?artist=Ghost", "album?artist=Ghost&album=Boo", "track?artist=Ghost&track=G-before",
-    "track?artist=Ana&track=T-after",
+    "track?artist=Ana&track=T-after", "genre?genre=ghostcore",
 ])
 async def test_shared_details_outside_the_range_are_404(api, db_session, path):
     client, _ = api

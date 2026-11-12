@@ -60,16 +60,18 @@ async def test_head_upgrades_a_database_at_the_previous_revision(scratch):
         "INSERT INTO users (lastfm_username, lastfm_session_key) VALUES ('alice', 'sk')"
     )
     await conn.execute(
-        "INSERT INTO shares (share_token, user_id, range_from) "
-        "SELECT 'old-token', id, '2026-10-01T00:00:00Z' FROM users"
+        "INSERT INTO listens (user_id, track_title, artist, played_at) "
+        "SELECT id, 'Nightcall', 'Kavinsky', '2026-10-01T00:00:00Z' FROM users"
     )
 
     await conn.execute(_upgrade_sql(f"{previous}:{head}"))
 
     assert await conn.fetchval("SELECT version_num FROM alembic_version") == head
-    row = await conn.fetchrow("SELECT * FROM shares WHERE share_token = 'old-token'")
-    assert row["range_key"] is None
-    assert row["range_from"] is not None
+    assert await conn.fetchval("SELECT count(*) FROM listens") == 1
+    await conn.execute("INSERT INTO artist_tags (artist, tags) VALUES ('Kavinsky', '{}')")
+    row = await conn.fetchrow("SELECT * FROM artist_tags")
+    assert row["tags"] == []
+    assert row["fetched_at"] is not None
 
 
 async def test_migrations_create_the_columns_the_models_declare(scratch):

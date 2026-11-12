@@ -329,6 +329,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stats/genres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Genres */
+        get: operations["genres_stats_genres_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stats/genre": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Genre Detail */
+        get: operations["genre_detail_stats_genre_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/stats/discoveries": {
         parameters: {
             query?: never;
@@ -661,6 +695,40 @@ export interface paths {
         };
         /** Track Detail */
         get: operations["track_detail_shared__token__track_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shared/{token}/genres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Genres */
+        get: operations["genres_shared__token__genres_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shared/{token}/genre": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Genre Detail */
+        get: operations["genre_detail_shared__token__genre_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1077,6 +1145,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                genre?: string | null;
                 since?: string | null;
                 until?: string | null;
                 start?: string | null;
@@ -1376,6 +1445,7 @@ export interface operations {
                 artist?: string | null;
                 album?: string | null;
                 track?: string | null;
+                genre?: string | null;
                 since?: string | null;
                 until?: string | null;
                 start?: string | null;
@@ -1527,6 +1597,80 @@ export interface operations {
             query: {
                 artist: string;
                 track: string;
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    genres_stats_genres_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    genre_detail_stats_genre_get: {
+        parameters: {
+            query: {
+                genre: string;
                 since?: string | null;
                 until?: string | null;
                 start?: string | null;
@@ -1818,6 +1962,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                genre?: string | null;
                 since?: string | null;
                 until?: string | null;
                 start?: string | null;
@@ -2133,6 +2278,7 @@ export interface operations {
                 artist?: string | null;
                 album?: string | null;
                 track?: string | null;
+                genre?: string | null;
                 since?: string | null;
                 until?: string | null;
                 start?: string | null;
@@ -2292,6 +2438,84 @@ export interface operations {
             query: {
                 artist: string;
                 track: string;
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    genres_shared__token__genres_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    genre_detail_shared__token__genre_get: {
+        parameters: {
+            query: {
+                genre: string;
                 since?: string | null;
                 until?: string | null;
                 start?: string | null;

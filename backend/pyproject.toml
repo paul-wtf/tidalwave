@@ -18,6 +18,7 @@ tidalwave-poll = "tidalwave.cli:poll"
 tidalwave-backfill = "tidalwave.cli:backfill"
 tidalwave-backfill-durations = "tidalwave.cli:backfill_durations"
 tidalwave-backfill-covers = "tidalwave.cli:backfill_covers"
+tidalwave-backfill-tags = "tidalwave.cli:backfill_tags"
 
 [dependency-groups]
 dev = [

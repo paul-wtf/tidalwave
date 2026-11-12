@@ -86,7 +86,7 @@ Hours, weekdays, days and period buckets are computed in the user's timezone
 | Method | Path | Extra query params | Description |
 |---|---|---|---|
 | `GET` | `/stats/summary` | `compare`, `calendar` (`week`\|`month`\|`year`) | `total_listens`, `distinct_artists`, `distinct_tracks`, `distinct_albums`, `total_seconds`. With `compare=true` also `previous`, the same totals for the period before (`null` for all time). |
-| `GET` | `/stats/top-artists` | `limit` (default 20) | Top artists by listen count, each with the cover of their most-listened album. |
+| `GET` | `/stats/top-artists` | `limit` (default 20), `genre` | Top artists by listen count, each with the cover of their most-listened album. `genre` keeps the artists with that tag. |
 | `GET` | `/stats/top-tracks` | `limit`, `artist`, `album`, `track` | Top tracks by listen count. |
 | `GET` | `/stats/top-albums` | `limit`, `artist`, `album`, `track` | Top albums by listen count, keyed by `(artist, album)`, with cover. |
 | `GET` | `/stats/recent` | `limit` (default 50), `artist`, `album`, `track` | Most recent listens. |
@@ -94,12 +94,14 @@ Hours, weekdays, days and period buckets are computed in the user's timezone
 | `GET` | `/stats/weekday` | | 7 listen counts by ISO weekday (index 0 = Monday). |
 | `GET` | `/stats/hour-weekday` | | 7 rows (Monday to Sunday) of 24 hourly listen counts. |
 | `GET` | `/stats/history` | `bucket` (`day`\|`week`\|`month`, default `day`) | Chronological series: `[{"period": <iso>, "count": N}]`. |
-| `GET` | `/stats/metrics-over-time` | `bucket`, `artist`, `album`, `track` | Per period: listens, distinct artists and albums, seconds. |
+| `GET` | `/stats/metrics-over-time` | `bucket`, `artist`, `album`, `track`, `genre` | Per period: listens, distinct artists and albums, seconds. `genre` keeps the listens of artists with that tag. |
 | `GET` | `/stats/search` | `q` | Up to five artists, albums and tracks whose name contains `q`, ignoring case. Ordered by listens in the range, then by listens overall; `count` is the listens in the range. |
 | `GET` | `/stats/artist` | `artist` | Detail for one artist: listens, seconds, rank, first and last listen, cover. 404 without any listen. |
 | `GET` | `/stats/album` | `artist`, `album` | Detail for one album. |
 | `GET` | `/stats/track` | `artist`, `track` | Detail for one track, with its most-listened album. |
 | `GET` | `/stats/discoveries` | `limit` | New artists, new tracks and rediscoveries in the range. |
+| `GET` | `/stats/genres` | `limit` | Genres ranked by the listens of their artists: `{"genres": [{"genre", "listens", "artists"}], "artists": N, "tagged_artists": M}`. An artist's listens count in full for each of its first three tags. `artists` is the number of artists in the range and `tagged_artists` how many of them have been looked up on Last.fm, so a client can tell when the ranking is still filling in. |
+| `GET` | `/stats/genre` | `genre` | Totals for one genre in the range: listens, seconds and artists. 404 when no artist the user has listened to carries the tag among its first three. |
 | `GET` | `/stats/records` | | Longest and current streak, busiest day, longest session. |
 | `GET` | `/stats/heatmap` | | Listens per day, at most 366 days. |
 | `GET` | `/stats/on-this-day` | | Listens on today's date in earlier years. Ignores the range parameters. |
@@ -169,6 +171,12 @@ tidalwave-backfill <lastfm-username>
 
 ```bash
 tidalwave-backfill-covers
+```
+
+**Genre tags**: the poll asks Last.fm for the tags of up to 50 artists per run (`artist.getTopTags`) and keeps the ones that describe the music. This fetches the tags for every artist that has none yet:
+
+```bash
+tidalwave-backfill-tags
 ```
 
 All commands read configuration from the same `TIDALWAVE_*` environment variables as the server.

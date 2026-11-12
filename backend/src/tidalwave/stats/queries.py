@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import Integer, and_, cast, distinct, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tidalwave.models.db import AlbumArt, Listen
+from tidalwave.models.db import AlbumArt, ArtistTags, Listen
 from tidalwave.stats.scope import Scope, iso_in
 
 
@@ -25,7 +25,22 @@ def bounded(stmt, scope: Scope):
     return stmt
 
 
-def _entity(stmt, artist: str | None, album: str | None, track: str | None):
+GENRE_TAGS = 3
+
+
+def top_tags():
+    return ArtistTags.tags[1:GENRE_TAGS]
+
+
+def _entity(
+    stmt, artist: str | None, album: str | None, track: str | None, genre: str | None = None
+):
+    if genre is not None:
+        stmt = stmt.where(
+            select(ArtistTags.id)
+            .where(ArtistTags.artist == Listen.artist, top_tags().contains([genre]))
+            .exists()
+        )
     if artist is not None:
         stmt = stmt.where(Listen.artist == artist)
     if album is not None:
@@ -83,10 +98,15 @@ def artist_cover_subquery(scope: Scope, artist: str | None = None):
     return select(ranked.c.artist, ranked.c.image_url).where(ranked.c.rn == 1).subquery()
 
 
-async def top_artists(session: AsyncSession, scope: Scope, *, limit: int = 20) -> list[dict]:
+async def top_artists(
+    session: AsyncSession, scope: Scope, *, limit: int = 20, genre: str | None = None
+) -> list[dict]:
     cover = artist_cover_subquery(scope)
     stmt = (
-        _scope(select(Listen.artist, func.count().label("count"), cover.c.image_url), scope)
+        _entity(
+            _scope(select(Listen.artist, func.count().label("count"), cover.c.image_url), scope),
+            None, None, None, genre,
+        )
         .outerjoin(cover, cover.c.artist == Listen.artist)
         .group_by(Listen.artist, cover.c.image_url)
         .order_by(func.count().desc(), Listen.artist.asc())
@@ -159,6 +179,7 @@ async def summary_stats(session: AsyncSession, scope: Scope) -> dict:
 async def metrics_over_time(
     session: AsyncSession, scope: Scope, *, bucket: str = "day",
     artist: str | None = None, album: str | None = None, track: str | None = None,
+    genre: str | None = None,
 ) -> list[dict]:
     """Per-period listens, distinct artists/albums and seconds — drives the
     over-time graphs. Returns chronological rows keyed by ISO period."""
@@ -173,7 +194,7 @@ async def metrics_over_time(
                 func.coalesce(func.sum(Listen.duration_sec), 0).label("seconds"),
             ),
             scope,
-        ), artist, album, track)
+        ), artist, album, track, genre)
         .group_by(period)
         .order_by(period.asc())
     )

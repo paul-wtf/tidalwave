@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.auth.session import COOKIE_NAME, SessionCodec
 from tidalwave.ingest.repository import upsert_listens
+from tidalwave.models.db import ArtistTags
 from tidalwave.models.domain import Scrobble
 
 
@@ -243,3 +244,43 @@ async def test_detail_404_for_unknown_entity(api, db_session):
     assert (await client.get("/stats/album", params={"artist": "N", "album": "M"}, headers=headers)).status_code == 404
     assert (await client.get("/stats/track", params={"artist": "N", "track": "M"}, headers=headers)).status_code == 404
     assert (await client.get("/stats/artist", headers=headers)).status_code == 422
+
+
+async def test_genres_and_genre_page_endpoints(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "genre_user", "sk_g", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="Daft Punk", track_title="a", album=None, played_at=datetime(2024, 6, 1, tzinfo=UTC)),
+        Scrobble(artist="Daft Punk", track_title="b", album=None, played_at=datetime(2024, 6, 2, tzinfo=UTC)),
+        Scrobble(artist="Slayer", track_title="c", album=None, played_at=datetime(2024, 6, 3, tzinfo=UTC)),
+    ])
+    db_session.add(ArtistTags(artist="Daft Punk", tags=["french house", "electronic"]))
+    await db_session.flush()
+    headers = {"Cookie": f"{COOKIE_NAME}={SessionCodec('test-secret').encode(user.id)}"}
+
+    ranking = await client.get("/stats/genres", headers=headers)
+    assert ranking.status_code == 200
+    assert ranking.json() == {
+        "genres": [{"genre": "electronic", "listens": 2, "artists": 1},
+                   {"genre": "french house", "listens": 2, "artists": 1}],
+        "artists": 2, "tagged_artists": 1,
+    }
+    assert (await client.get("/stats/genres?limit=1", headers=headers)).json()["genres"] == [
+        {"genre": "electronic", "listens": 2, "artists": 1}
+    ]
+    assert (await client.get("/stats/genres?since=2024-06-02T12:00:00Z", headers=headers)).json() == {
+        "genres": [], "artists": 1, "tagged_artists": 0,
+    }
+
+    detail = await client.get("/stats/genre", params={"genre": " French House "}, headers=headers)
+    assert detail.json() == {"genre": "french house", "listens": 2, "seconds": 0, "artists": 1}
+    assert (await client.get("/stats/genre", params={"genre": "polka"}, headers=headers)).status_code == 404
+    assert (await client.get("/stats/genre", headers=headers)).status_code == 422
+
+    artists = await client.get("/stats/top-artists", params={"genre": "French House"}, headers=headers)
+    assert [(a["artist"], a["count"]) for a in artists.json()] == [("Daft Punk", 2)]
+    metrics = await client.get(
+        "/stats/metrics-over-time", params={"genre": "french house", "bucket": "month"}, headers=headers
+    )
+    assert [p["listens"] for p in metrics.json()] == [2]
+    assert (await client.get("/stats/genres")).status_code == 401
