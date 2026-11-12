@@ -144,6 +144,10 @@ export interface SearchResults {
   albums: (AlbumCount & { album: string })[];
   tracks: TrackCount[];
 }
+export interface SpellingName { artist: string; listens: number; }
+export interface SpellingSuggestion { names: SpellingName[]; listens: number; }
+export interface SpellingMerge { canonical: string; listens: number; variants: SpellingName[]; }
+export interface Spellings { suggestions: SpellingSuggestion[]; merges: SpellingMerge[]; }
 export type Bucket = 'day' | 'week' | 'month';
 export type StatsParams = {
   since?: string; until?: string; start?: string; end?: string;
@@ -279,6 +283,12 @@ export const api = {
   revokeInvite: (token: string) => send(`/comparisons/invites/${part(token)}`, 'DELETE'),
   comparison: (id: number, p?: StatsParams) => request<Comparison>(`/comparisons/${id}${qs({ ...p })}`),
   endComparison: (id: number) => send(`/comparisons/${id}`, 'DELETE'),
+
+  spellings: () => request<Spellings>('/merges'),
+  mergeSpellings: (canonical: string, variants: string[]) =>
+    request<Spellings>('/merges', json('POST', { canonical, variants })),
+  unmerge: (canonical: string, variant?: string) =>
+    request<Spellings>(`/merges${qs({ canonical, variant })}`, { method: 'DELETE' }),
 
   setWebhook: (url: string) => request<Me>('/auth/me/webhook', json('PUT', { url })),
   clearWebhook: () => request<Me>('/auth/me/webhook', { method: 'DELETE' }),
