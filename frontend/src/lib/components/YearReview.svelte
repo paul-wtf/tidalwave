@@ -502,7 +502,17 @@
     gap: 0.25rem;
     min-width: 0;
   }
+  .months .value {
+    grid-row: 1;
+  }
+  .months .label {
+    grid-row: 3;
+  }
+  .months .who {
+    grid-row: 4;
+  }
   .months .bar {
+    grid-row: 2;
     width: 100%;
     max-width: 2.6rem;
     height: max(var(--h), 3px);
@@ -534,6 +544,11 @@
     min-height: 1em;
   }
   @media (max-width: 640px) {
+    .lead :global(img),
+    .lead :global(.placeholder) {
+      width: 96px !important;
+      height: 96px !important;
+    }
     .months {
       height: 12rem;
       gap: 0.2rem;
