@@ -15,7 +15,8 @@ for the detail pages and Insights.
 ## Features
 
 - Overview with totals, their change against the previous period, trends over
-  time, the listening clock, weekdays, top lists and recent listens.
+  time, the listening clock, weekdays, top lists, recent listens and the
+  track that is playing right now.
 - A page for every artist, album and track, with album covers and search
   links to Spotify, Tidal, Apple Music, YouTube Music and Deezer.
 - Insights: on this day, streaks and records, milestones, a listening

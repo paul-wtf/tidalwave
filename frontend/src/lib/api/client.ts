@@ -91,6 +91,9 @@ export interface Milestones {
   reached: { count: number; played_at: string; track: string; artist: string; album: string | null }[];
   next: { count: number; remaining: number } | null;
 }
+export interface NowPlaying {
+  track: string; artist: string; album: string | null; image_url: string | null;
+}
 export interface SearchResults {
   artists: ArtistCount[];
   albums: (AlbumCount & { album: string })[];
@@ -132,6 +135,7 @@ export interface StatsApi {
   heatmap(p?: StatsParams): Promise<Heatmap>;
   milestones(): Promise<Milestones>;
   search(q: string, p?: StatsParams): Promise<SearchResults>;
+  nowPlaying(): Promise<NowPlaying | null>;
 }
 
 export function statsApi(token?: string): StatsApi {
@@ -157,7 +161,8 @@ export function statsApi(token?: string): StatsApi {
     records: (p) => get('/records', { ...p }),
     heatmap: (p) => get('/heatmap', { ...p }),
     milestones: () => get('/milestones', {}),
-    search: (q, p) => get('/search', { q, ...p })
+    search: (q, p) => get('/search', { q, ...p }),
+    nowPlaying: () => get('/now-playing', {})
   };
 }
 
