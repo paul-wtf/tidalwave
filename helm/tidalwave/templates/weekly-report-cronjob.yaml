@@ -1,0 +1,43 @@
+{{- if .Values.weeklyReport.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "tidalwave.fullname" . }}-weekly-report
+  labels:
+    {{- include "tidalwave.labels" . | nindent 4 }}
+    app.kubernetes.io/component: weekly-report
+spec:
+  schedule: {{ .Values.weeklyReport.schedule | quote }}
+  timeZone: {{ .Values.weeklyReport.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # A retry would post the same report a second time.
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            {{- include "tidalwave.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: weekly-report
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          restartPolicy: Never
+          containers:
+            - name: weekly-report
+              image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+              command: ["tidalwave-weekly-report"]
+              envFrom:
+                - secretRef:
+                    name: {{ include "tidalwave.secretName" . }}
+              env:
+                - name: TIDALWAVE_LOG_LEVEL
+                  value: {{ .Values.config.logLevel | quote }}
+                - name: TIDALWAVE_PUBLIC_BASE_URL
+                  value: {{ required "config.publicBaseUrl is required" .Values.config.publicBaseUrl | quote }}
+{{- end }}
