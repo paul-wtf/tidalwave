@@ -40,6 +40,11 @@ async def _seed(db_session):
         select(Listen).where(Listen.track_title == "Nightcall")
     )).scalar_one()
     night.duration_sec = 258
+    imported = (await db_session.execute(
+        select(Listen).where(Listen.track_title == 'Say "hi", twice')
+    )).scalar_one()
+    imported.artist_raw = "Sigur Ros"
+    imported.source = "spotify"
     await db_session.flush()
     return alice, bob
 
@@ -65,11 +70,12 @@ async def test_export_csv_has_every_own_listen_in_time_order(api, db_session):
     rows = list(csv.reader(io.StringIO(resp.text)))
     assert rows == [
         ["played_at", "artist", "track", "album", "track_mbid", "artist_mbid", "album_mbid",
-         "duration_sec"],
-        ["2026-10-01T08:00:00+00:00", "Sigur Rós", 'Say "hi", twice', "", "", "", "", ""],
+         "duration_sec", "artist_raw", "source"],
+        ["2026-10-01T08:00:00+00:00", "Sigur Rós", 'Say "hi", twice', "", "", "", "", "",
+         "Sigur Ros", "spotify"],
         ["2026-10-02T20:15:00+00:00", "Kavinsky", "Nightcall", "OutRun",
          "11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222",
-         "33333333-3333-3333-3333-333333333333", "258"],
+         "33333333-3333-3333-3333-333333333333", "258", "Kavinsky", "lastfm"],
     ]
 
 
@@ -83,11 +89,13 @@ async def test_export_json_has_every_own_listen_in_time_order(api, db_session):
     assert json.loads(resp.text) == [
         {"played_at": "2026-10-01T08:00:00+00:00", "artist": "Sigur Rós",
          "track": 'Say "hi", twice', "album": None, "track_mbid": None, "artist_mbid": None,
-         "album_mbid": None, "duration_sec": None},
+         "album_mbid": None, "duration_sec": None, "artist_raw": "Sigur Ros",
+         "source": "spotify"},
         {"played_at": "2026-10-02T20:15:00+00:00", "artist": "Kavinsky", "track": "Nightcall",
          "album": "OutRun", "track_mbid": "11111111-1111-1111-1111-111111111111",
          "artist_mbid": "22222222-2222-2222-2222-222222222222",
-         "album_mbid": "33333333-3333-3333-3333-333333333333", "duration_sec": 258},
+         "album_mbid": "33333333-3333-3333-3333-333333333333", "duration_sec": 258,
+         "artist_raw": "Kavinsky", "source": "lastfm"},
     ]
 
 

@@ -196,7 +196,7 @@ async def delete_me(
 EXPORT_BATCH = 5000
 _EXPORT_FIELDS = (
     "played_at", "artist", "track", "album", "track_mbid", "artist_mbid", "album_mbid",
-    "duration_sec",
+    "duration_sec", "artist_raw", "source",
 )
 
 
@@ -207,7 +207,7 @@ async def _export_batches(session: AsyncSession, user_id: int) -> AsyncIterator[
             select(
                 Listen.played_at, Listen.artist, Listen.track_title, Listen.album,
                 Listen.track_mbid, Listen.artist_mbid, Listen.album_mbid, Listen.duration_sec,
-                Listen.id,
+                Listen.artist_raw, Listen.source, Listen.id,
             )
             .where(Listen.user_id == user_id)
             .order_by(Listen.played_at, Listen.id)
@@ -218,8 +218,8 @@ async def _export_batches(session: AsyncSession, user_id: int) -> AsyncIterator[
         rows = (await session.execute(stmt)).all()
         if not rows:
             return
-        yield [(row[0].astimezone(UTC).isoformat(), *row[1:8]) for row in rows]
-        after = (rows[-1][0], rows[-1][8])
+        yield [(row[0].astimezone(UTC).isoformat(), *row[1:-1]) for row in rows]
+        after = (rows[-1][0], rows[-1][-1])
 
 
 async def _export_csv(session: AsyncSession, user_id: int) -> AsyncIterator[str]:
