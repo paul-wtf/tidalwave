@@ -69,3 +69,25 @@ async def test_ingest_without_new_scrobbles_still_marks_synced(db_session):
     assert state is not None
     assert state.last_synced_at is not None
     assert state.last_played_at is None
+
+
+async def test_ingest_stores_merged_spellings_under_their_canonical_name(db_session):
+    from tidalwave.models.db import AlbumArt
+    from tidalwave.spellings.service import merge_spellings
+
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    await merge_spellings(db_session, user.id, "The National", ["National"])
+    scrobble = Scrobble(
+        artist="National", track_title="Fake Empire", album="Boxer",
+        played_at=datetime.fromtimestamp(1000, tz=UTC), image_url="http://img/boxer.jpg",
+    )
+    client = FakeClient({1: RecentTracksPage((scrobble,), page=1, total_pages=1)})
+
+    await ingest_user(db_session, client, user)
+
+    listen = (await db_session.execute(select(Listen))).scalar_one()
+    assert (listen.artist, listen.artist_raw) == ("The National", "National")
+    covers = (await db_session.execute(
+        select(AlbumArt.artist).where(AlbumArt.album == "Boxer").order_by(AlbumArt.artist)
+    )).scalars().all()
+    assert covers == ["National", "The National"]

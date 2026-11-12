@@ -7,6 +7,7 @@
     { href: '/tracks', label: 'Tracks' },
     { href: '/albums', label: 'Albums' },
     { href: '/insights', label: 'Insights' },
+    { href: '/year', label: 'Year', section: true },
     { href: '/compare', label: 'Compare', section: true }
   ];
 

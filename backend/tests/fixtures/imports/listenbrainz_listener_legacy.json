@@ -1,0 +1,4 @@
+[
+  {"listened_at": 1618500200, "recording_msid": "6a2f8a8e-0000-4000-8000-000000000001", "user_name": "listener", "track_metadata": {"artist_name": "Röyksopp", "track_name": "Some Resolve", "release_name": "Profound Mysteries II", "additional_info": {"duration_ms": 402390}}},
+  {"listened_at": 1618500610, "recording_msid": "6a2f8a8e-0000-4000-8000-000000000002", "user_name": "listener", "track_metadata": {"artist_name": "Sigur Ros", "track_name": "Glósóli", "release_name": "Takk...", "additional_info": {}}}
+]

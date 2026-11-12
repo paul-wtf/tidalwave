@@ -46,6 +46,15 @@ for the detail pages and Insights.
 - A weekly report to Discord: each user can save a webhook and gets
   last week's listening, top artist, top track and new artists every
   Monday.
+- A year in review at `/year/<yyyy>`: totals, top artists, tracks and
+  albums, month by month, the busiest day, the first and last listen, new
+  artists, genres, decades, the longest streak and albums played through.
+  It can be shared as a link for that year.
+- Imports of older history from Spotify's Extended streaming history and
+  from ListenBrainz exports, with plays Last.fm already has left out. An
+  import can be undone as a whole.
+- Merging spellings of one artist ("The National" and "National"), with
+  suggestions, per user and undoable.
 - An admin page that lists the accounts, deletes one with all its data,
   and adds names to the allowlist at runtime.
 
@@ -133,8 +142,8 @@ Required values:
 | `ingress.host` | Hostname for the Ingress rule. |
 
 **Postgres** is external (CNPG-managed); the chart does not deploy a database.
-The Ingress routes `/auth`, `/stats`, `/shares`, `/shared` and `/comparisons`
-to the backend and everything else to the frontend.
+The Ingress routes `/auth`, `/stats`, `/shares`, `/shared`, `/comparisons`,
+`/merges` and `/imports` to the backend and everything else to the frontend.
 
 **Link previews** are on by default (`config.sharePreviews`). The Ingress then
 also routes `/s/` to the backend, which serves share pages as the frontend's
@@ -164,6 +173,13 @@ tidalwave has no SMTP configuration.
 names in `config.registrationAllowlist` may sign up, plus the names an admin
 adds on the admin page, which live in the database. The first account is the
 admin.
+
+**Imports** of older history accept uploads up to `config.importMaxMegabytes`
+(100 MB by default). The chart sets `nginx.ingress.kubernetes.io/proxy-body-size`
+on the Ingress to the same size unless `ingress.annotations` sets it already;
+with another ingress controller, raise its body limit there. An upload waits
+in the backend container's temp directory while it is imported, and needs no
+outbound access.
 
 **linkhop** is optional: `--set config.linkhopUrl=https://linkhop.example`
 adds a link to every item that opens it as a search on that

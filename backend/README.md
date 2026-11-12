@@ -43,6 +43,8 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `TIDALWAVE_LINKHOP_URL` | *(empty)* | Base URL of a [linkhop](https://github.com/paul-wtf/linkhop) instance, `http://` or `https://`. When set, the frontend shows one more icon next to the platform links, which opens `<url>/?q=<artist title>` there. Empty: no icon. |
 | `TIDALWAVE_MUSICBRAINZ_URL` | `https://musicbrainz.org/ws/2` | Base URL of the MusicBrainz API, which the poll asks for album release years. Point it at a mirror if you run one. |
 | `TIDALWAVE_MUSICBRAINZ_BUDGET` | `30` | Albums whose release year one poll run looks up. MusicBrainz allows one request per second and an album takes one or two, so 30 albums add up to a minute to a run. `0` turns the lookups off. |
+| `TIDALWAVE_IMPORT_MAX_BYTES` | `104857600` | Largest history file a user may upload to `/imports`, 100 MB by default. Larger uploads get 413. A zip may unpack to twenty times this. |
+| `TIDALWAVE_IMPORT_DIR` | *(empty)* | Directory where uploads wait while they are imported; each file is deleted when its import ends. Empty: the system temp directory. |
 | `TIDALWAVE_LOG_LEVEL` | `INFO` | Python logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
 
 ---
@@ -117,6 +119,9 @@ Hours, weekdays, days and period buckets are computed in the user's timezone
 | `GET` | `/stats/on-this-day` | | Listens on today's date in earlier years. Ignores the range parameters. |
 | `GET` | `/stats/now-playing` | | The track Last.fm reports as playing right now (`track`, `artist`, `album`, `image_url`), or `null`. Takes no range. The answer is kept in memory for 15 seconds per user, and a Last.fm failure yields `null`. |
 | `GET` | `/stats/milestones` | | Round listen counts reached so far and the next one. Ignores the range parameters. |
+| `GET` | `/stats/sources` | | Imported listens in the range: `{"imported", "imported_before_lastfm", "lastfm_first", "sources": [{"source", "listens"}]}`. `imported_before_lastfm` counts the ones older than the first listen from Last.fm. |
+| `GET` | `/stats/years` | | The years with listens, newest first: `[{"year", "listens"}]`, in the user's timezone. Ignores the range parameters. |
+| `GET` | `/stats/year/{year}` | | Everything the year in review shows, in one response: `summary`, `previous` (last year's summary), `top_artists`, `top_tracks`, `top_albums` (ten each), `months` (twelve, each with `listens`, `seconds`, `artists`, `top_artist`), `busiest_day` (`date`, `listens`, `top_artist`), `first_listen` and `last_listen`, `new_artists` (`count`, `top`), `genres`, `decades`, `longest_streak` and `album_runs`, all for the calendar year in the user's timezone. Ignores the range parameters. A year without listens returns zeros and `null`s. |
 
 ### Admin (admins only)
 
@@ -145,6 +150,39 @@ other's invite. Either side can end it.
 | `DELETE` | `/comparisons/invites/{token}` | Revokes one of the user's open invites. |
 | `GET` | `/comparisons/{id}` | Takes the range parameters of `/stats`, resolved in the viewer's timezone, and `limit` (default 10, at most 50). Returns `overlap`, `listens` (`you`, `partner`), `shared_artists`, `shared` (`artist`, `you`, `partner`), `only_you` and `only_partner` (`artist`, `count`). `overlap` is the sum over all artists of the smaller of the two listen shares, from 0 (no artist in common) to 1 (the same mix), and `null` while one side has no listens. 404 for anyone outside the pair. |
 | `DELETE` | `/comparisons/{id}` | Ends the pair, from either side. |
+
+### Spellings (session-gated)
+
+Last.fm sometimes reports one artist in several spellings. A user can merge
+them into one name. A merge rewrites `listens.artist` to that name and keeps
+the original in `listens.artist_raw`, so every query follows without a
+change and undoing a merge restores the spelling. The poller and imports
+apply merges to new listens. Covers, tags, release years and durations that
+the variants already have are copied to the merged name.
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/merges` | `{"suggestions": [{"names": [{"artist", "listens"}], "listens"}], "merges": [{"canonical", "listens", "variants": [{"artist", "listens"}]}]}`. Suggestions group the user's artists by a key that ignores case, accents, a leading "the", "&" against "and", punctuation, whitespace and a "feat." part. Nothing is merged without a request. |
+| `POST` | `/merges` | Merges `{"canonical": "...", "variants": ["..."]}` and returns the same as `GET`. Variants that are canonical names of other merges take their own variants along. 422 for an empty name, no other spelling, or a canonical name that is itself merged into another. |
+| `DELETE` | `/merges?canonical=...&variant=...` | Splits one variant off again, or every variant without `variant`. 404 when there is no such merge. |
+
+### Imports (session-gated)
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/imports?filename=...` | The file is the raw request body: Spotify's Extended streaming history (`Streaming_History_Audio_*.json`, or the zip Spotify sends, whose video history is left out) or a ListenBrainz export (the zip with `listens/<year>/<month>.jsonl`, one JSONL file, or a JSON array). Answers 202 with the import, which runs in the background. 413 above `TIDALWAVE_IMPORT_MAX_BYTES`, 422 for an empty body, 409 while another import of the user is pending or running. |
+| `GET` | `/imports` | The user's imports, newest first: `id`, `filename`, `source`, `status` (`pending`, `running`, `done`, `failed`, `undone`), `error`, the counts `read`, `skipped`, `too_short`, `duplicates`, `added`, the span `first_played_at`/`last_played_at` of the added listens, and timestamps. An import that has not updated for ten minutes is marked failed. |
+| `GET` | `/imports/{id}` | One import, for polling. |
+| `DELETE` | `/imports/{id}` | Undoes an import: deletes the listens it added and marks it `undone`. 409 while it runs. |
+
+A play counts when Last.fm would have scrobbled it: at least 30 seconds, and
+half the track or four minutes when its length is known (from ListenBrainz,
+or from the durations cache for Spotify). Spotify's `ts` is the end of a play,
+so it is stored as `ts` minus `ms_played`. Podcasts, entries without a track
+name and private sessions are skipped. A play of the same artist and track
+within ten minutes of a listen the user already has counts as a duplicate;
+each existing listen absorbs one play at most, and importing a file again
+adds nothing. `listens.source` is `lastfm`, `spotify` or `listenbrainz`.
 
 ### Shares (session-gated)
 

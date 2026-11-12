@@ -60,15 +60,15 @@ async def test_head_upgrades_a_database_at_the_previous_revision(scratch):
         "INSERT INTO users (lastfm_username, lastfm_session_key) VALUES ('alice', 'sk')"
     )
     await conn.execute(
-        "INSERT INTO listens (user_id, track_title, artist, played_at) "
-        "SELECT id, 'Nightcall', 'Kavinsky', '2026-10-01T00:00:00Z' FROM users"
+        "INSERT INTO listens (user_id, track_title, artist, artist_raw, played_at) "
+        "SELECT id, 'Nightcall', 'Kavinsky', 'Kavinsky', '2026-10-01T00:00:00Z' FROM users"
     )
 
     await conn.execute(_upgrade_sql(f"{previous}:{head}"))
 
     assert await conn.fetchval("SELECT version_num FROM alembic_version") == head
     assert await conn.fetchval("SELECT count(*) FROM listens") == 1
-    assert await conn.fetchval("SELECT discord_webhook_url FROM users") is None
+    assert await conn.fetchval("SELECT source FROM listens") == "lastfm"
 
 
 async def test_migrations_create_the_columns_the_models_declare(scratch):

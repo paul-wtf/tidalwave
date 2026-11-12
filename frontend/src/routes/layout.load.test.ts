@@ -22,6 +22,12 @@ describe('root layout load', () => {
     expect(run('/?share=TOK&page=insights')).toBe('/s/TOK/insights');
   });
 
+  it('forwards to the review of a year', () => {
+    expect(run('/?share=TOK&page=year%2F2025')).toBe('/s/TOK/year/2025');
+    expect(run('/?share=TOK&page=year')).toBe('/s/TOK/year');
+    expect(run('/?share=TOK&page=year%2F2025%2F..')).toBe('/s/TOK');
+  });
+
   it('ignores a page that is not a plain name', () => {
     expect(run('/?share=TOK&page=..%2F..%2Fauth%2Flogin')).toBe('/s/TOK');
     expect(run('/?share=TOK&page=%2F%2Fevil.example')).toBe('/s/TOK');

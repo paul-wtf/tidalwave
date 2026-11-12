@@ -1,0 +1,3 @@
+[
+{"ts": "2021-04-17T10:00:00Z", "username": "listener", "platform": "Android OS 11 API 30 (Google, Pixel 4a)", "ms_played": 180000, "conn_country": "DE", "ip_addr_decrypted": "192.0.2.10", "user_agent_decrypted": "unknown", "master_metadata_track_name": null, "master_metadata_album_artist_name": null, "master_metadata_album_album_name": null, "spotify_track_uri": null, "episode_name": "A Video Episode", "episode_show_name": "A Made-Up Video Show", "spotify_episode_uri": "spotify:episode:0000000000000000000009", "reason_start": "clickrow", "reason_end": "endplay", "shuffle": false, "skipped": null, "offline": false, "offline_timestamp": 1618653420, "incognito_mode": false}
+]

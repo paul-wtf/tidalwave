@@ -14,6 +14,7 @@ from tidalwave.ingest.repository import (
 from tidalwave.lastfm.client import RecentTracksPage
 from tidalwave.models.db import User
 from tidalwave.models.domain import Scrobble
+from tidalwave.spellings.service import alias_map
 
 
 class RecentTracksSource(Protocol):
@@ -58,8 +59,9 @@ async def _collect_and_store(
         collected.extend(result.scrobbles)
         page += 1
 
-    inserted = await upsert_listens(session, user.id, collected)
-    await upsert_album_art(session, collected)
+    aliases = await alias_map(session, user.id)
+    inserted = await upsert_listens(session, user.id, collected, aliases=aliases)
+    await upsert_album_art(session, collected, aliases=aliases)
     newest = max((s.played_at for s in collected if s.played_at is not None), default=None)
     if newest is not None:
         await advance_sync_state(session, user.id, last_played_at=newest)

@@ -152,6 +152,11 @@
           </select>
         </label>
         <div class="export">
+          <span>Your listens</span>
+          <a href="/spellings" onclick={() => (open = false)}>Spellings</a>
+          <a href="/import" onclick={() => (open = false)}>Import</a>
+        </div>
+        <div class="export">
           <span>Export my data</span>
           <a href={api.exportUrl('csv')} download>CSV</a>
           <a href={api.exportUrl('json')} download>JSON</a>
