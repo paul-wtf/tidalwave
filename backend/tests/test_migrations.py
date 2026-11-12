@@ -68,10 +68,7 @@ async def test_head_upgrades_a_database_at_the_previous_revision(scratch):
 
     assert await conn.fetchval("SELECT version_num FROM alembic_version") == head
     assert await conn.fetchval("SELECT count(*) FROM listens") == 1
-    await conn.execute("INSERT INTO album_years (artist, album) VALUES ('Kavinsky', 'OutRun')")
-    row = await conn.fetchrow("SELECT * FROM album_years")
-    assert row["year"] is None
-    assert row["fetched_at"] is not None
+    assert await conn.fetchval("SELECT discord_webhook_url FROM users") is None
 
 
 async def test_migrations_create_the_columns_the_models_declare(scratch):

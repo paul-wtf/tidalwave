@@ -4,6 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -38,6 +39,7 @@ class User(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     timezone: Mapped[str | None] = mapped_column(String(64))
+    discord_webhook_url: Mapped[str | None] = mapped_column(Text)
 
 
 class Listen(Base):
@@ -161,3 +163,60 @@ class Share(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     label: Mapped[str | None] = mapped_column(Text)
     range_key: Mapped[str | None] = mapped_column(String(16))
+
+
+class AllowlistEntry(Base):
+    """A Last.fm username an admin allowed to register at runtime, next to the
+    ones in TIDALWAVE_REGISTRATION_ALLOWLIST."""
+
+    __tablename__ = "allowlist_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    lastfm_username: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+Index(
+    "uq_allowlist_entry_username",
+    func.lower(AllowlistEntry.lastfm_username),
+    unique=True,
+)
+
+
+class CompareInvite(Base):
+    __tablename__ = "compare_invites"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    token: Mapped[str] = mapped_column(String(43), nullable=False, unique=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ComparePair(Base):
+    """Two users who agreed to compare their listening. The lower user id
+    comes first, so a pair exists once whoever invited whom."""
+
+    __tablename__ = "compare_pairs"
+    __table_args__ = (
+        UniqueConstraint("low_user_id", "high_user_id", name="uq_compare_pair"),
+        CheckConstraint("low_user_id < high_user_id", name="ck_compare_pair_order"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    low_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    high_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )

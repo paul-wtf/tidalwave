@@ -37,3 +37,9 @@ async def current_user(
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return user
+
+
+async def admin_user(user: User = Depends(current_user)) -> User:
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admins only")
+    return user

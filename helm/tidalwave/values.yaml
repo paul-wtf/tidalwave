@@ -37,6 +37,16 @@ poller:
   # -- MusicBrainz API base URL, for a mirror. Empty: https://musicbrainz.org/ws/2
   musicbrainzUrl: ""
 
+# -- Weekly report CronJob (runs `tidalwave-weekly-report`). Posts last
+# week's listening to every user who saved a Discord webhook, so the job
+# needs to reach discord.com. Off by default.
+weeklyReport:
+  enabled: false
+  # -- Cron schedule, read in timeZone; default Mondays at 08:00
+  schedule: "0 8 * * 1"
+  # -- Needs Kubernetes 1.27 or newer
+  timeZone: Europe/Berlin
+
 # -- Ingress
 ingress:
   enabled: true

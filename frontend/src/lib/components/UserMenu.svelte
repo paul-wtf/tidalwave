@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api } from '$lib/api/client';
+  import { api, ApiError } from '$lib/api/client';
   import { auth } from '$lib/stores/auth';
   import { formatRelative } from '$lib/format';
 
@@ -9,6 +9,8 @@
   let root: HTMLDivElement | undefined = $state();
   let deleting = $state(false);
   let typed = $state('');
+  let webhook = $state('');
+  let report = $state<{ text: string; failed: boolean } | null>(null);
 
   const user = $derived($auth.user);
   const zones = $derived.by(() => {
@@ -42,6 +44,52 @@
     } catch {
       select.value = user?.timezone ?? 'UTC';
       error = 'Could not change the timezone.';
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function saveWebhook(e: Event) {
+    e.preventDefault();
+    busy = true;
+    report = null;
+    try {
+      const updated = await api.setWebhook(webhook.trim());
+      auth.update((s) => ({ ...s, user: updated }));
+      webhook = '';
+    } catch (err) {
+      report = {
+        failed: true,
+        text: err instanceof ApiError && err.status === 422
+          ? 'That is not a Discord webhook URL. It starts with https://discord.com/api/webhooks/.'
+          : 'Could not save the webhook.'
+      };
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function sendTest() {
+    busy = true;
+    report = null;
+    try {
+      await api.testWebhook();
+      report = { failed: false, text: 'Test message sent.' };
+    } catch {
+      report = { failed: true, text: 'Discord did not take the test message.' };
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function removeWebhook() {
+    busy = true;
+    report = null;
+    try {
+      const updated = await api.clearWebhook();
+      auth.update((s) => ({ ...s, user: updated }));
+    } catch {
+      report = { failed: true, text: 'Could not remove the webhook.' };
     } finally {
       busy = false;
     }
@@ -108,12 +156,43 @@
           <a href={api.exportUrl('csv')} download>CSV</a>
           <a href={api.exportUrl('json')} download>JSON</a>
         </div>
+        <div class="report">
+          <span class="heading">Weekly report on Discord</span>
+          {#if user.weekly_report_webhook}
+            <span class="hook">{user.weekly_report_webhook}</span>
+            <div class="row">
+              <button type="button" onclick={sendTest} disabled={busy}>Send test</button>
+              <button type="button" class="ghost" onclick={removeWebhook} disabled={busy}>Remove</button>
+            </div>
+          {:else}
+            <form onsubmit={saveWebhook}>
+              <label>
+                <span>Discord webhook URL</span>
+                <input
+                  type="url"
+                  bind:value={webhook}
+                  placeholder="https://discord.com/api/webhooks/…"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </label>
+              <button type="submit" disabled={busy || !webhook.trim()}>Save</button>
+            </form>
+            <p class="hint">Every Monday morning, a summary of last week goes to this channel.</p>
+          {/if}
+          {#if report}
+            <p class={report.failed ? 'error' : 'ok'} role={report.failed ? 'alert' : 'status'}>
+              {report.text}
+            </p>
+          {/if}
+        </div>
         <button type="button" class="ghost" onclick={logout}>Log out</button>
         {#if deleting}
           <form class="danger" onsubmit={deleteAccount}>
             <p>
-              This deletes your tidalwave account with all your listens, your share links and
-              your sync state. It cannot be undone. Your Last.fm account stays as it is.
+              This deletes your tidalwave account with all your listens, your share links, your
+              comparisons and your sync state. It cannot be undone. Your Last.fm account stays as
+              it is.
             </p>
             <label>
               <span>Type {user.username} to confirm</span>
@@ -197,6 +276,37 @@
     border-radius: var(--r-sm);
     padding: 0.35rem 0.5rem;
     font-size: 0.82rem;
+  }
+  .report {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+  }
+  .report form {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.4rem;
+  }
+  .report label {
+    flex: 1;
+    min-width: 0;
+  }
+  .hook {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+  .hint {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+  .ok {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.78rem;
   }
   .export {
     display: flex;

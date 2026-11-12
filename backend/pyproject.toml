@@ -20,6 +20,7 @@ tidalwave-backfill-durations = "tidalwave.cli:backfill_durations"
 tidalwave-backfill-covers = "tidalwave.cli:backfill_covers"
 tidalwave-backfill-tags = "tidalwave.cli:backfill_tags"
 tidalwave-backfill-years = "tidalwave.cli:backfill_years"
+tidalwave-weekly-report = "tidalwave.cli:weekly_report"
 
 [dependency-groups]
 dev = [

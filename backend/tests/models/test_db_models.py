@@ -8,7 +8,7 @@ def test_tables_registered():
     names = set(Base.metadata.tables)
     assert names == {
         "users", "listens", "sync_state", "shares", "track_durations", "album_art", "artist_tags",
-        "album_years",
+        "album_years", "allowlist_entries", "compare_invites", "compare_pairs",
     }
 
 
@@ -42,3 +42,13 @@ async def test_user_timezone_defaults_to_null(db_session):
     await db_session.flush()
     await db_session.refresh(user)
     assert user.timezone is None
+
+
+async def test_allowlist_entry_unique_regardless_of_case(db_session):
+    from tidalwave.models.db import AllowlistEntry
+
+    db_session.add(AllowlistEntry(lastfm_username="Carol"))
+    await db_session.flush()
+    with pytest.raises(IntegrityError):
+        async with db_session.begin_nested():
+            db_session.add(AllowlistEntry(lastfm_username="cAROL"))

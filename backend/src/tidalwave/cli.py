@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+from datetime import UTC, datetime
 
 import httpx
 from sqlalchemy import select
@@ -18,6 +19,7 @@ from tidalwave.ingest.years import fill_missing_album_years
 from tidalwave.lastfm.client import LastfmClient
 from tidalwave.models.db import User
 from tidalwave.musicbrainz.client import MusicBrainzClient
+from tidalwave.reports.weekly import send_weekly_reports
 
 # Per poll run, resolve at most this many new track durations so the 5-minute
 # job stays bounded. Historical gaps are filled by `tidalwave-backfill-durations`.
@@ -120,6 +122,17 @@ async def _backfill_years() -> None:
         logging.getLogger("tidalwave").info("looked up release years for %s albums", written)
 
 
+async def _weekly_report() -> None:
+    settings = Settings()
+    logging.basicConfig(level=settings.log_level)
+    factory = make_session_factory(make_engine(settings))
+    async with httpx.AsyncClient(timeout=15.0) as http, session_scope(factory) as session:
+        report = await send_weekly_reports(
+            session, http, now=datetime.now(UTC), base_url=settings.public_base_url
+        )
+        logging.getLogger("tidalwave").info("weekly report: %s", report)
+
+
 def poll() -> None:
     asyncio.run(_poll())
 
@@ -159,3 +172,10 @@ def backfill_years() -> None:
         description="Look up missing album release years on MusicBrainz, one per second."
     ).parse_args()
     asyncio.run(_backfill_years())
+
+
+def weekly_report() -> None:
+    argparse.ArgumentParser(
+        description="Post last week's listening to every user's Discord webhook."
+    ).parse_args()
+    asyncio.run(_weekly_report())

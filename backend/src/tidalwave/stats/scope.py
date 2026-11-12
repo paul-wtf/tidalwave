@@ -115,6 +115,11 @@ def moving_range_start(key: str, tz: str, now: datetime) -> datetime:
     return _local_midnight(start, tz)
 
 
+def last_full_week(tz: str, now: datetime) -> tuple[datetime, datetime]:
+    until = moving_range_start("this_week", tz, now)
+    return _shift_back(until, tz, "week"), until
+
+
 def _now() -> datetime:
     return datetime.now(UTC)
 

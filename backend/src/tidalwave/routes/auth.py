@@ -17,7 +17,7 @@ from sqlalchemy import select, text, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.auth.registration import RegistrationDenied
-from tidalwave.auth.service import upsert_user_from_session
+from tidalwave.auth.service import delete_account, upsert_user_from_session
 from tidalwave.auth.session import COOKIE_NAME, SessionCodec, current_user
 from tidalwave.models.db import Listen, User
 from tidalwave.config import Settings
@@ -25,6 +25,8 @@ from tidalwave.deps import get_lastfm_client, get_session, get_settings
 from tidalwave.ingest.poller import ingest_user_now
 from tidalwave.ingest.repository import get_sync_state
 from tidalwave.lastfm.client import LastfmClient, LastfmError
+from tidalwave.reports.discord import WebhookFailed, mask, post, valid_webhook
+from tidalwave.reports.weekly import connected_embed
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -91,6 +93,10 @@ class MeUpdate(BaseModel):
     timezone: str
 
 
+class WebhookUpdate(BaseModel):
+    url: str
+
+
 async def _me_payload(session: AsyncSession, user: User) -> dict:
     state = await get_sync_state(session, user.id)
     return {
@@ -100,6 +106,9 @@ async def _me_payload(session: AsyncSession, user: User) -> dict:
         "disconnected": user.disconnected,
         "last_synced_at": state.last_synced_at.isoformat() if state and state.last_synced_at else None,
         "last_played_at": state.last_played_at.isoformat() if state and state.last_played_at else None,
+        "weekly_report_webhook": (
+            mask(user.discord_webhook_url) if user.discord_webhook_url else None
+        ),
     }
 
 
@@ -130,13 +139,55 @@ async def update_me(
     return await _me_payload(session, user)
 
 
+@router.put("/me/webhook")
+async def set_webhook(
+    body: WebhookUpdate,
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    url = valid_webhook(body.url)
+    if url is None:
+        raise HTTPException(
+            status_code=422, detail="Not a Discord webhook URL (https://discord.com/api/webhooks/…)"
+        )
+    user.discord_webhook_url = url
+    await session.flush()
+    return await _me_payload(session, user)
+
+
+@router.delete("/me/webhook")
+async def clear_webhook(
+    user: User = Depends(current_user), session: AsyncSession = Depends(get_session)
+) -> dict:
+    user.discord_webhook_url = None
+    await session.flush()
+    return await _me_payload(session, user)
+
+
+@router.post("/me/webhook/test", status_code=204)
+async def test_webhook(
+    request: Request,
+    user: User = Depends(current_user),
+    settings: Settings = Depends(get_settings),
+) -> Response:
+    if not user.discord_webhook_url:
+        raise HTTPException(status_code=409, detail="No webhook saved")
+    try:
+        await post(
+            request.app.state.http,
+            user.discord_webhook_url,
+            connected_embed(user, settings.public_base_url),
+        )
+    except WebhookFailed as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return Response(status_code=204)
+
+
 @router.delete("/me", status_code=204)
 async def delete_me(
     user: User = Depends(current_user), session: AsyncSession = Depends(get_session)
 ) -> Response:
-    # listens, shares and sync_state go with the row through ON DELETE CASCADE.
-    await session.delete(user)
-    await session.flush()
+    await delete_account(session, user)
     resp = Response(status_code=204)
     resp.delete_cookie(COOKIE_NAME)
     return resp

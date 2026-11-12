@@ -60,6 +60,7 @@ async def test_me_returns_current_user(api, db_session):
         "disconnected": False,
         "last_synced_at": None,
         "last_played_at": None,
+        "weekly_report_webhook": None,
     }
 
 

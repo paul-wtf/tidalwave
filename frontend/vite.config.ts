@@ -1,7 +1,7 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
 
-const API_PREFIXES = ['/health', '/auth', '/stats', '/shares', '/shared'];
+const API_PREFIXES = ['/health', '/auth', '/stats', '/shares', '/shared', '/comparisons'];
 
 export default defineConfig({
   plugins: [sveltekit()],

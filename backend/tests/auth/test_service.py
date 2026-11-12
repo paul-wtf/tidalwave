@@ -35,3 +35,28 @@ async def test_new_user_denied_when_not_on_allowlist(db_session):
         await upsert_user_from_session(
             db_session, "mallory", "sk", mode="allowlist", allowlist=["alice"]
         )
+
+
+async def test_new_user_on_the_runtime_allowlist_may_register_in_any_case(db_session):
+    from tidalwave.models.db import AllowlistEntry
+
+    db_session.add(AllowlistEntry(lastfm_username="Carol"))
+    await db_session.flush()
+
+    carol = await upsert_user_from_session(
+        db_session, "cAROL", "sk", mode="allowlist", allowlist=["alice"]
+    )
+
+    assert carol.lastfm_username == "cAROL"
+
+
+async def test_delete_account_removes_the_user(db_session):
+    from tidalwave.auth.service import delete_account
+
+    alice = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    alice_id = alice.id
+
+    await delete_account(db_session, alice)
+
+    db_session.expire_all()
+    assert await db_session.get(User, alice_id) is None

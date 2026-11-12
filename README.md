@@ -39,6 +39,15 @@ for the detail pages and Insights.
   fixed range, or a range that keeps moving, such as the last 30 days.
 - Link previews for share links: a chat app shows whose listening it is,
   the range, the listen count, the top artist and a cover.
+- Comparisons between two users who both agreed: one sends an invite
+  link, the other accepts, and both see how much their listening
+  overlaps in a range, the artists they share and the ones only one of
+  them played. Either side can end it.
+- A weekly report to Discord: each user can save a webhook and gets
+  last week's listening, top artist, top track and new artists every
+  Monday.
+- An admin page that lists the accounts, deletes one with all its data,
+  and adds names to the allowlist at runtime.
 
 ## Architecture
 
@@ -124,8 +133,8 @@ Required values:
 | `ingress.host` | Hostname for the Ingress rule. |
 
 **Postgres** is external (CNPG-managed); the chart does not deploy a database.
-The Ingress routes `/auth`, `/stats`, `/shares`, and `/shared` to the backend
-and everything else to the frontend.
+The Ingress routes `/auth`, `/stats`, `/shares`, `/shared` and `/comparisons`
+to the backend and everything else to the frontend.
 
 **Link previews** are on by default (`config.sharePreviews`). The Ingress then
 also routes `/s/` to the backend, which serves share pages as the frontend's
@@ -140,6 +149,21 @@ to `poller.releaseYearBudget` albums on MusicBrainz (30 by default, one
 request per second), so the poller needs to reach `musicbrainz.org` as well
 as Last.fm. `--set poller.releaseYearBudget=0` turns that off, and
 `poller.musicbrainzUrl` points it at a mirror.
+
+**Weekly report** is off by default. `--set weeklyReport.enabled=true` adds a
+CronJob that runs `tidalwave-weekly-report` on the backend image every Monday
+at 08:00 Europe/Berlin (`weeklyReport.schedule`, `weeklyReport.timeZone`; the
+`timeZone` field needs Kubernetes 1.27). It posts to the Discord webhooks
+users saved, so the job needs to reach `discord.com` and `discordapp.com`,
+and so does the backend, which sends the test message from the user menu.
+Users in Los Angeles and further west get the week before last, because
+their week has not ended yet when the job runs. There is no report by mail:
+tidalwave has no SMTP configuration.
+
+**Registration** follows `config.registrationMode`. In `allowlist` mode the
+names in `config.registrationAllowlist` may sign up, plus the names an admin
+adds on the admin page, which live in the database. The first account is the
+admin.
 
 **linkhop** is optional: `--set config.linkhopUrl=https://linkhop.example`
 adds a link to every item that opens it as a search on that
