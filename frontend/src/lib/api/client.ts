@@ -19,6 +19,30 @@ export interface Me {
   disconnected: boolean;
   last_synced_at: string | null;
   last_played_at: string | null;
+  weekly_report_webhook?: string | null;
+}
+export interface AdminUser {
+  id: number;
+  username: string;
+  is_admin: boolean;
+  disconnected: boolean;
+  created_at: string;
+  listens: number;
+  last_synced_at: string | null;
+}
+export interface AllowlistEntry { username: string; fixed: boolean; added_at: string | null; }
+export interface Allowlist { mode: 'open' | 'allowlist'; entries: AllowlistEntry[]; }
+export interface ComparePair { id: number; partner: string | null; created_at: string; }
+export interface CompareInvite { token: string; created_at: string; }
+export interface Comparisons { pairs: ComparePair[]; invites: CompareInvite[]; }
+export interface InviteInfo { inviter: string; own: boolean; }
+export interface Comparison extends ComparePair {
+  overlap: number | null;
+  listens: { you: number; partner: number };
+  shared_artists: number;
+  shared: { artist: string; you: number; partner: number }[];
+  only_you: { artist: string; count: number }[];
+  only_partner: { artist: string; count: number }[];
 }
 export interface ArtistCount { artist: string; count: number; image_url?: string | null; }
 export interface TrackCount { track: string; artist: string; count: number; image_url?: string | null; }
@@ -203,6 +227,13 @@ const json = (method: string, body: unknown): RequestInit => ({
   body: JSON.stringify(body)
 });
 
+async function send(path: string, method: string): Promise<void> {
+  const res = await fetch(path, { method, credentials: 'include' });
+  if (!res.ok) throw new ApiError(res.status, path);
+}
+
+const part = encodeURIComponent;
+
 export const api = {
   loginUrl: () => '/auth/login',
 
@@ -230,5 +261,26 @@ export const api = {
   async revokeShare(token: string): Promise<void> {
     const res = await fetch(`/shares/${token}`, { method: 'DELETE', credentials: 'include' });
     if (!res.ok) throw new ApiError(res.status, `/shares/${token}`);
-  }
+  },
+
+  adminUsers: () => request<AdminUser[]>('/auth/admin/users'),
+  deleteUser: (id: number) => send(`/auth/admin/users/${id}`, 'DELETE'),
+  allowlist: () => request<Allowlist>('/auth/admin/allowlist'),
+  addToAllowlist: (username: string) =>
+    request<AllowlistEntry>('/auth/admin/allowlist', json('POST', { username })),
+  removeFromAllowlist: (username: string) =>
+    send(`/auth/admin/allowlist/${part(username)}`, 'DELETE'),
+
+  comparisons: () => request<Comparisons>('/comparisons'),
+  createInvite: () => request<CompareInvite>('/comparisons/invites', { method: 'POST' }),
+  invite: (token: string) => request<InviteInfo>(`/comparisons/invites/${part(token)}`),
+  acceptInvite: (token: string) =>
+    request<ComparePair>(`/comparisons/invites/${part(token)}/accept`, { method: 'POST' }),
+  revokeInvite: (token: string) => send(`/comparisons/invites/${part(token)}`, 'DELETE'),
+  comparison: (id: number, p?: StatsParams) => request<Comparison>(`/comparisons/${id}${qs({ ...p })}`),
+  endComparison: (id: number) => send(`/comparisons/${id}`, 'DELETE'),
+
+  setWebhook: (url: string) => request<Me>('/auth/me/webhook', json('PUT', { url })),
+  clearWebhook: () => request<Me>('/auth/me/webhook', { method: 'DELETE' }),
+  testWebhook: () => send('/auth/me/webhook/test', 'POST')
 };
