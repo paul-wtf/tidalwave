@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Heatmap } from '$lib/api/client';
+  import { formatCount, formatLongDate } from '$lib/format';
 
   let { heatmap }: { heatmap: Heatmap } = $props();
 
@@ -30,6 +31,20 @@
     return out;
   });
   const columns = $derived(cells.length ? cells[cells.length - 1].col + 1 : 0);
+
+  const uid = $props.id();
+  const summaryId = `${uid}-summary`;
+  const summary = $derived.by(() => {
+    const active = cells.filter((c) => c.listens > 0);
+    if (active.length === 0) return `No listens on any of ${formatCount(cells.length)} days`;
+    const total = active.reduce((sum, c) => sum + c.listens, 0);
+    const busiest = active.reduce((a, b) => (b.listens > a.listens ? b : a));
+    return (
+      `${formatCount(total)} ${total === 1 ? 'listen' : 'listens'} on ${formatCount(active.length)} ` +
+      `of ${formatCount(cells.length)} days · busiest ${formatLongDate(`${busiest.date}T00:00:00`, null)} ` +
+      `with ${formatCount(busiest.listens)}`
+    );
+  });
 </script>
 
 <section class="glass">
@@ -38,6 +53,7 @@
     <svg
       role="img"
       aria-label="Listens per day, {heatmap.start} to {heatmap.end}"
+      aria-describedby={summaryId}
       width="100%"
       style="min-width: {columns * STEP}px; max-width: {columns * STEP * 2}px"
       viewBox="0 0 {columns * STEP} {7 * STEP}"
@@ -57,6 +73,7 @@
       {/each}
     </svg>
   </div>
+  <p class="sr-only" id={summaryId}>{summary}</p>
 </section>
 
 <style>
@@ -70,6 +87,15 @@
   }
   .scroll {
     overflow-x: auto;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
   svg {
     display: block;

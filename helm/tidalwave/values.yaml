@@ -39,13 +39,15 @@ poller:
 
 # -- Weekly report CronJob (runs `tidalwave-weekly-report`). Posts last
 # week's listening to every user who saved a Discord webhook, so the job
-# needs to reach discord.com. Off by default.
+# needs to reach discord.com. Each run sends the reports of the users whose
+# Monday has reached 08:00 in their own timezone and who have not had that
+# week's report yet, so the job has to run every hour. Off by default.
 weeklyReport:
   enabled: false
-  # -- Cron schedule, read in timeZone; default Mondays at 08:00
-  schedule: "0 8 * * 1"
+  # -- Cron schedule, read in timeZone; default every hour at minute 7
+  schedule: "7 * * * *"
   # -- Needs Kubernetes 1.27 or newer
-  timeZone: Europe/Berlin
+  timeZone: UTC
 
 # -- Ingress
 ingress:

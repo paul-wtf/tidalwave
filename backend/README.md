@@ -82,7 +82,7 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `DELETE` | `/auth/me/webhook` | Session | Clears the webhook. Returns the same body as `GET /auth/me`. |
 | `POST` | `/auth/me/webhook/test` | Session | Posts a short test message to the saved webhook. 204 on success, 409 without a webhook, 502 when Discord refuses it or cannot be reached. |
 | `DELETE` | `/auth/me` | Session | Deletes the user with their listens, shares, comparisons, invites and sync state, and clears the session cookie. The shared `album_art` and `track_durations` caches stay. |
-| `GET` | `/auth/export` | Session | Streams every listen of the user as a download. `format=csv` or `format=json`; fields: `played_at` (ISO-8601, UTC), `artist`, `track`, `album`, `track_mbid`, `artist_mbid`, `album_mbid`, `duration_sec`. |
+| `GET` | `/auth/export` | Session | Streams every listen of the user as a download. `format=csv` or `format=json`. The CSV has one row per listen; the JSON is `{"listens": [...], "merges": [...]}`. `format=csv&part=merges` downloads the merged spellings as a file of their own (`tidalwave-<user>-merges.csv`); `part=merges` with JSON is a 422. Merges have `variant`, `canonical` and `merged_at` (ISO-8601, UTC). Listen fields: `played_at` (ISO-8601, UTC), `artist`, `track`, `album`, `track_mbid`, `artist_mbid`, `album_mbid`, `duration_sec`, `artist_raw` (the spelling the listen arrived with; `artist` is the name it is merged into) and `source` (`lastfm`, `spotify` or `listenbrainz`). |
 
 ### Stats (session-gated, requires a valid session cookie)
 
@@ -148,7 +148,7 @@ other's invite. Either side can end it.
 | `GET` | `/comparisons/invites/{token}` | `{"inviter", "own"}` for an open invite, 404 for a used, revoked or unknown one. |
 | `POST` | `/comparisons/invites/{token}/accept` | Stores the pair and returns it. 409 for one's own invite or when the two already compare; the invite then stays open. |
 | `DELETE` | `/comparisons/invites/{token}` | Revokes one of the user's open invites. |
-| `GET` | `/comparisons/{id}` | Takes the range parameters of `/stats`, resolved in the viewer's timezone, and `limit` (default 10, at most 50). Returns `overlap`, `listens` (`you`, `partner`), `shared_artists`, `shared` (`artist`, `you`, `partner`), `only_you` and `only_partner` (`artist`, `count`). `overlap` is the sum over all artists of the smaller of the two listen shares, from 0 (no artist in common) to 1 (the same mix), and `null` while one side has no listens. 404 for anyone outside the pair. |
+| `GET` | `/comparisons/{id}` | Takes the range parameters of `/stats`, resolved in the viewer's timezone, and `limit` (default 10, at most 50). Returns `overlap`, `listens` (`you`, `partner`), `shared_artists`, `shared` (`artist`, `you`, `partner`), `only_you` and `only_partner` (`artist`, `count`). `overlap` is the sum over all artists of the smaller of the two listen shares, from 0 (no artist in common) to 1 (the same mix), and `null` while one side has no listens. Artists match across the pair by the key the spelling suggestions use (see `/merges`), so "The National" and "National" count as one artist; spellings of one side that share a key count together. `shared` and `only_you` name an artist in the viewer's spelling, `only_partner` in the partner's. 404 for anyone outside the pair. |
 | `DELETE` | `/comparisons/{id}` | Ends the pair, from either side. |
 
 ### Spellings (session-gated)
@@ -267,7 +267,7 @@ tidalwave-backfill-years
 tidalwave-weekly-report
 ```
 
-The week is the one that has ended in each user's timezone when the command runs. Run on Monday at 08:00 in Berlin, that is the week just past nearly everywhere, but in Los Angeles and further west it is still Sunday, so those users get the week before. There is no report by mail, since tidalwave has no SMTP configuration.
+The command is meant to run every hour. A run only posts for users whose local time is Monday, 08:00 or later, and who have not had the report for the week that has just ended; `users.weekly_report_week` holds the Monday of the last week a report went out for, and it is set once Discord has accepted the post. A failed post is tried again by the next run that Monday. Each user so gets every week once, at the first run after 08:00 on their Monday, whatever their timezone. A user whose whole Monday passes without a run gets no report for that week. There is no report by mail, since tidalwave has no SMTP configuration.
 
 All commands read configuration from the same `TIDALWAVE_*` environment variables as the server.
 
@@ -275,10 +275,16 @@ All commands read configuration from the same `TIDALWAVE_*` environment variable
 
 ## Tests
 
-Tests require a running PostgreSQL instance. By default the test suite connects to the same URL as the application default (`postgresql+asyncpg://tidalwave:tidalwave@localhost:5432/tidalwave`). Override with:
+Tests require a running PostgreSQL instance. They drop and recreate every table, so they run in a database of their own: the name of the configured database with `_test` appended, `tidalwave_test` for the application default (`postgresql+asyncpg://tidalwave:tidalwave@localhost:5432/tidalwave`). The data of a local `tidalwave` database stays as it is. Point the suite at another server or database with:
 
 ```bash
 export TIDALWAVE_TEST_DATABASE_URL=postgresql+asyncpg://...
+```
+
+A name that already ends in `_test` is used as given. The suite creates the test database when it is missing, which needs a role that may create databases. Without that right, create it once:
+
+```bash
+createdb -O tidalwave tidalwave_test
 ```
 
 Run the suite:

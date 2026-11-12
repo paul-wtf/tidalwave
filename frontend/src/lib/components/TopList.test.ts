@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/svelte';
-import { describe, it, expect } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { PLATFORMS } from '$lib/platforms';
 import TopList from './TopList.svelte';
 
@@ -66,5 +67,55 @@ describe('TopList links and covers', () => {
     unmount();
     const plain = render(TopList, { props: { title: 'Top Albums', items } });
     expect(plain.container.querySelector('img')).toBeNull();
+  });
+});
+
+describe('TopList on a device that can hover', () => {
+  const items = [
+    { label: 'Nightcall', count: 9, query: 'Kavinsky Nightcall', href: '/track?t=1' },
+    { label: 'Sunset', count: 4, query: 'The Midnight Sunset', href: '/track?t=2' }
+  ];
+  const spotify = () => screen.queryAllByRole('link', { name: /on spotify/i });
+
+  beforeEach(() => {
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+      matches: query === '(hover: hover)', media: query, onchange: null,
+      addListener: () => {}, removeListener: () => {},
+      addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false
+    }));
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('renders no platform links, and so reserves no room, until a row is hovered', async () => {
+    render(TopList, { props: { title: 'Top Tracks', items } });
+    expect(spotify()).toHaveLength(0);
+
+    await fireEvent.pointerEnter(screen.getByText('Sunset').closest('li')!);
+    expect(spotify()).toHaveLength(1);
+    expect(spotify()[0]).toHaveAccessibleName('Open “The Midnight Sunset” on Spotify');
+
+    await fireEvent.pointerLeave(screen.getByText('Sunset').closest('li')!);
+    expect(spotify()).toHaveLength(0);
+  });
+
+  it('shows a row\'s links while focus is in the row, so the keyboard reaches them', async () => {
+    const user = userEvent.setup();
+    render(TopList, { props: { title: 'Top Tracks', items } });
+
+    await user.tab();
+    expect(screen.getByRole('link', { name: 'Nightcall' })).toHaveFocus();
+    expect(spotify()).toHaveLength(1);
+    await user.tab();
+    expect(spotify()[0]).toHaveFocus();
+
+    for (let i = 0; i < PLATFORMS.length; i++) await user.tab();
+    expect(screen.getByRole('link', { name: 'Sunset' })).toHaveFocus();
+    expect(spotify()).toHaveLength(1);
+    expect(spotify()[0]).toHaveAccessibleName('Open “The Midnight Sunset” on Spotify');
+  });
+
+  it('keeps the links of a row without a label link, which has nothing else to focus', () => {
+    render(TopList, { props: { title: 'Top Tracks', items: [{ label: 'Loose', count: 1, query: 'Loose' }] } });
+    expect(spotify()).toHaveLength(1);
   });
 });

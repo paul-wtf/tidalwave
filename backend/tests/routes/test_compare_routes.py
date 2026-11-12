@@ -232,3 +232,21 @@ async def test_deleting_an_account_ends_its_pairs_and_invites(api, db_session):
     assert (await client.delete("/auth/me", headers=_auth(bob.id))).status_code == 204
 
     assert (await client.get("/comparisons", headers=_auth(alice.id))).json()["pairs"] == []
+
+
+async def test_comparison_matches_each_others_spellings(api, db_session):
+    client, _ = api
+    alice, bob, _ = await _users(db_session)
+    await upsert_listens(db_session, alice.id, _listens({"The National": 3, "Bonobo": 1}))
+    await upsert_listens(db_session, bob.id, _listens({"National": 2, "Röyksopp": 1}))
+    await db_session.flush()
+    pair = await _pair(client, bob, alice)
+
+    mine = (await client.get(f"/comparisons/{pair}", headers=_auth(alice.id))).json()
+    theirs = (await client.get(f"/comparisons/{pair}", headers=_auth(bob.id))).json()
+
+    assert mine["shared"] == [{"artist": "The National", "you": 3, "partner": 2}]
+    assert mine["only_partner"] == [{"artist": "Röyksopp", "count": 1}]
+    assert theirs["shared"] == [{"artist": "National", "you": 2, "partner": 3}]
+    assert theirs["only_partner"] == [{"artist": "Bonobo", "count": 1}]
+    assert mine["overlap"] == pytest.approx(theirs["overlap"])

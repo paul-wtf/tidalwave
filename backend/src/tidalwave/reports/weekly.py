@@ -23,6 +23,7 @@ _ACCENT = 0xCBA6F7
 _NAMED_DISCOVERIES = 5
 # Only a first import brings more new artists into one week.
 _DISCOVERY_CAP = 500
+_SEND_HOUR = 8
 
 
 def _week_label(first: date, last: date) -> str:
@@ -136,9 +137,23 @@ def connected_embed(user: User, base_url: str) -> dict:
     }
 
 
+def due_week(user: User, now: datetime) -> date | None:
+    """The Monday of the week whose report is due for ``user`` at ``now``, if any."""
+    tz = user_tz(user)
+    local = now.astimezone(ZoneInfo(tz))
+    if local.isoweekday() != 1 or local.hour < _SEND_HOUR:
+        return None
+    week = last_full_week(tz, now)[0].astimezone(ZoneInfo(tz)).date()
+    if user.weekly_report_week is not None and user.weekly_report_week >= week:
+        return None
+    return week
+
+
 async def send_weekly_reports(
     session: AsyncSession, http: httpx.AsyncClient, *, now: datetime, base_url: str
 ) -> dict[str, str]:
+    """Post the report of every user whose Monday has reached 08:00 and who has
+    not had it for that week. Meant to run every hour."""
     users = (await session.execute(
         select(User).where(User.discord_webhook_url.is_not(None)).order_by(User.id)
     )).scalars().all()
@@ -146,12 +161,18 @@ async def send_weekly_reports(
     for user in users:
         name = user.lastfm_username
         url = user.discord_webhook_url
+        week = due_week(user, now)
+        if week is None:
+            continue
         try:
-            embed = await weekly_embed(session, user, now=now, base_url=base_url)
+            async with session.begin_nested():
+                embed = await weekly_embed(session, user, now=now, base_url=base_url)
             if embed is None or url is None:
                 report[name] = "empty"
                 continue
             await post(http, url, embed)
+            user.weekly_report_week = week
+            await session.commit()
             report[name] = "sent"
         except WebhookFailed as e:
             log.warning("weekly report for %s not delivered: %s", name, e)

@@ -5,9 +5,9 @@
   const max = $derived(Math.max(1, ...days));
 </script>
 
-<figure class="glass" role="img" aria-label="Listens by weekday">
+<figure class="glass">
   <figcaption>By weekday</figcaption>
-  <div class="plot">
+  <div class="plot" role="img" aria-label="Listens by weekday">
     <div class="yaxis" aria-hidden="true">
       <span>{max}</span>
       <span>{Math.round(max / 2)}</span>

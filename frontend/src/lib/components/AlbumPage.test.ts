@@ -158,6 +158,6 @@ describe('AlbumPage', () => {
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument());
     const tinted = container.querySelector<HTMLElement>('.tinted')!;
     expect(tinted).toContainElement(screen.getByRole('heading', { level: 1 }));
-    expect(tinted).toContainElement(screen.getByRole('img', { name: 'Listens over time' }));
+    expect(tinted).toContainElement(screen.getByText('Listens over time').closest('figure'));
   });
 });

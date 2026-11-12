@@ -14,7 +14,7 @@ spec:
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      # A retry would post the same report a second time.
+      # The next hourly run sends what this one did not.
       backoffLimit: 0
       template:
         metadata:

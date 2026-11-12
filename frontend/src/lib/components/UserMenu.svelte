@@ -2,6 +2,8 @@
   import { api, ApiError } from '$lib/api/client';
   import { auth } from '$lib/stores/auth';
   import { formatRelative } from '$lib/format';
+  import { compactHeader, shareOpen } from '$lib/stores/header';
+  import { theme, toggleTheme } from '$lib/stores/theme';
 
   let open = $state(false);
   let busy = $state(false);
@@ -119,6 +121,12 @@
     }
   }
 
+  function openShares(e: MouseEvent) {
+    e.stopPropagation();
+    open = false;
+    shareOpen.set(true);
+  }
+
   async function logout() {
     error = null;
     try {
@@ -136,13 +144,30 @@
   <div class="menu" bind:this={root}>
     <button
       type="button"
+      class:compact={$compactHeader}
+      title={$compactHeader ? undefined : user.username}
       aria-expanded={open}
       aria-controls="user-menu-panel"
       onclick={() => (open = !open)}
-    >{user.username}</button>
+    >
+      {#if $compactHeader}
+        <span aria-hidden="true">{user.username.slice(0, 1).toUpperCase()}</span>
+        <span class="sr-only">{user.username}</span>
+      {:else}
+        {user.username}
+      {/if}
+    </button>
     {#if open}
       <div class="panel" id="user-menu-panel">
         <p class="sync">{syncText}</p>
+        {#if $compactHeader}
+          <div class="row">
+            <button type="button" onclick={openShares}>Share links</button>
+            <button type="button" onclick={toggleTheme}>
+              Switch to {$theme === 'mocha' ? 'Latte' : 'Mocha'}
+            </button>
+          </div>
+        {/if}
         <label>
           <span>Timezone</span>
           <select value={user.timezone ?? 'UTC'} onchange={changeTimezone} disabled={busy}>
@@ -160,6 +185,7 @@
           <span>Export my data</span>
           <a href={api.exportUrl('csv')} download>CSV</a>
           <a href={api.exportUrl('json')} download>JSON</a>
+          <a href={api.exportUrl('csv', 'merges')} download>Merges CSV</a>
         </div>
         <div class="report">
           <span class="heading">Weekly report on Discord</span>
@@ -315,14 +341,16 @@
   }
   .export {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.4rem;
     font-size: 0.82rem;
   }
   .export span {
-    flex: 1;
+    flex: 1 0 100%;
   }
   .export a {
+    white-space: nowrap;
     padding: 0.4rem 0.85rem;
     border-radius: var(--r-sm);
     background: var(--surface1);
@@ -377,6 +405,28 @@
   }
   button:hover:not(:disabled) {
     background: var(--surface1);
+  }
+  .menu > button:not(.compact) {
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .compact {
+    width: 2.2rem;
+    height: 2.2rem;
+    padding: 0;
+    border-radius: 50%;
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
   button:focus-visible {
     box-shadow: 0 0 0 2px var(--accent-text);

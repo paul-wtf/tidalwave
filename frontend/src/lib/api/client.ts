@@ -302,7 +302,8 @@ export const api = {
   },
   config: () => request<{ linkhop_url: string | null }>('/auth/config'),
   updateMe: (body: { timezone: string }) => request<Me>('/auth/me', json('PATCH', body)),
-  exportUrl: (format: 'csv' | 'json') => `/auth/export?format=${format}`,
+  exportUrl: (format: 'csv' | 'json', part: 'listens' | 'merges' = 'listens') =>
+    `/auth/export?format=${format}${part === 'merges' ? '&part=merges' : ''}`,
   async deleteAccount(): Promise<void> {
     const res = await fetch('/auth/me', { method: 'DELETE', credentials: 'include' });
     if (!res.ok) throw new ApiError(res.status, '/auth/me');

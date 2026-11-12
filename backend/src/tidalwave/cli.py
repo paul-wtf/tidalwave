@@ -176,6 +176,9 @@ def backfill_years() -> None:
 
 def weekly_report() -> None:
     argparse.ArgumentParser(
-        description="Post last week's listening to every user's Discord webhook."
+        description=(
+            "Post last week's listening to the Discord webhook of every user whose"
+            " Monday has reached 08:00 and who has not had that week's report. Run hourly."
+        )
     ).parse_args()
     asyncio.run(_weekly_report())

@@ -55,3 +55,40 @@ def test_each_side_lists_what_the_other_did_not_hear_most_played_first():
 
     assert result["only_you"] == [{"artist": "Y", "count": 5}, {"artist": "X", "count": 2}]
     assert result["only_partner"] == [{"artist": "P", "count": 7}]
+
+
+def test_spellings_of_one_artist_match_across_the_pair():
+    you = {"The National": 4, "Beyonce": 1}
+    partner = {"National": 2, "Beyoncé": 3}
+
+    result = compare(you, partner, limit=10)
+
+    assert result["shared_artists"] == 2
+    assert result["overlap"] == pytest.approx(0.4 + 0.2)
+    assert result["shared"] == [
+        {"artist": "The National", "you": 4, "partner": 2},
+        {"artist": "Beyonce", "you": 1, "partner": 3},
+    ]
+    assert result["only_you"] == [] and result["only_partner"] == []
+    assert [s["artist"] for s in compare(partner, you, limit=10)["shared"]] == [
+        "National", "Beyoncé",
+    ]
+
+
+def test_an_artist_only_one_side_played_keeps_that_sides_spelling():
+    result = compare({"Sigur Ros": 2}, {"Sigur Rós": 1, "The xx": 4}, limit=10)
+
+    assert result["shared"] == [{"artist": "Sigur Ros", "you": 2, "partner": 1}]
+    assert result["only_partner"] == [{"artist": "The xx", "count": 4}]
+
+
+def test_unmerged_spellings_on_one_side_count_together_under_the_most_played():
+    you = {"The National": 3, "National": 1, "Muse": 2}
+    partner = {"the national": 2, "Muse": 2}
+
+    result = compare(you, partner, limit=10)
+
+    assert result["shared_artists"] == 2
+    assert result["listens"] == {"you": 6, "partner": 4}
+    assert result["shared"][0] == {"artist": "The National", "you": 4, "partner": 2}
+    assert result["only_you"] == []

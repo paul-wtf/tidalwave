@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -40,6 +41,8 @@ class User(Base):
     )
     timezone: Mapped[str | None] = mapped_column(String(64))
     discord_webhook_url: Mapped[str | None] = mapped_column(Text)
+    # Monday, in the user's timezone, of the last week a report reached Discord for.
+    weekly_report_week: Mapped[date | None] = mapped_column(Date)
 
 
 def _same_as_artist(context) -> str:

@@ -1,4 +1,4 @@
-import { render } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
 import Heatmap from './Heatmap.svelte';
 
@@ -77,5 +77,17 @@ describe('Heatmap', () => {
     const wed = byTitle(container, '2026-11-04: 0 listens');
     const mon = byTitle(container, '2026-11-09: 0 listens');
     expect(Number(wed.getAttribute('y'))).toBeGreaterThan(Number(mon.getAttribute('y')));
+  });
+
+  it('sums the window up in text that sits outside the image', () => {
+    render(Heatmap, { heatmap });
+    const summary = screen.getByText('22 listens on 3 of 11 days · busiest 6 Nov 2026 with 14');
+    expect(summary.closest('[role="img"]')).toBeNull();
+    expect(screen.getByRole('img')).toHaveAccessibleDescription(summary.textContent!);
+  });
+
+  it('says so when the window has no listens', () => {
+    render(Heatmap, { heatmap: { start: '2026-11-02', end: '2026-11-08', days: [] } });
+    expect(screen.getByText('No listens on any of 7 days')).toBeInTheDocument();
   });
 });
