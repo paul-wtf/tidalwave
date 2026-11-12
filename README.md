@@ -46,6 +46,15 @@ for the detail pages and Insights.
 - A weekly report to Discord: each user can save a webhook and gets
   last week's listening, top artist, top track and new artists every
   Monday.
+- A year in review at `/year/<yyyy>`: totals, top artists, tracks and
+  albums, month by month, the busiest day, the first and last listen, new
+  artists, genres, decades, the longest streak and albums played through.
+  It can be shared as a link for that year.
+- Imports of older history from Spotify's Extended streaming history and
+  from ListenBrainz exports, with plays Last.fm already has left out. An
+  import can be undone as a whole.
+- Merging spellings of one artist ("The National" and "National"), with
+  suggestions, per user and undoable.
 - An admin page that lists the accounts, deletes one with all its data,
   and adds names to the allowlist at runtime.
 
