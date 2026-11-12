@@ -1,7 +1,14 @@
 <script lang="ts">
   import type { PlatformId } from '$lib/platforms';
 
-  let { id }: { id: PlatformId } = $props();
+  let { id }: { id: PlatformId | 'linkhop' } = $props();
+
+  // linkhop's mark: "lh" in JetBrains Mono ExtraBold on a rounded square. The
+  // letters are the font's own outlines, cut out of the square.
+  const LINKHOP =
+    'M6 0h12a6 6 0 0 1 6 6v12a6 6 0 0 1-6 6H6a6 6 0 0 1-6-6V6a6 6 0 0 1 6-6z' +
+    'M9.62 16.56Q8.89 16.56 8.34 16.26Q7.79 15.95 7.49 15.4Q7.18 14.85 7.18 14.12V9.12H5.06V7.44H9.06V14.12Q9.06 14.46 9.26 14.67Q9.47 14.88 9.81 14.88H11.81V16.56Z' +
+    'M13.07 16.56V7.44H14.94V9.69L14.88 11H15.43L14.88 11.44Q14.88 10.56 15.38 10.06Q15.88 9.56 16.73 9.56Q17.73 9.56 18.34 10.26Q18.94 10.96 18.94 12.12V16.56H17.07V12.31Q17.07 11.77 16.79 11.48Q16.51 11.19 15.99 11.19Q15.49 11.19 15.22 11.48Q14.94 11.77 14.94 12.31V16.56Z';
 
   // Brand glyphs from simple-icons (Spotify/Tidal/Apple Music/YouTube Music). Deezer was
   // removed from simple-icons, so its bar mark is reconstructed below.
@@ -27,6 +34,8 @@
       <rect {x} y="10" width="3.4" height="4" rx="0.6" />
     {/each}
     <rect x="20.6" y="4" width="3.4" height="4" rx="0.6" />
+  {:else if id === 'linkhop'}
+    <path fill-rule="evenodd" d={LINKHOP} />
   {:else}
     <path d={PATHS[id]} />
   {/if}

@@ -45,3 +45,10 @@ export const PLATFORMS: Platform[] = [
     search: (q) => `https://www.deezer.com/search/${encodeURIComponent(q)}`
   }
 ];
+
+/** linkhop's blue, for the hover tint of its link. */
+export const LINKHOP_BRAND = '#89b4fa';
+
+/** A linkhop search for `query`: one page that leads to the item on every service. */
+export const linkhopSearch = (base: string, query: string) =>
+  `${base}/?q=${encodeURIComponent(query)}`;

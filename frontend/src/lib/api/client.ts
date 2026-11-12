@@ -212,6 +212,7 @@ export const api = {
     if (!res.ok) throw new ApiError(res.status, '/auth/me');
     return (await res.json()) as Me;
   },
+  config: () => request<{ linkhop_url: string | null }>('/auth/config'),
   updateMe: (body: { timezone: string }) => request<Me>('/auth/me', json('PATCH', body)),
   exportUrl: (format: 'csv' | 'json') => `/auth/export?format=${format}`,
   async deleteAccount(): Promise<void> {

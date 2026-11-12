@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { PLATFORMS } from '$lib/platforms';
+  import { LINKHOP_BRAND, PLATFORMS, linkhopSearch } from '$lib/platforms';
+  import { config } from '$lib/stores/config';
   import PlatformIcon from './PlatformIcon.svelte';
 
   // `query` is the search text (e.g. "Daft Punk Around the World"). Each icon
@@ -22,6 +23,20 @@
       <PlatformIcon id={p.id} />
     </a>
   {/each}
+  {#if $config.linkhopUrl}
+    <a
+      class="platform"
+      style="--brand: {LINKHOP_BRAND}"
+      href={linkhopSearch($config.linkhopUrl, query)}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Find on every service with linkhop"
+      aria-label="Find “{query}” on every service with linkhop"
+      onclick={(e) => e.stopPropagation()}
+    >
+      <PlatformIcon id="linkhop" />
+    </a>
+  {/if}
 </span>
 
 <style>

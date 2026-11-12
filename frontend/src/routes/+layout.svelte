@@ -2,7 +2,13 @@
   import '@fontsource-variable/jetbrains-mono';
   import '@fontsource-variable/jetbrains-mono/wght-italic.css';
   import '$lib/theme/tokens.css';
+  import { onMount } from 'svelte';
+  import { loadConfig } from '$lib/stores/config';
   let { children } = $props();
+
+  onMount(() => {
+    void loadConfig();
+  });
 </script>
 
 {@render children?.()}
