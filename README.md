@@ -4,12 +4,25 @@
 exposes no listening-history API, tidalwave works through Last.fm: users connect
 their Last.fm account (which they already use to scrobble from the Tidal app),
 and tidalwave polls `user.getRecentTracks` on a schedule to ingest their history
-into Postgres. A FastAPI backend aggregates the data into per-user stats (top
-artists, tracks, albums, listening clock, scrobble history); a SvelteKit
-dashboard surfaces it. Access is gated and multi-user from day one — each user
-sees only their own data — with optional shareable read-only links. See the
+into Postgres. A FastAPI backend aggregates the data into per-user stats and
+a SvelteKit dashboard shows them. Access is gated and multi-user from day one:
+each user sees only their own data. See the
 [design spec](docs/superpowers/specs/2026-06-17-tidalwave-listening-tracker-design.md)
-for full background.
+for full background and the
+[stats extensions spec](docs/superpowers/specs/2026-11-06-stats-extensions-design.md)
+for the detail pages and Insights.
+
+## Features
+
+- Overview with totals, their change against the previous period, trends over
+  time, the listening clock, weekdays, top lists and recent listens.
+- A page for every artist, album and track, with album covers and search
+  links to Spotify, Tidal, Apple Music, YouTube Music and Deezer.
+- Insights: on this day, streaks and records, a listening heatmap and
+  discoveries.
+- Rolling, calendar and custom ranges, resolved in each user's timezone.
+- Read-only share links, optionally limited to a range and revocable from a
+  list.
 
 ## Architecture
 
@@ -113,8 +126,11 @@ The Secret must contain: `TIDALWAVE_DATABASE_URL`, `TIDALWAVE_LASTFM_API_KEY`,
 
 ## CI / CD
 
-GitHub Actions workflows in [`.github/workflows/`](.github/workflows/) build
-and push Docker images to GHCR and release the Helm chart via
-`helm/chart-releaser-action`. **These workflows are inert until the repository
-has a GitHub remote with a container registry configured** — no images are
-published and no chart is released from a local clone.
+GitHub Actions workflows in [`.github/workflows/`](.github/workflows/) run on
+[github.com/paul-wtf/tidalwave](https://github.com/paul-wtf/tidalwave). Pull
+requests get the backend and frontend checks. Publishing a GitHub release
+builds both images and pushes them to GHCR as
+`ghcr.io/paul-wtf/tidalwave-backend` and `ghcr.io/paul-wtf/tidalwave-frontend`,
+tagged with the release version and `latest`. A push to `master` that touches
+`helm/` releases the chart through `helm/chart-releaser-action` into the Helm
+repository at `https://paul-wtf.github.io/tidalwave`.
