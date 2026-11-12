@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -480,3 +480,34 @@ async def test_only_shared_endpoints_send_cors_headers(api, db_session):
         resp = await client.get(path, headers=headers)
         assert resp.status_code == 200
         assert "access-control-allow-origin" not in resp.headers
+
+
+async def test_shared_album_runs_stay_inside_the_share_range(api, db_session):
+    client, _ = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+
+    def run(artist, album, start, count):
+        return [
+            Scrobble(artist=artist, track_title=f"t{i}", album=album,
+                     played_at=start + timedelta(minutes=4 * i))
+            for i in range(count)
+        ]
+
+    floor = datetime(2026, 3, 1, tzinfo=UTC)
+    await upsert_listens(db_session, user.id, [
+        *run("Ghost", "Boo", datetime(2026, 2, 1, 20, tzinfo=UTC), 8),
+        *run("Edge", "Straddle", floor - timedelta(minutes=12), 8),
+        *run("Ana", "Rec", datetime(2026, 3, 10, 20, tzinfo=UTC), 7),
+    ])
+    db_session.add(Share(share_token="runs", user_id=user.id, range_from=floor,
+                         range_to=datetime(2026, 4, 1, tzinfo=UTC)))
+    await db_session.flush()
+
+    resp = await client.get("/shared/runs/album-runs")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert [(r["artist"], r["album"], r["tracks"]) for r in body["runs"]] == [("Ana", "Rec", 7)]
+    assert "Ghost" not in resp.text and "Straddle" not in resp.text
+    widened = await client.get("/shared/runs/album-runs?since=2026-01-01T00:00:00Z&artist=Ghost&album=Boo")
+    assert widened.json() == {"total": 0, "runs": []}

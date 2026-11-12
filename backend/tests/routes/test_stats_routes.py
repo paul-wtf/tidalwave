@@ -305,3 +305,39 @@ async def test_decades_endpoint(api, db_session):
     later = await client.get("/stats/decades?since=2024-06-01T12:00:00Z", headers=headers)
     assert later.json() == {"decades": [], "known": 0, "unknown": 1, "pending": 0}
     assert (await client.get("/stats/decades")).status_code == 401
+
+
+async def test_album_runs_endpoint(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "runs_user", "sk_r", mode="open", allowlist=[])
+    start = datetime(2024, 6, 1, 20, tzinfo=UTC)
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="Daft Punk", track_title=f"t{i}", album="Discovery",
+                 played_at=start + timedelta(minutes=4 * i))
+        for i in range(6)
+    ] + [
+        Scrobble(artist="Kavinsky", track_title=f"t{i}", album="OutRun",
+                 played_at=start + timedelta(days=1, minutes=4 * i))
+        for i in range(7)
+    ])
+    headers = {"Cookie": f"{COOKIE_NAME}={SessionCodec('test-secret').encode(user.id)}"}
+
+    resp = await client.get("/stats/album-runs", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 2
+    assert body["runs"][0] == {
+        "artist": "Kavinsky", "album": "OutRun", "started_at": (start + timedelta(days=1)).isoformat(),
+        "tracks": 7, "listens": 7, "seconds": 0, "image_url": None,
+    }
+    assert body["runs"][1]["album"] == "Discovery"
+    limited = await client.get("/stats/album-runs?limit=1", headers=headers)
+    assert (limited.json()["total"], len(limited.json()["runs"])) == (2, 1)
+    one = await client.get(
+        "/stats/album-runs", params={"artist": "Daft Punk", "album": "Discovery"}, headers=headers
+    )
+    assert (one.json()["total"], one.json()["runs"][0]["album"]) == (1, "Discovery")
+    ranged = await client.get("/stats/album-runs?since=2024-06-02T00:00:00Z", headers=headers)
+    assert [r["album"] for r in ranged.json()["runs"]] == ["OutRun"]
+    assert (await client.get("/stats/album-runs?limit=0", headers=headers)).status_code == 422
+    assert (await client.get("/stats/album-runs")).status_code == 401
