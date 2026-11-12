@@ -74,6 +74,50 @@ class Listen(Base):
     # Track length in seconds, resolved from Last.fm track.getInfo. NULL = not
     # yet resolved or unknown; "time listened" sums this column.
     duration_sec: Mapped[int | None] = mapped_column(Integer)
+    source: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=text("'lastfm'")
+    )
+    import_id: Mapped[int | None] = mapped_column(
+        ForeignKey("imports.id", ondelete="CASCADE"), index=True
+    )
+
+
+class Import(Base):
+    """An uploaded listening history. ``status`` is pending, running, done,
+    failed or undone; the counts grow while it runs."""
+
+    __tablename__ = "imports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str | None] = mapped_column(String(16))
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    error: Mapped[str | None] = mapped_column(Text)
+    read: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    skipped: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    too_short: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    duplicates: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    added: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    first_played_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_played_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+Index(
+    "uq_imports_one_active",
+    Import.user_id,
+    unique=True,
+    postgresql_where=Import.status.in_(["pending", "running"]),
+)
 
 
 class TrackDuration(Base):

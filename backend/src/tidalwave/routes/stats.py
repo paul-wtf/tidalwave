@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.deps import get_lastfm_client, get_session
+from tidalwave.imports.service import source_summary
 from tidalwave.lastfm.client import LastfmClient
 from tidalwave.stats import details, insights, queries
 from tidalwave.stats import album_runs as album_run_queries
@@ -142,6 +143,13 @@ def make_stats_router(scope_dep) -> APIRouter:
                 session, replace(scope, since=since, until=until)
             )
         return {**current, "previous": previous}
+
+    @router.get("/sources")
+    async def sources(
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await source_summary(session, scope)
 
     @router.get("/artist")
     async def artist_detail(

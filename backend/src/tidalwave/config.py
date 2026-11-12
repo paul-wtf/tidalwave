@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     musicbrainz_url: str = "https://musicbrainz.org/ws/2"
     musicbrainz_budget: int = Field(default=30, ge=0)
 
+    # Largest history file a user may upload. The Ingress in front of the
+    # backend has to let bodies of this size through.
+    import_max_bytes: int = Field(default=100 * 1024 * 1024, ge=1)
+    # Where uploads wait while they are imported. Empty: the system temp dir.
+    import_dir: str = ""
+
     registration_mode: Literal["open", "allowlist"] = "allowlist"
     registration_allowlist: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
