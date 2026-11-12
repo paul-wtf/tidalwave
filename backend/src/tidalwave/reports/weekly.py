@@ -165,7 +165,8 @@ async def send_weekly_reports(
         if week is None:
             continue
         try:
-            embed = await weekly_embed(session, user, now=now, base_url=base_url)
+            async with session.begin_nested():
+                embed = await weekly_embed(session, user, now=now, base_url=base_url)
             if embed is None or url is None:
                 report[name] = "empty"
                 continue

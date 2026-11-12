@@ -254,3 +254,40 @@ async def test_only_mondays_send_and_the_next_monday_sends_the_next_week(db_sess
 
     assert await _run(db_session, datetime(2026, 11, 16, 8, 5, tzinfo=UTC)) == {"alice": "sent"}
     assert alice.weekly_report_week == date(2026, 11, 9)
+
+
+@respx.mock
+async def test_a_database_error_for_one_user_spares_the_users_after_it(db_session, monkeypatch):
+    from sqlalchemy import text
+
+    from tidalwave.reports import weekly
+
+    users = {}
+    for i, name in enumerate(["alice", "bob", "carol"], start=1):
+        user = await upsert_user_from_session(db_session, name, "sk", mode="open", allowlist=[])
+        user.timezone = "UTC"
+        user.discord_webhook_url = f"https://discord.com/api/webhooks/{i}/token{i}"
+        await upsert_listens(db_session, user.id, [
+            Scrobble(artist="Kavinsky", track_title="Nightcall", album=None,
+                     played_at=datetime(2026, 11, 8, 12, tzinfo=UTC)),
+        ])
+        users[name] = user
+    await db_session.flush()
+    hooks = [respx.post(f"https://discord.com/api/webhooks/{i}/token{i}").respond(204)
+             for i in (1, 2, 3)]
+    real = weekly.weekly_embed
+
+    async def broken_for_bob(session, user, **kwargs):
+        if user.lastfm_username == "bob":
+            await session.execute(text("SELECT 1 / 0"))
+        return await real(session, user, **kwargs)
+
+    monkeypatch.setattr(weekly, "weekly_embed", broken_for_bob)
+
+    report = await _run(db_session, datetime(2026, 11, 9, 9, 5, tzinfo=UTC))
+
+    assert report == {"alice": "sent", "bob": "failed", "carol": "sent"}
+    assert [h.call_count for h in hooks] == [1, 0, 1]
+    assert users["alice"].weekly_report_week == date(2026, 11, 2)
+    assert users["bob"].weekly_report_week is None
+    assert users["carol"].weekly_report_week == date(2026, 11, 2)
