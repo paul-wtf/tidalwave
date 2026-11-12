@@ -39,6 +39,8 @@ spec:
               value: {{ .Values.config.registrationMode | quote }}
             - name: TIDALWAVE_REGISTRATION_ALLOWLIST
               value: {{ .Values.config.registrationAllowlist | quote }}
+            - name: TIDALWAVE_IMPORT_MAX_BYTES
+              value: {{ mul .Values.config.importMaxMegabytes 1048576 | quote }}
             {{- with .Values.config.linkhopUrl }}
             - name: TIDALWAVE_LINKHOP_URL
               value: {{ . | quote }}

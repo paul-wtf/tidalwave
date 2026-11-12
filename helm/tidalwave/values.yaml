@@ -75,6 +75,11 @@ config:
   # every item gets a link that opens it as a search there, next to the
   # links to the single services.
   linkhopUrl: ""
+  # -- Largest listening history a user may upload on the Import page, in MB.
+  # Spotify sends files of about 10 MB each, a zip of several years a few
+  # tens of MB. The chart sets nginx's proxy-body-size on the Ingress to
+  # match; other ingress controllers need their own body limit raised.
+  importMaxMegabytes: 100
 
 # -- Sensitive credentials
 secrets:

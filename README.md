@@ -133,8 +133,8 @@ Required values:
 | `ingress.host` | Hostname for the Ingress rule. |
 
 **Postgres** is external (CNPG-managed); the chart does not deploy a database.
-The Ingress routes `/auth`, `/stats`, `/shares`, `/shared`, `/comparisons` and `/merges`
-to the backend and everything else to the frontend.
+The Ingress routes `/auth`, `/stats`, `/shares`, `/shared`, `/comparisons`,
+`/merges` and `/imports` to the backend and everything else to the frontend.
 
 **Link previews** are on by default (`config.sharePreviews`). The Ingress then
 also routes `/s/` to the backend, which serves share pages as the frontend's
@@ -164,6 +164,13 @@ tidalwave has no SMTP configuration.
 names in `config.registrationAllowlist` may sign up, plus the names an admin
 adds on the admin page, which live in the database. The first account is the
 admin.
+
+**Imports** of older history accept uploads up to `config.importMaxMegabytes`
+(100 MB by default). The chart sets `nginx.ingress.kubernetes.io/proxy-body-size`
+on the Ingress to the same size unless `ingress.annotations` sets it already;
+with another ingress controller, raise its body limit there. An upload waits
+in the backend container's temp directory while it is imported, and needs no
+outbound access.
 
 **linkhop** is optional: `--set config.linkhopUrl=https://linkhop.example`
 adds a link to every item that opens it as a search on that

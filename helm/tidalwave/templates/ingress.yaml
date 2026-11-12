@@ -5,10 +5,13 @@ metadata:
   name: {{ include "tidalwave.fullname" . }}
   labels:
     {{- include "tidalwave.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
   annotations:
+    {{- if not (hasKey .Values.ingress.annotations "nginx.ingress.kubernetes.io/proxy-body-size") }}
+    nginx.ingress.kubernetes.io/proxy-body-size: "{{ .Values.config.importMaxMegabytes }}m"
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- end }}
 spec:
   {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className | quote }}
@@ -23,7 +26,7 @@ spec:
     - host: {{ .Values.ingress.host | quote }}
       http:
         paths:
-          {{- range $p := (list "/auth" "/stats" "/shares" "/shared" "/comparisons" "/merges") }}
+          {{- range $p := (list "/auth" "/stats" "/shares" "/shared" "/comparisons" "/merges" "/imports") }}
           - path: {{ $p }}
             pathType: Prefix
             backend:
