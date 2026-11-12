@@ -23,7 +23,7 @@ spec:
     - host: {{ .Values.ingress.host | quote }}
       http:
         paths:
-          {{- range $p := (list "/auth" "/stats" "/shares" "/shared" "/comparisons") }}
+          {{- range $p := (list "/auth" "/stats" "/shares" "/shared" "/comparisons" "/merges") }}
           - path: {{ $p }}
             pathType: Prefix
             backend:

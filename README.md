@@ -133,7 +133,7 @@ Required values:
 | `ingress.host` | Hostname for the Ingress rule. |
 
 **Postgres** is external (CNPG-managed); the chart does not deploy a database.
-The Ingress routes `/auth`, `/stats`, `/shares`, `/shared` and `/comparisons`
+The Ingress routes `/auth`, `/stats`, `/shares`, `/shared`, `/comparisons` and `/merges`
 to the backend and everything else to the frontend.
 
 **Link previews** are on by default (`config.sharePreviews`). The Ingress then
