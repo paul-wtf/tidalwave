@@ -13,7 +13,7 @@ export const load: LayoutLoad = ({ url }) => {
   rest.delete('share');
   rest.delete('page');
   const page = url.searchParams.get('page') ?? '';
-  const path = /^[a-z]+$/.test(page) ? `/${page}` : '';
+  const path = /^([a-z]+|year\/\d{4})$/.test(page) ? `/${page}` : '';
   const query = rest.size > 0 ? `?${rest}` : '';
   redirect(307, `/s/${encodeURIComponent(token)}${path}${query}`);
 };

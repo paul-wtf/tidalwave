@@ -29,9 +29,16 @@ describe('Nav', () => {
     expect(links.at(-1)).toHaveAttribute('href', '/admin');
   });
 
-  it('lists Compare after Insights', () => {
+  it('lists Compare after Year', () => {
     render(Nav);
     const labels = screen.getAllByRole('link').map((a) => a.textContent?.trim());
-    expect(labels.indexOf('Compare')).toBe(labels.indexOf('Insights') + 1);
+    expect(labels.indexOf('Compare')).toBe(labels.indexOf('Year') + 1);
+  });
+
+  it('links to the year in review after Insights', () => {
+    render(Nav);
+    const labels = screen.getAllByRole('link').map((a) => a.textContent?.trim());
+    expect(labels.indexOf('Year')).toBe(labels.indexOf('Insights') + 1);
+    expect(screen.getByRole('link', { name: 'Year' })).toHaveAttribute('href', '/year');
   });
 });

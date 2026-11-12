@@ -171,6 +171,30 @@ export interface Sources {
   lastfm_first: string | null;
   sources: { source: string; listens: number }[];
 }
+export interface YearListen {
+  track: string; artist: string; album: string | null; played_at: string; image_url: string | null;
+}
+export interface YearMonth {
+  month: number; listens: number; seconds: number; artists: number; top_artist: string | null;
+}
+export interface YearReview {
+  year: number;
+  summary: Summary;
+  previous: Summary | null;
+  top_artists: ArtistCount[];
+  top_tracks: TrackCount[];
+  top_albums: AlbumCount[];
+  months: YearMonth[];
+  busiest_day: { date: string; listens: number; top_artist: string | null } | null;
+  first_listen: YearListen | null;
+  last_listen: YearListen | null;
+  new_artists: { count: number; top: Discoveries['new_artists'] };
+  genres: Genres;
+  decades: Decades;
+  longest_streak: { days: number; start: string; end: string } | null;
+  album_runs: AlbumRuns;
+}
+export interface YearCount { year: number; listens: number; }
 export type Bucket = 'day' | 'week' | 'month';
 export type StatsParams = {
   since?: string; until?: string; start?: string; end?: string;
@@ -213,6 +237,8 @@ export interface StatsApi {
   milestones(): Promise<Milestones>;
   search(q: string, p?: StatsParams): Promise<SearchResults>;
   sources(p?: StatsParams): Promise<Sources>;
+  year(year: number): Promise<YearReview>;
+  years(): Promise<YearCount[]>;
   nowPlaying(): Promise<NowPlaying | null>;
 }
 
@@ -246,6 +272,8 @@ export function statsApi(token?: string): StatsApi {
     milestones: () => get('/milestones', {}),
     search: (q, p) => get('/search', { q, ...p }),
     sources: (p) => get('/sources', { ...p }),
+    year: (year) => get(`/year/${year}`, {}),
+    years: () => get('/years', {}),
     nowPlaying: () => get('/now-playing', {})
   };
 }
