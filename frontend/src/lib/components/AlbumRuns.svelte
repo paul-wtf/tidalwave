@@ -117,8 +117,11 @@
       flex: 1 1 0;
     }
     li:not(.single) .meta {
-      flex-basis: 100%;
-      margin-left: calc(40px + 0.75rem);
+      flex: 1 1 100%;
+      min-width: 0;
+      margin-left: 0;
+      padding-left: calc(40px + 0.75rem);
+      overflow-wrap: anywhere;
     }
   }
   .more {

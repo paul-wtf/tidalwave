@@ -1,23 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
+import { signedIn } from './fixtures';
 
 const WIDTHS = [320, 390, 640, 641, 999, 1000, 1024, 1280, 1330, 1499, 1500, 1920];
 const LONGEST_USERNAME = 'abcdefghijklmno';
-
-async function signedIn(page: Page, theme: string) {
-  await page.addInitScript((t) => localStorage.setItem('tw-theme', t), theme);
-  await page.route(/\/(auth|stats|shares|shared|comparisons|merges|imports)(\/|\?|$)/, (r) =>
-    r.fulfill({ status: 404, contentType: 'application/json', body: '{"detail":"Not Found"}' })
-  );
-  await page.route('**/auth/me', (r) =>
-    r.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify({
-        username: LONGEST_USERNAME, is_admin: true, timezone: 'UTC', disconnected: false,
-        last_synced_at: null, last_played_at: null, weekly_report_webhook: null
-      })
-    })
-  );
-}
 
 function measure(page: Page) {
   return page.evaluate(() => {
@@ -50,7 +35,7 @@ for (const theme of ['mocha', 'latte']) {
   for (const width of WIDTHS) {
     test(`the header fits ${width}px in ${theme}`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
-      await signedIn(page, theme);
+      await signedIn(page, { theme, username: LONGEST_USERNAME, admin: true });
       await page.goto('/');
       await expect(page.getByRole('button', { name: LONGEST_USERNAME })).toBeVisible();
 
