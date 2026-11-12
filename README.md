@@ -18,9 +18,17 @@ for the detail pages and Insights.
   time, the listening clock, weekdays, top lists, recent listens and the
   track that is playing right now.
 - A page for every artist, album and track, with album covers and search
-  links to Spotify, Tidal, Apple Music, YouTube Music and Deezer.
+  links to Spotify, Tidal, Apple Music, YouTube Music and Deezer. With a
+  [linkhop](https://github.com/paul-wtf/linkhop) instance configured, one
+  more link finds the item on every service at once.
 - Insights: on this day, streaks and records, milestones, a listening
-  heatmap, a weekday by hour grid and discoveries.
+  heatmap, a weekday by hour grid, genres, listens by release decade,
+  albums played through and discoveries.
+- Genres from Last.fm's artist tags, with a page per genre, and release
+  years from MusicBrainz. Both are fetched a few at a time with every
+  poll.
+- A race of the top ten artists on the Artists page, stepping through the
+  selected range.
 - Rolling, calendar and custom ranges, resolved in each user's timezone.
 - Search across artists, albums and tracks from the header (`/` or Ctrl+K).
 - A cover collage of the top albums of a range (3×3, 4×4 or 5×5) as a PNG
@@ -44,8 +52,9 @@ Tidal app ──scrobbles──► Last.fm ◄──polls──  poller (CronJob
                                        FastAPI /stats  ◄──  SvelteKit
 ```
 
-Last.fm is the only external dependency. There is no Redis — stats are queried
-directly from Postgres.
+Last.fm is the only external dependency the app needs. The poller also asks
+MusicBrainz for album release years, which can be turned off. There is no
+Redis — stats are queried directly from Postgres.
 
 ## Stack
 
@@ -126,7 +135,15 @@ pages come straight from the frontend and carry no preview.
 
 **Poller** runs as a Kubernetes CronJob (`*/5 * * * *` by default). Adjust the
 schedule with `--set poller.schedule='*/10 * * * *'` or disable with
-`--set poller.enabled=false`.
+`--set poller.enabled=false`. Each run also looks up the release year of up
+to `poller.releaseYearBudget` albums on MusicBrainz (30 by default, one
+request per second), so the poller needs to reach `musicbrainz.org` as well
+as Last.fm. `--set poller.releaseYearBudget=0` turns that off, and
+`poller.musicbrainzUrl` points it at a mirror.
+
+**linkhop** is optional: `--set config.linkhopUrl=https://linkhop.example`
+adds a link to every item that opens it as a search on that
+[linkhop](https://github.com/paul-wtf/linkhop) instance.
 
 Alternatively, supply credentials via an existing Secret and skip chart-managed
 secret creation:
