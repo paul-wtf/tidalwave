@@ -1,7 +1,9 @@
 <script lang="ts">
   import ThemeToggle from './ThemeToggle.svelte';
+  import { compactHeader } from '$lib/stores/header';
   import type { Snippet } from 'svelte';
-  let { nav, children }: { nav?: Snippet; children?: Snippet } = $props();
+  let { nav, children, foldTheme = false }: { nav?: Snippet; children?: Snippet; foldTheme?: boolean } =
+    $props();
 </script>
 
 <header class="zen-bar">
@@ -14,7 +16,7 @@
   </div>
   <div class="actions">
     {@render children?.()}
-    <ThemeToggle />
+    {#if !(foldTheme && $compactHeader)}<ThemeToggle />{/if}
   </div>
 </header>
 
@@ -123,6 +125,19 @@
     }
     .actions > :global(:first-child) {
       margin-left: auto;
+    }
+    .actions > :global(.search) {
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: 28rem;
+    }
+    .actions :global(.search input) {
+      width: 100%;
+      min-width: 4.5rem;
+      padding-right: 0.65rem;
+    }
+    .actions :global(.search kbd) {
+      display: none;
     }
     .actions::-webkit-scrollbar {
       display: none;

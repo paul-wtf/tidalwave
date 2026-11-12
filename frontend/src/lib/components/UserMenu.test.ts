@@ -7,6 +7,9 @@ import { auth } from '$lib/stores/auth';
 import { mockApi } from '$lib/test/mockApi';
 import type { Me } from '$lib/api/client';
 import { stubFetch } from '$lib/test/stubFetch';
+import { compactHeaderOn } from '$lib/test/compactHeader';
+import { shareOpen } from '$lib/stores/header';
+import { theme } from '$lib/stores/theme';
 
 const me = (over: Partial<Me> = {}): Me => ({
   username: 'paul', is_admin: false, timezone: 'UTC', disconnected: false,
@@ -207,5 +210,48 @@ describe('UserMenu', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
     expect(seen).toContain('DELETE /auth/me/webhook');
     expect(await screen.findByLabelText('Discord webhook URL')).toBeInTheDocument();
+  });
+});
+
+describe('UserMenu in the compact header', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    shareOpen.set(false);
+  });
+
+  it('is a round button with the initial, still named after the user', () => {
+    compactHeaderOn();
+    auth.set({ user: me(), loading: false });
+    render(UserMenu);
+    const button = screen.getByRole('button', { name: 'paul' });
+    expect(button).toHaveClass('compact');
+    expect(button.querySelector('[aria-hidden="true"]')).toHaveTextContent('P');
+  });
+
+  it('holds the theme switch and the share links that the header has no room for', async () => {
+    compactHeaderOn();
+    const user = userEvent.setup();
+    theme.set('mocha');
+    auth.set({ user: me(), loading: false });
+    render(UserMenu);
+    await user.click(screen.getByRole('button', { name: 'paul' }));
+
+    await user.click(screen.getByRole('button', { name: 'Switch to Latte' }));
+    expect(get(theme)).toBe('latte');
+    expect(screen.getByRole('button', { name: 'Switch to Mocha' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Share links' }));
+    expect(get(shareOpen)).toBe(true);
+    expect(screen.getByRole('button', { name: 'paul' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('leaves both out where the header shows them itself', async () => {
+    const user = userEvent.setup();
+    auth.set({ user: me(), loading: false });
+    render(UserMenu);
+    expect(screen.getByRole('button', { name: 'paul' })).not.toHaveClass('compact');
+    await user.click(screen.getByRole('button', { name: 'paul' }));
+    expect(screen.queryByRole('button', { name: /switch to/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Share links' })).toBeNull();
   });
 });

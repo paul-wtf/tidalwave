@@ -6,6 +6,9 @@ import { mockApi } from '$lib/test/mockApi';
 import { range } from '$lib/stores/range';
 import { api } from '$lib/api/client';
 import { auth } from '$lib/stores/auth';
+import { get } from 'svelte/store';
+import { shareOpen } from '$lib/stores/header';
+import { compactHeaderOn } from '$lib/test/compactHeader';
 
 const share = (token: string, extra: Record<string, unknown> = {}) => ({
   share_token: token,
@@ -215,5 +218,31 @@ describe('ShareManager', () => {
     render(ShareManager);
     await openPopover();
     expect(await screen.findByText('This month, keeps moving')).toBeInTheDocument();
+  });
+});
+
+describe('ShareManager in the compact header', () => {
+  beforeEach(() => {
+    auth.set({ user: { username: 'u', timezone: 'UTC' } as never, loading: false });
+    range.set({ kind: 'rolling', key: '30d' });
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    shareOpen.set(false);
+  });
+
+  it('has no button of its own and opens when the user menu asks for it', async () => {
+    compactHeaderOn();
+    mockApi({ '/shares': [share('AAA', { label: 'Mine' })] });
+    const { container } = render(ShareManager);
+    expect(screen.queryByRole('button', { name: /share/i })).toBeNull();
+    expect(container.querySelector('.share')).toHaveClass('folded');
+
+    shareOpen.set(true);
+    expect(await screen.findByText('Mine')).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByText('Mine')).toBeNull();
+    expect(get(shareOpen)).toBe(false);
   });
 });

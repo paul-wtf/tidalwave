@@ -1,10 +1,11 @@
 <!-- frontend/src/lib/components/ShareManager.svelte -->
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { api, type Share, type ShareCreate } from '$lib/api/client';
   import { auth } from '$lib/stores/auth';
   import { range, rangeLabel, toParams, movingKey, movingLabel } from '$lib/stores/range';
+  import { compactHeader, shareOpen } from '$lib/stores/header';
 
-  let open = $state(false);
   let busy = $state(false);
   let loaded = $state(false);
   let shares = $state<Share[]>([]);
@@ -54,16 +55,22 @@
     }
   }
 
-  function toggle() {
-    open = !open;
+  const open = $derived($shareOpen);
+  onDestroy(() => shareOpen.set(false));
+
+  $effect(() => {
     if (open) void load();
+  });
+
+  function toggle() {
+    shareOpen.update((o) => !o);
   }
 
   function onWindowClick(e: MouseEvent) {
-    if (open && root && !root.contains(e.target as Node)) open = false;
+    if (open && root && !root.contains(e.target as Node)) shareOpen.set(false);
   }
   function onWindowKey(e: KeyboardEvent) {
-    if (open && e.key === 'Escape') open = false;
+    if (open && e.key === 'Escape') shareOpen.set(false);
   }
 
   function buildBody(): ShareCreate {
@@ -122,8 +129,10 @@
 
 <svelte:window onclick={onWindowClick} onkeydown={onWindowKey} />
 
-<div class="share" bind:this={root}>
-  <button type="button" aria-expanded={open} aria-controls="share-panel" onclick={toggle}>Share</button>
+<div class="share" class:folded={$compactHeader} bind:this={root}>
+  {#if !$compactHeader}
+    <button type="button" aria-expanded={open} aria-controls="share-panel" onclick={toggle}>Share</button>
+  {/if}
   {#if open}
     <div class="panel" id="share-panel">
       {#if loaded && shares.length === 0}
@@ -179,6 +188,9 @@
 <style>
   .share {
     position: relative;
+  }
+  .share.folded {
+    display: contents;
   }
   .panel {
     position: fixed;

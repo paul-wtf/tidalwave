@@ -27,7 +27,7 @@
   });
 </script>
 
-<Header>
+<Header foldTheme={$auth.user != null}>
   {#snippet nav()}
     {#if $auth.user}<Nav admin={$auth.user.is_admin} />{/if}
   {/snippet}
