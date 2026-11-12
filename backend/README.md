@@ -106,7 +106,7 @@ Hours, weekdays, days and period buckets are computed in the user's timezone
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/shares` | Creates a share link. Optional JSON body: `label`, and a range as `range_from`/`range_to` (instants) or `start`/`end` (local dates). Without a range the share covers all time. |
+| `POST` | `/shares` | Creates a share link. Optional JSON body: `label`, and a range as `range_from`/`range_to` (instants), `start`/`end` (local dates) or `range_key`. Without a range the share covers all time. |
 | `GET` | `/shares` | Lists the user's active shares, newest first. |
 | `DELETE` | `/shares/{token}` | Revokes a share owned by the authenticated user. |
 
@@ -117,6 +117,14 @@ returns the share owner's data, limited to the share's range. Range parameters
 can narrow that range and never widen it. A revoked or unknown token is a 404.
 `previous` in the summary is always `null` here, because the period before
 lies outside the share.
+
+A share created with `range_key` (`rolling_7d`, `rolling_30d`, `rolling_365d`,
+`this_week`, `this_month`, `this_year`) stores the symbol instead of two
+instants. Its range is resolved in the owner's timezone on every request, so
+the link keeps showing the last 30 days or the current month.
+
+Responses under `/shared/` carry `Access-Control-Allow-Origin: *`, so a page
+on another origin can read a share. No other route sends CORS headers.
 
 ---
 

@@ -96,6 +96,35 @@ def previous_range(
     return _shift_back(since, tz, calendar), _shift_back(end, tz, calendar)
 
 
+MovingRange = Literal[
+    "rolling_7d", "rolling_30d", "rolling_365d", "this_week", "this_month", "this_year"
+]
+_ROLLING_DAYS = {"rolling_7d": 7, "rolling_30d": 30, "rolling_365d": 365}
+
+
+def moving_range_start(key: str, tz: str, now: datetime) -> datetime:
+    if key in _ROLLING_DAYS:
+        return now - timedelta(days=_ROLLING_DAYS[key])
+    today = now.astimezone(ZoneInfo(tz)).date()
+    if key == "this_week":
+        start = today - timedelta(days=today.weekday())
+    elif key == "this_month":
+        start = today.replace(day=1)
+    else:
+        start = today.replace(month=1, day=1)
+    return _local_midnight(start, tz)
+
+
+def _now() -> datetime:
+    return datetime.now(UTC)
+
+
+def share_bounds(share: Share, tz: str) -> tuple[datetime | None, datetime | None]:
+    if share.range_key is not None:
+        return moving_range_start(share.range_key, tz, _now()), None
+    return _aware(share.range_from), _aware(share.range_to)
+
+
 def user_tz(user: User) -> str:
     return user.timezone or "UTC"
 
@@ -130,7 +159,7 @@ async def shared_scope(
     owner = await session.get(User, share.user_id)
     tz = user_tz(owner) if owner is not None else "UTC"
     lo, hi = resolve_range(tz, since=since, until=until, start=start, end=end)
-    floor, ceiling = _aware(share.range_from), _aware(share.range_to)
+    floor, ceiling = share_bounds(share, tz)
     lo, hi = intersect(lo, hi, floor, ceiling)
     return Scope(
         user_id=share.user_id, tz=tz, since=lo, until=hi,

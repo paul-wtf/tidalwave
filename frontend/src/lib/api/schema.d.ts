@@ -797,6 +797,8 @@ export interface components {
             start?: string | null;
             /** End */
             end?: string | null;
+            /** Range Key */
+            range_key?: ("rolling_7d" | "rolling_30d" | "rolling_365d" | "this_week" | "this_month" | "this_year") | null;
         };
         /** ValidationError */
         ValidationError: {

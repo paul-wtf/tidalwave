@@ -216,7 +216,7 @@ async def test_list_shares_excludes_revoked_and_other_users(api, db_session):
         second["share_token"], first["share_token"],
     ]
     assert set(resp.json()[0]) == {
-        "share_token", "label", "range_from", "range_to", "created_at",
+        "share_token", "label", "range_from", "range_to", "range_key", "created_at",
     }
 
 
@@ -354,3 +354,111 @@ async def test_create_share_stores_blank_label_as_null(api, db_session):
         assert resp.json()["label"] is None
     resp = await client.post("/shares", headers=_auth_header(user.id), json={"label": "  Summer "})
     assert resp.json()["label"] == "Summer"
+
+
+MOVING_KEYS = ["rolling_7d", "rolling_30d", "rolling_365d", "this_week", "this_month", "this_year"]
+
+
+@pytest.mark.parametrize("key", MOVING_KEYS)
+async def test_create_moving_share_stores_the_symbol(api, db_session, key):
+    client, _ = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    created = await client.post("/shares", json={"range_key": key}, headers=_auth_header(user.id))
+    assert created.status_code == 201
+    body = created.json()
+    assert body["range_key"] == key
+    assert body["range_from"] is None and body["range_to"] is None
+    listed = (await client.get("/shares", headers=_auth_header(user.id))).json()
+    assert [s["range_key"] for s in listed] == [key]
+
+
+async def test_fixed_shares_report_no_symbol(api, db_session):
+    client, _ = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    body = (await client.post("/shares", headers=_auth_header(user.id))).json()
+    assert body["range_key"] is None
+
+
+@pytest.mark.parametrize("body", [
+    {"range_key": "rolling_24h"},
+    {"range_key": "last_month"},
+    {"range_key": "rolling_7d", "range_from": "2026-10-01T00:00:00Z"},
+    {"range_key": "this_month", "start": "2026-10-01"},
+])
+async def test_create_moving_share_rejects_bad_input(api, db_session, body):
+    client, _ = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    resp = await client.post("/shares", json=body, headers=_auth_header(user.id))
+    assert resp.status_code == 422
+
+
+async def test_moving_share_resolves_its_range_at_request_time(api, db_session, monkeypatch):
+    from datetime import timedelta
+
+    from tidalwave.stats import scope as scope_module
+
+    client, _ = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    now = datetime.now(UTC)
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="Recent", track_title="in", album="A", played_at=now - timedelta(days=3)),
+        Scrobble(artist="Old", track_title="out", album="B", played_at=now - timedelta(days=10)),
+    ])
+    token = (await client.post(
+        "/shares", json={"range_key": "rolling_7d"}, headers=_auth_header(user.id)
+    )).json()["share_token"]
+
+    assert (await client.get(f"/shared/{token}/summary")).json()["total_listens"] == 1
+    assert [a["artist"] for a in (await client.get(f"/shared/{token}/top-artists")).json()] == ["Recent"]
+    heatmap = (await client.get(f"/shared/{token}/heatmap")).json()
+    assert sum(d["listens"] for d in heatmap["days"]) == 1
+    widened = await client.get(f"/shared/{token}/top-artists", params={"since": "2000-01-01T00:00:00Z"})
+    assert [a["artist"] for a in widened.json()] == ["Recent"]
+    assert (await client.get(f"/shared/{token}/artist", params={"artist": "Old"})).status_code == 404
+
+    monkeypatch.setattr(scope_module, "_now", lambda: now + timedelta(days=5))
+    assert (await client.get(f"/shared/{token}/summary")).json()["total_listens"] == 0
+    assert (await client.get(f"/shared/{token}/top-artists")).json() == []
+
+
+async def test_moving_calendar_share_uses_the_owners_timezone(api, db_session, monkeypatch):
+    from tidalwave.stats import scope as scope_module
+
+    client, _ = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    user.timezone = "Europe/Berlin"
+    await db_session.flush()
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="October", track_title="late", album=None,
+                 played_at=datetime(2026, 10, 31, 22, 30, tzinfo=UTC)),
+        Scrobble(artist="November", track_title="early", album=None,
+                 played_at=datetime(2026, 10, 31, 23, 30, tzinfo=UTC)),
+    ])
+    token = (await client.post(
+        "/shares", json={"range_key": "this_month"}, headers=_auth_header(user.id)
+    )).json()["share_token"]
+    monkeypatch.setattr(scope_module, "_now", lambda: datetime(2026, 11, 12, 9, tzinfo=UTC))
+    assert [a["artist"] for a in (await client.get(f"/shared/{token}/top-artists")).json()] == ["November"]
+
+
+@pytest.mark.parametrize("path", ["summary", "top-artists", "heatmap"])
+async def test_shared_endpoints_can_be_read_from_another_origin(api, db_session, path):
+    client, _ = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    token = (await client.post(
+        "/shares", json={"range_key": "this_month"}, headers=_auth_header(user.id)
+    )).json()["share_token"]
+    resp = await client.get(f"/shared/{token}/{path}", headers={"Origin": "https://example.org"})
+    assert resp.status_code == 200
+    assert resp.headers["access-control-allow-origin"] == "*"
+    assert "access-control-allow-credentials" not in resp.headers
+
+
+async def test_only_shared_endpoints_send_cors_headers(api, db_session):
+    client, _ = api
+    user = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    headers = {**_auth_header(user.id), "Origin": "https://example.org"}
+    for path in ("/stats/summary", "/shares", "/auth/me"):
+        resp = await client.get(path, headers=headers)
+        assert resp.status_code == 200
+        assert "access-control-allow-origin" not in resp.headers
