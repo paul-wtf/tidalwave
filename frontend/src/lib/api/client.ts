@@ -89,6 +89,11 @@ export interface Milestones {
   reached: { count: number; played_at: string; track: string; artist: string; album: string | null }[];
   next: { count: number; remaining: number } | null;
 }
+export interface SearchResults {
+  artists: ArtistCount[];
+  albums: (AlbumCount & { album: string })[];
+  tracks: TrackCount[];
+}
 export type Bucket = 'day' | 'week' | 'month';
 export type StatsParams = {
   since?: string; until?: string; start?: string; end?: string;
@@ -124,6 +129,7 @@ export interface StatsApi {
   records(p?: StatsParams): Promise<Records>;
   heatmap(p?: StatsParams): Promise<Heatmap>;
   milestones(): Promise<Milestones>;
+  search(q: string, p?: StatsParams): Promise<SearchResults>;
 }
 
 export function statsApi(token?: string): StatsApi {
@@ -148,7 +154,8 @@ export function statsApi(token?: string): StatsApi {
     onThisDay: () => get('/on-this-day', {}),
     records: (p) => get('/records', { ...p }),
     heatmap: (p) => get('/heatmap', { ...p }),
-    milestones: () => get('/milestones', {})
+    milestones: () => get('/milestones', {}),
+    search: (q, p) => get('/search', { q, ...p })
   };
 }
 

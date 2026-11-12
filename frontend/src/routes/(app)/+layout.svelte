@@ -3,6 +3,7 @@
   import { auth, loadMe } from '$lib/stores/auth';
   import Header from '$lib/components/Header.svelte';
   import Nav from '$lib/components/Nav.svelte';
+  import Search from '$lib/components/Search.svelte';
   import RangeSelector from '$lib/components/RangeSelector.svelte';
   import ShareManager from '$lib/components/ShareManager.svelte';
   import UserMenu from '$lib/components/UserMenu.svelte';
@@ -20,6 +21,7 @@
     {#if $auth.user}<Nav />{/if}
   {/snippet}
   {#if $auth.user}
+    <Search />
     <RangeSelector />
     <ShareManager />
     <UserMenu />

@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte';
   import Header from '$lib/components/Header.svelte';
   import Nav from '$lib/components/Nav.svelte';
+  import Search from '$lib/components/Search.svelte';
 
   let { data, children }: { data: { token: string }; children?: Snippet } = $props();
 
@@ -16,6 +17,7 @@
 
 <Header>
   {#snippet nav()}<Nav {links} />{/snippet}
+  <Search token={data.token} />
 </Header>
 
 {@render children?.()}

@@ -21,6 +21,7 @@ for the detail pages and Insights.
 - Insights: on this day, streaks and records, milestones, a listening
   heatmap, a weekday by hour grid and discoveries.
 - Rolling, calendar and custom ranges, resolved in each user's timezone.
+- Search across artists, albums and tracks from the header (`/` or Ctrl+K).
 - Read-only share links, optionally limited to a range and revocable from a
   list.
 
