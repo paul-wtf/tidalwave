@@ -4,7 +4,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tidalwave.deps import get_lastfm_client, get_session
@@ -16,6 +16,7 @@ from tidalwave.stats import decades as decade_queries
 from tidalwave.stats import genres as genre_queries
 from tidalwave.stats import race as race_queries
 from tidalwave.stats import search as search_queries
+from tidalwave.stats import year as year_queries
 from tidalwave.stats.now_playing import now_playing as fetch_now_playing
 from tidalwave.stats.scope import Scope, previous_range
 
@@ -143,6 +144,24 @@ def make_stats_router(scope_dep) -> APIRouter:
                 session, replace(scope, since=since, until=until)
             )
         return {**current, "previous": previous}
+
+    @router.get("/years")
+    async def years(
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> list[dict]:
+        return await year_queries.years(session, scope)
+
+    @router.get("/year/{year}")
+    async def year_in_review(
+        year: int = Path(ge=1900, le=2999),
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        scoped = year_queries.year_scope(scope, year)
+        if scoped is None:
+            raise HTTPException(status_code=404, detail="This share does not cover that year")
+        return await year_queries.year_in_review(session, scoped, year, compare=not scope.shared)
 
     @router.get("/sources")
     async def sources(
