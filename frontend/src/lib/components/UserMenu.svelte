@@ -341,14 +341,16 @@
   }
   .export {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.4rem;
     font-size: 0.82rem;
   }
   .export span {
-    flex: 1;
+    flex: 1 0 100%;
   }
   .export a {
+    white-space: nowrap;
     padding: 0.4rem 0.85rem;
     border-radius: var(--r-sm);
     background: var(--surface1);
