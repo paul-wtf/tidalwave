@@ -14,6 +14,7 @@
   import ListeningClock from './ListeningClock.svelte';
   import WeekdayChart from './WeekdayChart.svelte';
   import RecentList from './RecentList.svelte';
+  import TrendWave from './TrendWave.svelte';
 
   // `token` switches to shared-link mode: data comes from the shared endpoints
   // (range fixed by the share) instead of the global range store.
@@ -84,6 +85,7 @@
 {#if error}
   <p class="error">{errorMessage}</p>
 {:else}
+  <TrendWave values={metrics.map((m) => m.listens)} />
   <div class="dashboard">
     <div class="row stats">
       <StatCard label="Songs listened" value={summary.total_listens}

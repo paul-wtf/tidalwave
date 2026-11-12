@@ -107,6 +107,15 @@
      paths are copied character-for-character from homepage tokens.css. */
   --wallpaper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' preserveAspectRatio='xMidYMax slice'><circle cx='1190' cy='300' r='110' fill='%23cba6f7' opacity='0.05'/><circle cx='1190' cy='300' r='72' fill='%23cba6f7' opacity='0.07'/><path d='M0 560 L140 480 L300 545 L470 430 L640 530 L820 455 L990 540 L1160 470 L1330 550 L1470 500 L1600 555 L1600 900 L0 900 Z' fill='%231c2030' opacity='0.55'/><path d='M0 640 L180 560 L340 625 L520 540 L720 630 L900 560 L1090 645 L1280 575 L1440 640 L1600 590 L1600 900 L0 900 Z' fill='%23181d29' opacity='0.8'/><path d='M0 730 L200 655 L380 715 L580 640 L790 725 L1000 660 L1210 730 L1420 670 L1600 720 L1600 900 L0 900 Z' fill='%23131622'/><path d='M0 810 L240 750 L460 800 L700 740 L950 805 L1200 750 L1430 800 L1600 765 L1600 900 L0 900 Z' fill='%230d0d15'/></svg>");
 
+  /* The wallpaper's moon opacities and ridgeline fills, back to front, as
+     tokens: the overview draws the same hills as a wave from its trend. */
+  --moon-halo: 0.05;
+  --moon-core: 0.07;
+  --hill-1: #1c2030;
+  --hill-2: #181d29;
+  --hill-3: #131622;
+  --hill-4: #0d0d15;
+
   color-scheme: dark;
 
   /* Legacy Catppuccin aliases — safety net for any unconverted reference. */
@@ -173,6 +182,13 @@
      Nachtrag: accent moon at low light-mode opacity, hills back-to-front
      from pale blue-grey to a slightly deeper opaque grey-blue. */
   --wallpaper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' preserveAspectRatio='xMidYMax slice'><circle cx='1190' cy='300' r='110' fill='%238839ef' opacity='0.06'/><circle cx='1190' cy='300' r='72' fill='%238839ef' opacity='0.08'/><path d='M0 560 L140 480 L300 545 L470 430 L640 530 L820 455 L990 540 L1160 470 L1330 550 L1470 500 L1600 555 L1600 900 L0 900 Z' fill='%23d3d8e2' opacity='0.55'/><path d='M0 640 L180 560 L340 625 L520 540 L720 630 L900 560 L1090 645 L1280 575 L1440 640 L1600 590 L1600 900 L0 900 Z' fill='%23c9cfdc' opacity='0.8'/><path d='M0 730 L200 655 L380 715 L580 640 L790 725 L1000 660 L1210 730 L1420 670 L1600 720 L1600 900 L0 900 Z' fill='%23bfc6d4'/><path d='M0 810 L240 750 L460 800 L700 740 L950 805 L1200 750 L1430 800 L1600 765 L1600 900 L0 900 Z' fill='%23b0b7c7'/></svg>");
+
+  --moon-halo: 0.06;
+  --moon-core: 0.08;
+  --hill-1: #d3d8e2;
+  --hill-2: #c9cfdc;
+  --hill-3: #bfc6d4;
+  --hill-4: #b0b7c7;
 
   color-scheme: light;
 
