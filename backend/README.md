@@ -275,10 +275,16 @@ All commands read configuration from the same `TIDALWAVE_*` environment variable
 
 ## Tests
 
-Tests require a running PostgreSQL instance. By default the test suite connects to the same URL as the application default (`postgresql+asyncpg://tidalwave:tidalwave@localhost:5432/tidalwave`). Override with:
+Tests require a running PostgreSQL instance. They drop and recreate every table, so they run in a database of their own: the name of the configured database with `_test` appended, `tidalwave_test` for the application default (`postgresql+asyncpg://tidalwave:tidalwave@localhost:5432/tidalwave`). The data of a local `tidalwave` database stays as it is. Point the suite at another server or database with:
 
 ```bash
 export TIDALWAVE_TEST_DATABASE_URL=postgresql+asyncpg://...
+```
+
+A name that already ends in `_test` is used as given. The suite creates the test database when it is missing, which needs a role that may create databases. Without that right, create it once:
+
+```bash
+createdb -O tidalwave tidalwave_test
 ```
 
 Run the suite:

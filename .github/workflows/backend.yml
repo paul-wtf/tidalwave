@@ -34,7 +34,7 @@ jobs:
           --health-timeout 3s
           --health-retries 10
     env:
-      TIDALWAVE_TEST_DATABASE_URL: "postgresql+asyncpg://tidalwave:tidalwave@localhost:5432/tidalwave"
+      TIDALWAVE_TEST_DATABASE_URL: "postgresql+asyncpg://tidalwave:tidalwave@localhost:5432/tidalwave_test"
     steps:
       - uses: actions/checkout@v6
 

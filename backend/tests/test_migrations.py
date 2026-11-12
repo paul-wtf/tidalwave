@@ -35,7 +35,7 @@ def _revisions() -> tuple[str, str]:
 
 
 @pytest.fixture
-async def scratch():
+async def scratch(test_database):
     url = make_url(TEST_DB_URL)
     schema = f"migration_test_{os.getpid()}"
     conn = await asyncpg.connect(

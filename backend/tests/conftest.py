@@ -5,12 +5,15 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from testdb import derive_test_url, ensure_database
+
 from tidalwave.models.db import Base
 
-# Tests run against the running Postgres. Override via TIDALWAVE_TEST_DATABASE_URL.
-TEST_DB_URL = os.environ.get(
-    "TIDALWAVE_TEST_DATABASE_URL",
-    "postgresql+asyncpg://tidalwave:tidalwave@localhost:5432/tidalwave",
+TEST_DB_URL = derive_test_url(
+    os.environ.get(
+        "TIDALWAVE_TEST_DATABASE_URL",
+        "postgresql+asyncpg://tidalwave:tidalwave@localhost:5432/tidalwave",
+    )
 )
 
 
@@ -21,8 +24,14 @@ def _isolate_env_file(tmp_path, monkeypatch):
 
 
 @pytest_asyncio.fixture(scope="session")
-async def _engine():
-    engine = create_async_engine(TEST_DB_URL, future=True)
+async def test_database() -> str:
+    await ensure_database(TEST_DB_URL)
+    return TEST_DB_URL
+
+
+@pytest_asyncio.fixture(scope="session")
+async def _engine(test_database):
+    engine = create_async_engine(test_database, future=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
