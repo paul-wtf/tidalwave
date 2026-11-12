@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
     statsApi,
-    type Decades as DecadesData, type Discoveries as DiscoveriesData, type Genres as GenresData,
+    type AlbumRuns as AlbumRunsData, type Decades as DecadesData, type Discoveries as DiscoveriesData, type Genres as GenresData,
     type Heatmap as HeatmapData,
     type Milestones as MilestonesData,
     type OnThisDayYear, type Records as RecordsData
@@ -17,6 +17,7 @@
   import Discoveries from './Discoveries.svelte';
   import Genres from './Genres.svelte';
   import Decades from './Decades.svelte';
+  import AlbumRuns from './AlbumRuns.svelte';
 
   let { token }: { token?: string } = $props();
 
@@ -32,6 +33,7 @@
   let discoveries = $state<DiscoveriesData | null>(null);
   let genres = $state<GenresData | null>(null);
   let decades = $state<DecadesData | null>(null);
+  let albumRuns = $state<AlbumRunsData | null>(null);
   let error = $state(false);
 
   $effect(() => {
@@ -49,11 +51,12 @@
         client.hourWeekday(params),
         skipDiscoveries ? Promise.resolve(null) : client.discoveries(params),
         client.genres(10, params),
-        client.decades(params)
+        client.decades(params),
+        client.albumRuns(10, params)
       ]),
-      ([o, r, m, h, g, d, ge, de]) => {
+      ([o, r, m, h, g, d, ge, de, ar]) => {
         onThisDay = o; records = r; milestones = m; heatmap = h; hourWeekday = g; discoveries = d;
-        genres = ge; decades = de;
+        genres = ge; decades = de; albumRuns = ar;
       },
       (st) => (error = st !== 'ok')
     );
@@ -75,6 +78,7 @@
         <Decades {decades} />
       </div>
     {/if}
+    {#if albumRuns}<AlbumRuns runs={albumRuns} {base} {tz} />{/if}
     {#if allTime}
       <section class="glass">
         <h2>Discoveries</h2>

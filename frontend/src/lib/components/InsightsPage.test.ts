@@ -23,6 +23,7 @@ const routes = (prefix: string) => ({
     genres: [{ genre: 'synthwave', listens: 40, artists: 3 }], artists: 3, tagged_artists: 3
   },
   [`${prefix}/decades`]: { decades: [{ decade: 2010, listens: 40 }], known: 40, unknown: 0, pending: 0 },
+  [`${prefix}/album-runs`]: { total: 0, runs: [] },
   [`${prefix}/discoveries`]: {
     new_artists: [], new_tracks_count: 0, new_tracks: [], rediscoveries: []
   }
@@ -38,7 +39,7 @@ describe('InsightsPage', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Discoveries' })).toBeInTheDocument());
     expect(headings()).toEqual([
       'On this day', 'Streaks and records', 'Milestones', 'Listening heatmap',
-      'By weekday and hour (UTC)', 'Genres', 'By decade', 'Discoveries'
+      'By weekday and hour (UTC)', 'Genres', 'By decade', 'Albums played through', 'Discoveries'
     ]);
     expect(screen.getByRole('img', { name: 'Listens by release decade' })).toBeInTheDocument();
   });
@@ -46,10 +47,10 @@ describe('InsightsPage', () => {
   it('sends the selected range to range-bound endpoints but not to on-this-day or milestones', async () => {
     const { calls } = mockApi(routes('/stats'));
     render(InsightsPage);
-    await waitFor(() => expect(calls.length).toBe(8));
+    await waitFor(() => expect(calls.length).toBe(9));
     expect(calls.find((c) => c.startsWith('/stats/on-this-day'))).toBe('/stats/on-this-day');
     expect(calls.find((c) => c.startsWith('/stats/milestones'))).toBe('/stats/milestones');
-    for (const p of ['records', 'heatmap', 'hour-weekday', 'discoveries', 'genres', 'decades']) {
+    for (const p of ['records', 'heatmap', 'hour-weekday', 'discoveries', 'genres', 'decades', 'album-runs']) {
       expect(calls.find((c) => c.startsWith(`/stats/${p}?`))).toContain('since=');
     }
   });
@@ -76,7 +77,7 @@ describe('InsightsPage', () => {
     render(InsightsPage, { token: 'tok' });
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Discoveries' })).toBeInTheDocument());
     expect(calls.sort()).toEqual([
-      '/shared/tok/decades', '/shared/tok/discoveries', '/shared/tok/genres?limit=10', '/shared/tok/heatmap', '/shared/tok/hour-weekday',
+      '/shared/tok/album-runs?limit=10', '/shared/tok/decades', '/shared/tok/discoveries', '/shared/tok/genres?limit=10', '/shared/tok/heatmap', '/shared/tok/hour-weekday',
       '/shared/tok/on-this-day', '/shared/tok/records'
     ]);
     expect(screen.queryByRole('heading', { name: 'Milestones' })).toBeNull();

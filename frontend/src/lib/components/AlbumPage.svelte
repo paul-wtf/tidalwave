@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import {
-    statsApi,  type AlbumDetail, type MetricPoint
+    statsApi, type AlbumDetail, type AlbumRuns as AlbumRunsData, type MetricPoint
   } from '$lib/api/client';
   import { auth } from '$lib/stores/auth';
   import { loadDetail } from '$lib/detailLoader';
@@ -12,6 +12,7 @@
   import DetailHeader from './DetailHeader.svelte';
   import AreaTrend from './AreaTrend.svelte';
   import TopList from './TopList.svelte';
+  import AlbumRuns from './AlbumRuns.svelte';
 
   let { token }: { token?: string } = $props();
 
@@ -23,6 +24,7 @@
   let detail = $state<AlbumDetail | null>(null);
   let metrics = $state<MetricPoint[]>([]);
   let tracks = $state<ListItem[]>([]);
+  let runs = $state<AlbumRunsData | null>(null);
   let notFound = $state(false);
   let error = $state(false);
 
@@ -39,10 +41,11 @@
       () => Promise.all([
         client.album(artist, album, params),
         client.metricsOverTime(bucket, { ...params, artist, album }),
-        client.topTracks(100, { ...params, artist, album })
+        client.topTracks(100, { ...params, artist, album }),
+        client.albumRuns(5, { ...params, artist, album })
       ]),
-      ([d, m, tr]) => {
-        detail = d; metrics = m;
+      ([d, m, tr, ar]) => {
+        detail = d; metrics = m; runs = ar;
         tracks = trackItems(tr, base);
       },
       (st) => {
@@ -78,6 +81,7 @@
       {/snippet}
       <AreaTrend title="Listens over time" points={trend} />
     </DetailHeader>
+    {#if runs && runs.total > 0}<AlbumRuns {runs} {base} {tz} single={true} />{/if}
     <TopList title="Tracks" items={tracks} initial={100} />
   </div>
 {/if}
