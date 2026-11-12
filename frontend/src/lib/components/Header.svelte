@@ -110,12 +110,19 @@
     .actions :global(*) {
       flex-shrink: 0;
     }
+    /* Right-aligned through an auto margin: with justify-content: flex-end
+       the overflow would go to the left, where a scroll container cannot
+       reach it. */
     .actions {
       flex: 1 1 0;
       min-height: 0;
-      justify-content: flex-end;
+      justify-content: flex-start;
       overflow-x: auto;
       scrollbar-width: none;
+      padding-inline: 2px;
+    }
+    .actions > :global(:first-child) {
+      margin-left: auto;
     }
     .actions::-webkit-scrollbar {
       display: none;

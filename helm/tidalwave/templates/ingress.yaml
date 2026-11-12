@@ -32,6 +32,15 @@ spec:
                 port:
                   number: 8080
           {{- end }}
+          {{- if .Values.config.sharePreviews }}
+          - path: /s/
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tidalwave.fullname" . }}-backend
+                port:
+                  number: 8080
+          {{- end }}
           - path: /
             pathType: Prefix
             backend:

@@ -125,3 +125,4 @@ class Share(Base):
     )
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     label: Mapped[str | None] = mapped_column(Text)
+    range_key: Mapped[str | None] = mapped_column(String(16))

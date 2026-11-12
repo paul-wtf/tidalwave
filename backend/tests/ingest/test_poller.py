@@ -167,3 +167,46 @@ async def test_poll_isolates_lastfm_being_unavailable(db_session):
     assert report["boom"] == "error"
     boom = (await db_session.execute(select(User).where(User.lastfm_username == "boom"))).scalar_one()
     assert boom.disconnected is False
+
+
+async def test_poll_copes_with_a_user_deleted_during_the_run(db_session):
+    from sqlalchemy import text
+
+    await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    ghost = await upsert_user_from_session(db_session, "ghost", "sk", mode="open", allowlist=[])
+    await upsert_user_from_session(db_session, "zoe", "sk", mode="open", allowlist=[])
+    ghost_id = ghost.id
+
+    class DeletingClient(FakeClient):
+        async def get_recent_tracks(self, username, **kwargs):
+            if username == "ghost":
+                # What another transaction's DELETE /auth/me looks like from here.
+                await db_session.execute(text("DELETE FROM users WHERE id = :id"), {"id": ghost_id})
+            return await super().get_recent_tracks(username, **kwargs)
+
+    client = DeletingClient({"alice": _page(1000), "ghost": _page(1000), "zoe": _page(1000)})
+    report = await poll_all_users(db_session, client)
+
+    assert report == {"alice": 1, "ghost": "gone", "zoe": 1}
+    await db_session.flush()
+    owners = (await db_session.execute(text("SELECT count(DISTINCT user_id) FROM listens"))).scalar_one()
+    assert owners == 2
+
+
+async def test_poll_copes_with_a_deleted_user_whose_session_key_was_revoked(db_session):
+    from sqlalchemy import text
+
+    ghost = await upsert_user_from_session(db_session, "ghost", "sk", mode="open", allowlist=[])
+    await upsert_user_from_session(db_session, "zoe", "sk", mode="open", allowlist=[])
+    ghost_id = ghost.id
+
+    class DeletingClient(FakeClient):
+        async def get_recent_tracks(self, username, **kwargs):
+            if username == "ghost":
+                await db_session.execute(text("DELETE FROM users WHERE id = :id"), {"id": ghost_id})
+            return await super().get_recent_tracks(username, **kwargs)
+
+    client = DeletingClient({"zoe": _page(1000)}, errors={"ghost": LastfmError(9, "Invalid session key")})
+    report = await poll_all_users(db_session, client)
+
+    assert report == {"ghost": "gone", "zoe": 1}

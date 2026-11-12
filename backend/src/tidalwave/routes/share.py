@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from tidalwave.auth.session import current_user
 from tidalwave.deps import get_session
 from tidalwave.models.db import Share, User
-from tidalwave.stats.scope import resolve_range, user_tz
+from tidalwave.stats.scope import MovingRange, resolve_range, user_tz
 
 router = APIRouter(tags=["share"])
 
@@ -22,6 +22,7 @@ class ShareCreate(BaseModel):
     range_to: datetime | None = None
     start: date | None = None
     end: date | None = None
+    range_key: MovingRange | None = None
 
     @field_validator("label")
     @classmethod
@@ -35,6 +36,7 @@ def _serialize(share: Share) -> dict:
         "label": share.label,
         "range_from": share.range_from,
         "range_to": share.range_to,
+        "range_key": share.range_key,
         "created_at": share.created_at,
     }
 
@@ -53,6 +55,8 @@ async def create_share(
         start=body.start,
         end=body.end,
     )
+    if body.range_key is not None and (lo is not None or hi is not None):
+        raise HTTPException(status_code=422, detail="Use either range_key or a fixed range")
     if body.start is not None and hi is None:
         hi = datetime.now(UTC)
     if lo is not None and hi is not None and lo >= hi:
@@ -63,6 +67,7 @@ async def create_share(
         label=body.label,
         range_from=lo,
         range_to=hi,
+        range_key=body.range_key,
     )
     session.add(share)
     await session.flush()

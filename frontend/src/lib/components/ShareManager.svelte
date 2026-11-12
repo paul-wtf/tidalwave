@@ -2,7 +2,7 @@
 <script lang="ts">
   import { api, type Share, type ShareCreate } from '$lib/api/client';
   import { auth } from '$lib/stores/auth';
-  import { range, rangeLabel, toParams } from '$lib/stores/range';
+  import { range, rangeLabel, toParams, movingKey, movingLabel } from '$lib/stores/range';
 
   let open = $state(false);
   let busy = $state(false);
@@ -10,16 +10,20 @@
   let shares = $state<Share[]>([]);
   let error = $state<string | null>(null);
   let label = $state('');
-  let scope = $state<'all' | 'current'>('all');
+  let scope = $state<'all' | 'current' | 'moving'>('all');
   let root: HTMLDivElement | undefined = $state();
 
   const tz = $derived($auth.user?.timezone ?? 'UTC');
   const isAll = $derived($range.kind === 'rolling' && $range.key === 'all');
   const currentLabel = $derived(rangeLabel($range));
-  const effectiveScope = $derived(isAll ? 'all' : scope);
+  const moving = $derived(movingKey($range));
+  const effectiveScope = $derived(
+    isAll ? 'all' : scope === 'moving' && !moving ? 'current' : scope
+  );
 
   $effect(() => {
     if (isAll) scope = 'all';
+    else if (scope === 'moving' && !moving) scope = 'current';
   });
 
   function localDay(ms: number): string {
@@ -29,6 +33,7 @@
   }
 
   function rangeText(s: Share): string {
+    if (s.range_key) return `${movingLabel(s.range_key)}, keeps moving`;
     const from = s.range_from ? localDay(Date.parse(s.range_from)) : null;
     const to = s.range_to ? localDay(Date.parse(s.range_to) - 1) : null;
     if (from && to) return `${from} – ${to}`;
@@ -65,7 +70,9 @@
     const body: ShareCreate = {};
     const text = label.trim();
     if (text) body.label = text;
-    if (effectiveScope === 'current') {
+    if (effectiveScope === 'moving' && moving) {
+      body.range_key = moving;
+    } else if (effectiveScope === 'current') {
       const now = new Date();
       const p = toParams($range, tz, now);
       if (p.since) {
@@ -150,7 +157,13 @@
           {#if !isAll}
             <label class="choice">
               <input type="radio" name="share-scope" value="current" bind:group={scope} />
-              Current range ({currentLabel})
+              Current range ({currentLabel}){moving ? ', as of today' : ''}
+            </label>
+          {/if}
+          {#if moving}
+            <label class="choice">
+              <input type="radio" name="share-scope" value="moving" bind:group={scope} />
+              {currentLabel}, keeps moving
             </label>
           {/if}
         </fieldset>

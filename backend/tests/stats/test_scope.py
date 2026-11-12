@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime
 import pytest
 from fastapi import HTTPException
 
-from tidalwave.stats.scope import intersect, previous_range, resolve_range
+from tidalwave.stats.scope import intersect, moving_range_start, previous_range, resolve_range
 
 
 def test_resolve_range_local_midnights_across_dst():
@@ -102,3 +102,19 @@ def test_previous_range_year_clamps_leap_day():
     until = datetime(2024, 3, 31, tzinfo=UTC)
     got = previous_range("UTC", since, until, "year", datetime(2025, 1, 1, tzinfo=UTC))
     assert got == (datetime(2023, 2, 28, tzinfo=UTC), datetime(2023, 3, 31, tzinfo=UTC))
+
+
+def test_moving_rolling_ranges_start_a_fixed_span_before_now():
+    now = datetime(2026, 11, 12, 9, 30, tzinfo=UTC)
+    assert moving_range_start("rolling_7d", "Europe/Berlin", now) == datetime(2026, 11, 5, 9, 30, tzinfo=UTC)
+    assert moving_range_start("rolling_30d", "Europe/Berlin", now) == datetime(2026, 10, 13, 9, 30, tzinfo=UTC)
+    assert moving_range_start("rolling_365d", "Europe/Berlin", now) == datetime(2025, 11, 12, 9, 30, tzinfo=UTC)
+
+
+def test_moving_calendar_ranges_start_at_local_midnight():
+    # Thursday 12 November 2026, 00:30 in Berlin is still Wednesday in UTC.
+    now = datetime(2026, 11, 11, 23, 30, tzinfo=UTC)
+    assert moving_range_start("this_week", "Europe/Berlin", now) == datetime(2026, 11, 8, 23, tzinfo=UTC)
+    assert moving_range_start("this_month", "Europe/Berlin", now) == datetime(2026, 10, 31, 23, tzinfo=UTC)
+    assert moving_range_start("this_year", "Europe/Berlin", now) == datetime(2025, 12, 31, 23, tzinfo=UTC)
+    assert moving_range_start("this_week", "UTC", now) == datetime(2026, 11, 9, tzinfo=UTC)

@@ -1,10 +1,11 @@
 <script lang="ts">
   import PlatformLinks from './PlatformLinks.svelte';
   import Cover from './Cover.svelte';
+  import type { Snippet } from 'svelte';
 
   type Item = { label: string; count: number; query?: string; href?: string; image?: string | null };
-  let { title, items, initial = 5, href, covers = false }:
-    { title: string; items: Item[]; initial?: number; href?: string; covers?: boolean } =
+  let { title, items, initial = 5, href, covers = false, actions }:
+    { title: string; items: Item[]; initial?: number; href?: string; covers?: boolean; actions?: Snippet } =
     $props();
   const max = $derived(items.reduce((m, i) => Math.max(m, i.count), 0) || 1);
 
@@ -16,6 +17,7 @@
   <div class="head">
     <h2>{title}</h2>
     {#if href}<a class="all" {href}>View all →</a>{/if}
+    {@render actions?.()}
   </div>
   {#if items.length === 0}
     <p class="empty">No data yet.</p>

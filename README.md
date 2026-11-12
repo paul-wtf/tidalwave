@@ -15,14 +15,22 @@ for the detail pages and Insights.
 ## Features
 
 - Overview with totals, their change against the previous period, trends over
-  time, the listening clock, weekdays, top lists and recent listens.
+  time, the listening clock, weekdays, top lists, recent listens and the
+  track that is playing right now.
 - A page for every artist, album and track, with album covers and search
   links to Spotify, Tidal, Apple Music, YouTube Music and Deezer.
 - Insights: on this day, streaks and records, milestones, a listening
   heatmap, a weekday by hour grid and discoveries.
 - Rolling, calendar and custom ranges, resolved in each user's timezone.
-- Read-only share links, optionally limited to a range and revocable from a
-  list.
+- Search across artists, albums and tracks from the header (`/` or Ctrl+K).
+- A cover collage of the top albums of a range (3×3, 4×4 or 5×5) as a PNG
+  download.
+- Export of all your listens as CSV or JSON, and account deletion, from the
+  user menu.
+- Read-only share links, revocable from a list. A link covers all time, a
+  fixed range, or a range that keeps moving, such as the last 30 days.
+- Link previews for share links: a chat app shows whose listening it is,
+  the range, the listen count, the top artist and a cover.
 
 ## Architecture
 
@@ -71,7 +79,7 @@ reference, Last.fm connect flow, and poller/backfill scripts.
 
 ### Frontend
 
-Requires Node 22+ and [pnpm](https://pnpm.io/):
+Requires Node 24+ and [pnpm](https://pnpm.io/):
 
 ```bash
 cd frontend
@@ -109,6 +117,12 @@ Required values:
 **Postgres** is external (CNPG-managed); the chart does not deploy a database.
 The Ingress routes `/auth`, `/stats`, `/shares`, and `/shared` to the backend
 and everything else to the frontend.
+
+**Link previews** are on by default (`config.sharePreviews`). The Ingress then
+also routes `/s/` to the backend, which serves share pages as the frontend's
+`index.html` plus Open Graph tags and fetches that file from the frontend
+Service inside the cluster. With `--set config.sharePreviews=false` share
+pages come straight from the frontend and carry no preview.
 
 **Poller** runs as a Kubernetes CronJob (`*/5 * * * *` by default). Adjust the
 schedule with `--set poller.schedule='*/10 * * * *'` or disable with

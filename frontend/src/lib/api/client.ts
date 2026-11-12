@@ -41,6 +41,7 @@ export interface Share {
   label: string | null;
   range_from: string | null;
   range_to: string | null;
+  range_key?: string | null;
   created_at: string;
 }
 export interface ShareCreate {
@@ -49,6 +50,7 @@ export interface ShareCreate {
   range_to?: string | null;
   start?: string | null;
   end?: string | null;
+  range_key?: string | null;
 }
 export interface ArtistDetail {
   artist: string; listens: number; seconds: number; rank: number | null;
@@ -89,6 +91,14 @@ export interface Milestones {
   reached: { count: number; played_at: string; track: string; artist: string; album: string | null }[];
   next: { count: number; remaining: number } | null;
 }
+export interface NowPlaying {
+  track: string; artist: string; album: string | null; image_url: string | null;
+}
+export interface SearchResults {
+  artists: ArtistCount[];
+  albums: (AlbumCount & { album: string })[];
+  tracks: TrackCount[];
+}
 export type Bucket = 'day' | 'week' | 'month';
 export type StatsParams = {
   since?: string; until?: string; start?: string; end?: string;
@@ -124,6 +134,8 @@ export interface StatsApi {
   records(p?: StatsParams): Promise<Records>;
   heatmap(p?: StatsParams): Promise<Heatmap>;
   milestones(): Promise<Milestones>;
+  search(q: string, p?: StatsParams): Promise<SearchResults>;
+  nowPlaying(): Promise<NowPlaying | null>;
 }
 
 export function statsApi(token?: string): StatsApi {
@@ -148,7 +160,9 @@ export function statsApi(token?: string): StatsApi {
     onThisDay: () => get('/on-this-day', {}),
     records: (p) => get('/records', { ...p }),
     heatmap: (p) => get('/heatmap', { ...p }),
-    milestones: () => get('/milestones', {})
+    milestones: () => get('/milestones', {}),
+    search: (q, p) => get('/search', { q, ...p }),
+    nowPlaying: () => get('/now-playing', {})
   };
 }
 
@@ -168,6 +182,11 @@ export const api = {
     return (await res.json()) as Me;
   },
   updateMe: (body: { timezone: string }) => request<Me>('/auth/me', json('PATCH', body)),
+  exportUrl: (format: 'csv' | 'json') => `/auth/export?format=${format}`,
+  async deleteAccount(): Promise<void> {
+    const res = await fetch('/auth/me', { method: 'DELETE', credentials: 'include' });
+    if (!res.ok) throw new ApiError(res.status, '/auth/me');
+  },
   async logout(): Promise<void> {
     const res = await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
     if (!res.ok) throw new ApiError(res.status, '/auth/logout');

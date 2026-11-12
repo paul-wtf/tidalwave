@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { statsApi, ApiError, type MetricPoint } from '$lib/api/client';
+  import { statsApi, ApiError, type AlbumCount, type MetricPoint } from '$lib/api/client';
   import { loadMe } from '$lib/stores/auth';
   import { rangeQuery } from '$lib/stores/range';
   import { artistItems, trackItems, albumItems, type ListItem } from '$lib/listItems';
   import TopList from './TopList.svelte';
   import AreaTrend from './AreaTrend.svelte';
+  import CollageDialog from './CollageDialog.svelte';
 
   // `token` switches to shared-link mode (data from the shared endpoints).
   let { kind, token, errorMessage = 'Could not load your stats. Please try again.' }:
@@ -17,6 +18,8 @@
   const base = $derived(token ? `/s/${token}` : '');
   let metrics = $state<MetricPoint[]>([]);
   let error = $state(false);
+  let albums = $state<AlbumCount[]>([]);
+  let collageOpen = $state(false);
 
   $effect(() => {
     const shared = token != null;
@@ -33,7 +36,8 @@
         } else if (k === 'tracks') {
           items = trackItems(await client.topTracks(100, params), base);
         } else {
-          items = albumItems(await client.topAlbums(100, params), base);
+          albums = await client.topAlbums(100, params);
+          items = albumItems(albums, base);
         }
         metrics = await metricsPromise;
         error = false;
@@ -57,11 +61,42 @@
 {:else}
   <div class="dashboard">
     <AreaTrend title={TRENDS[kind]} points={trend} />
-    <TopList title={TITLES[kind]} items={items} initial={1000} covers={kind !== 'tracks'} />
+    <TopList title={TITLES[kind]} items={items} initial={1000} covers={kind !== 'tracks'}>
+      {#snippet actions()}
+        {#if kind === 'albums'}
+          <button
+            type="button"
+            class="collage"
+            disabled={!albums.some((a) => a.album != null)}
+            onclick={() => (collageOpen = true)}
+          >Collage</button>
+        {/if}
+      {/snippet}
+    </TopList>
   </div>
+  {#if collageOpen}
+    <CollageDialog {albums} onclose={() => (collageOpen = false)} />
+  {/if}
 {/if}
 
 <style>
+  .collage {
+    border: 0;
+    border-radius: var(--r-sm);
+    padding: 0.4rem 0.85rem;
+    background: var(--surface0);
+    color: var(--text);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out);
+  }
+  .collage:hover:not(:disabled) {
+    background: var(--surface1);
+  }
+  .collage:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
   .error {
     max-width: 1180px;
     margin: 0 auto;

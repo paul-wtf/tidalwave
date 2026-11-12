@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     # Public base URL used to build the Last.fm callback (cb=) parameter.
     public_base_url: str = "http://localhost:8080"
 
+    # Where the backend fetches the frontend's index.html to serve /s/<token>
+    # with link-preview tags. Empty: /s/<token> answers with a small page that
+    # carries the tags and forwards to /?share=<token>.
+    frontend_url: str = ""
+
     registration_mode: Literal["open", "allowlist"] = "allowlist"
     registration_allowlist: Annotated[list[str], NoDecode] = Field(default_factory=list)
 

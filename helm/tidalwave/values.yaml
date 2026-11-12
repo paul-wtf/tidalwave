@@ -51,6 +51,10 @@ config:
   registrationMode: allowlist
   # -- Comma-separated Last.fm usernames allowed to register (allowlist mode)
   registrationAllowlist: ""
+  # -- Serve /s/<token> from the backend so chat apps get a link preview
+  # (owner, range, listens, top artist, cover). Routes /s/ to the backend,
+  # which wraps the frontend's index.html.
+  sharePreviews: true
 
 # -- Sensitive credentials
 secrets:

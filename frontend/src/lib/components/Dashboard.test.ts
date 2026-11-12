@@ -151,4 +151,35 @@ describe('Dashboard', () => {
     await waitFor(() => expect(screen.getByText('42')).toBeInTheDocument());
     expect(container.querySelector('.wave')).toBeNull();
   });
+
+  it('shows what is playing on the own overview', async () => {
+    const { calls } = mockApi({
+      ...rest,
+      '/stats/summary': {
+        total_listens: 42, distinct_artists: 5, distinct_tracks: 30, distinct_albums: 8, total_seconds: 7200
+      },
+      '/stats/now-playing': { track: 'Nightcall', artist: 'Kavinsky', album: 'OutRun', image_url: null }
+    });
+    render(Dashboard);
+    expect(await screen.findByText('now playing')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Nightcall' })).toBeInTheDocument();
+    expect(calls).toContain('/stats/now-playing');
+  });
+
+  it('never asks what is playing in a share view', async () => {
+    const shared = Object.fromEntries(
+      Object.entries(rest).map(([path, body]) => [path.replace('/stats/', '/shared/TOK/'), body])
+    );
+    const { calls } = mockApi({
+      ...shared,
+      '/shared/TOK/summary': {
+        total_listens: 42, distinct_artists: 5, distinct_tracks: 30, distinct_albums: 8, total_seconds: 7200
+      },
+      '/shared/TOK/now-playing': { track: 'Nightcall', artist: 'Kavinsky', album: 'OutRun', image_url: null }
+    });
+    render(Dashboard, { props: { token: 'TOK' } });
+    await waitFor(() => expect(screen.getByText('42')).toBeInTheDocument());
+    expect(calls.some((c) => c.includes('now-playing'))).toBe(false);
+    expect(screen.queryByText('now playing')).toBeNull();
+  });
 });
