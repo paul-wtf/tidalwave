@@ -4,7 +4,9 @@ import logging
 
 import httpx
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.orm.exc import StaleDataError
 
 from tidalwave.db import session_scope
 
@@ -22,11 +24,26 @@ _AUTH_ERROR_CODES = {4, 9}
 async def ingest_one_user(
     session: AsyncSession, client: RecentTracksSource, user: User
 ) -> int | str:
-    """Ingest one user. Returns inserted count, or "disconnected"/"error".
+    """Ingest one user. Returns inserted count, or "disconnected"/"error"/"gone".
 
     Auth errors (codes 4/9) flip user.disconnected; transient errors are logged.
     Does not commit — the caller owns the transaction.
     """
+    username = user.lastfm_username
+    try:
+        # A savepoint, so a failed write only undoes this user and the shared
+        # transaction stays usable for the users after it.
+        async with session.begin_nested():
+            return await _ingest_or_disconnect(session, client, user)
+    except (IntegrityError, StaleDataError):
+        log.info("skipping %s: the account was deleted during the run", username)
+        session.expunge(user)
+        return "gone"
+
+
+async def _ingest_or_disconnect(
+    session: AsyncSession, client: RecentTracksSource, user: User
+) -> int | str:
     try:
         return await ingest_user(session, client, user)
     except LastfmError as e:
@@ -78,5 +95,6 @@ async def poll_all_users(
     ).scalars().all()
     report: dict[str, int | str] = {}
     for user in users:
-        report[user.lastfm_username] = await ingest_one_user(session, client, user)
+        username = user.lastfm_username
+        report[username] = await ingest_one_user(session, client, user)
     return report

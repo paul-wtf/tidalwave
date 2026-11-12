@@ -71,6 +71,8 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `POST` | `/auth/logout` | None | Clears session cookie. |
 | `GET` | `/auth/me` | Session | Username, admin flag, timezone, `disconnected`, `last_synced_at` and `last_played_at`. |
 | `PATCH` | `/auth/me` | Session | Sets the timezone: `{"timezone": "<IANA name>"}`, 422 for an unknown name. |
+| `DELETE` | `/auth/me` | Session | Deletes the user with their listens, shares and sync state, and clears the session cookie. The shared `album_art` and `track_durations` caches stay. |
+| `GET` | `/auth/export` | Session | Streams every listen of the user as a download. `format=csv` or `format=json`; fields: `played_at` (ISO-8601, UTC), `artist`, `track`, `album`, `track_mbid`, `artist_mbid`, `album_mbid`, `duration_sec`. |
 
 ### Stats (session-gated, requires a valid session cookie)
 
@@ -142,7 +144,8 @@ This is intended to be run on a schedule, e.g. every 5 minutes via cron or a Kub
 Per-user failures are isolated (one bad account never aborts the run). If a user's Last.fm
 session key is invalid/revoked (auth error), that user is flagged `disconnected` and skipped on
 subsequent polls until they reconnect via `/auth/login`; transient errors (rate limits, outages)
-are logged and retried on the next run.
+are logged and retried on the next run. A user who deletes their account while a run is in
+progress is reported as `gone` and skipped.
 
 Reads are authenticated with each user's stored Last.fm session key, so private "hide recent
 listening" profiles are readable; public profiles work either way.
