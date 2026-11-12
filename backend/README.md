@@ -69,35 +69,53 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `GET` | `/auth/login` | None | Redirects to Last.fm authorization page. |
 | `GET` | `/auth/callback` | None | Receives Last.fm token, creates/logs in user, sets session cookie. |
 | `POST` | `/auth/logout` | None | Clears session cookie. |
+| `GET` | `/auth/me` | Session | Username, admin flag, timezone, `disconnected`, `last_synced_at` and `last_played_at`. |
+| `PATCH` | `/auth/me` | Session | Sets the timezone: `{"timezone": "<IANA name>"}`, 422 for an unknown name. |
 
-### Stats (session-gated — requires valid session cookie)
+### Stats (session-gated, requires a valid session cookie)
 
-| Method | Path | Query params | Description |
+Every endpoint takes a range, either as instants (`since`, `until`: ISO-8601
+datetimes, `until` exclusive) or as local dates in the user's timezone
+(`start`, `end`: `YYYY-MM-DD`, `end` exclusive). Mixing the two is a 422.
+Hours, weekdays, days and period buckets are computed in the user's timezone
+(UTC until one is set). `limit` is capped at 500.
+
+| Method | Path | Extra query params | Description |
 |---|---|---|---|
-| `GET` | `/stats/top-artists` | `limit` (default 20), `since`, `until` | Top artists by listen count for the authenticated user. |
-| `GET` | `/stats/top-tracks` | `limit` (default 20), `since`, `until` | Top tracks by listen count. |
-| `GET` | `/stats/top-albums` | `limit` (default 20), `since`, `until` | Top albums by listen count. |
-| `GET` | `/stats/clock` | `since`, `until` | 24-element array of listen counts by hour of day (UTC). |
-| `GET` | `/stats/weekday` | `since`, `until` | 7-element array of listen counts by ISO weekday (index 0 = Monday). |
-| `GET` | `/stats/history` | `bucket` (`day`\|`week`\|`month`, default `day`), `since`, `until` | Chronological time-series: `[{"period": <iso>, "count": N}]`. |
-| `GET` | `/stats/recent` | `limit` (default 50) | Most recent listens. |
-| `GET` | `/stats/summary` | `since`, `until` | `{"total_listens": N}`. |
-
-`since` / `until` are optional ISO-8601 datetimes (`until` is exclusive).
+| `GET` | `/stats/summary` | `compare`, `calendar` (`week`\|`month`\|`year`) | `total_listens`, `distinct_artists`, `distinct_tracks`, `distinct_albums`, `total_seconds`. With `compare=true` also `previous`, the same totals for the period before (`null` for all time). |
+| `GET` | `/stats/top-artists` | `limit` (default 20) | Top artists by listen count, each with the cover of their most-listened album. |
+| `GET` | `/stats/top-tracks` | `limit`, `artist`, `album`, `track` | Top tracks by listen count. |
+| `GET` | `/stats/top-albums` | `limit`, `artist`, `album`, `track` | Top albums by listen count, keyed by `(artist, album)`, with cover. |
+| `GET` | `/stats/recent` | `limit` (default 50), `artist`, `album`, `track` | Most recent listens. |
+| `GET` | `/stats/clock` | | 24 listen counts by hour of day. |
+| `GET` | `/stats/weekday` | | 7 listen counts by ISO weekday (index 0 = Monday). |
+| `GET` | `/stats/hour-weekday` | | 7 rows (Monday to Sunday) of 24 hourly listen counts. |
+| `GET` | `/stats/history` | `bucket` (`day`\|`week`\|`month`, default `day`) | Chronological series: `[{"period": <iso>, "count": N}]`. |
+| `GET` | `/stats/metrics-over-time` | `bucket`, `artist`, `album`, `track` | Per period: listens, distinct artists and albums, seconds. |
+| `GET` | `/stats/artist` | `artist` | Detail for one artist: listens, seconds, rank, first and last listen, cover. 404 without any listen. |
+| `GET` | `/stats/album` | `artist`, `album` | Detail for one album. |
+| `GET` | `/stats/track` | `artist`, `track` | Detail for one track, with its most-listened album. |
+| `GET` | `/stats/discoveries` | `limit` | New artists, new tracks and rediscoveries in the range. |
+| `GET` | `/stats/records` | | Longest and current streak, busiest day, longest session. |
+| `GET` | `/stats/heatmap` | | Listens per day, at most 366 days. |
+| `GET` | `/stats/on-this-day` | | Listens on today's date in earlier years. Ignores the range parameters. |
+| `GET` | `/stats/milestones` | | Round listen counts reached so far and the next one. Ignores the range parameters. |
 
 ### Shares (session-gated)
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/shares` | Creates a new share token for the authenticated user. Returns `{"share_token": "..."}`. |
-| `DELETE` | `/shares/{token}` | Revokes a share token owned by the authenticated user. |
+| `POST` | `/shares` | Creates a share link. Optional JSON body: `label`, and a range as `range_from`/`range_to` (instants) or `start`/`end` (local dates). Without a range the share covers all time. |
+| `GET` | `/shares` | Lists the user's active shares, newest first. |
+| `DELETE` | `/shares/{token}` | Revokes a share owned by the authenticated user. |
 
 ### Public shared views (no auth required)
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/shared/{token}/top-artists` | Top artists for the share's owner (read-only, no login required). |
-| `GET` | `/shared/{token}/summary` | Total listens for the share's owner. |
+Every `/stats/...` endpoint above also exists as `/shared/{token}/...` and
+returns the share owner's data, limited to the share's range. Range parameters
+can narrow that range and never widen it. A revoked or unknown token is a 404.
+`previous` in the summary is always `null` here, because the period before
+lies outside the share.
 
 ---
 

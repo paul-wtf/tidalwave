@@ -71,7 +71,7 @@ reference, Last.fm connect flow, and poller/backfill scripts.
 
 ### Frontend
 
-Requires Node 22+ and [pnpm](https://pnpm.io/):
+Requires Node 24+ and [pnpm](https://pnpm.io/):
 
 ```bash
 cd frontend
