@@ -11,6 +11,17 @@
 
   let expanded = $state(false);
   const visible = $derived(expanded ? items : items.slice(0, initial));
+
+  const hoverable = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+  let hovered = $state<number | null>(null);
+  let focused = $state<number | null>(null);
+  const showLinks = (item: Item, i: number) =>
+    !hoverable || !item.href || hovered === i || focused === i;
+
+  function leaveFocus(e: FocusEvent, i: number) {
+    const li = e.currentTarget as HTMLElement;
+    if (!li.contains(e.relatedTarget as Node | null) && focused === i) focused = null;
+  }
 </script>
 
 <section class="glass">
@@ -24,14 +35,19 @@
   {:else}
     <ol>
       {#each visible as item, i}
-        <li>
+        <li
+          onpointerenter={() => (hovered = i)}
+          onpointerleave={() => hovered === i && (hovered = null)}
+          onfocusin={() => (focused = i)}
+          onfocusout={(e) => leaveFocus(e, i)}
+        >
           <span class="bar" class:top={i === 0} style="width: {(item.count / max) * 100}%"></span>
           <span class="rank">{i + 1}</span>
           {#if covers}<span class="cover"><Cover src={item.image} alt="" size={32} /></span>{/if}
           <span class="label">
             {#if item.href}<a href={item.href}>{item.label}</a>{:else}{item.label}{/if}
           </span>
-          {#if item.query}
+          {#if item.query && showLinks(item, i)}
             <span class="links"><PlatformLinks query={item.query} /></span>
           {/if}
           <span class="count">{item.count}</span>
@@ -131,16 +147,12 @@
   .links {
     z-index: 1;
     display: inline-flex;
-    opacity: 0;
-    transition: opacity var(--dur-fast) var(--ease-out);
+    animation: links-in var(--dur-fast) var(--ease-out);
   }
-  li:hover .links,
-  li:focus-within .links {
-    opacity: 1;
-  }
-  /* Touch devices have no hover — always show the platform links there. */
-  @media (hover: none) {
-    .links { opacity: 1; }
+  @keyframes links-in {
+    from {
+      opacity: 0;
+    }
   }
   .count {
     z-index: 1;
