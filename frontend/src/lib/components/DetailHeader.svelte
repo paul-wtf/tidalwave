@@ -8,7 +8,10 @@
     title: string;
     query: string;
     image: string | null | undefined;
-    stats: { label: string; value: string; sub?: string; compact?: boolean }[];
+    stats: {
+      label: string; value: string | number; format?: (n: number) => string;
+      sub?: string; compact?: boolean;
+    }[];
     links?: Snippet;
   } = $props();
 </script>
@@ -24,7 +27,7 @@
   </div>
   <div class="stats">
     {#each stats as s (s.label)}
-      <StatCard label={s.label} value={s.value} sub={s.sub} compact={s.compact} />
+      <StatCard label={s.label} value={s.value} format={s.format} sub={s.sub} compact={s.compact} />
     {/each}
   </div>
 </header>

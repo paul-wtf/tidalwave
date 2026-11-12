@@ -1,6 +1,25 @@
 <script lang="ts">
-  let { label, value, sub, delta, compact = false }:
-    { label: string; value: string; sub?: string; delta?: number | null; compact?: boolean } = $props();
+  import { untrack } from 'svelte';
+  import { formatCount } from '$lib/format';
+  import { prefersReducedMotion, tween } from '$lib/motion';
+
+  let { label, value, format = formatCount, sub, delta, compact = false }: {
+    label: string;
+    value: string | number;
+    format?: (n: number) => string;
+    sub?: string;
+    delta?: number | null;
+    compact?: boolean;
+  } = $props();
+
+  let shown = $state(untrack(() => (typeof value === 'number' && prefersReducedMotion() ? value : 0)));
+
+  $effect(() => {
+    if (typeof value !== 'number') return;
+    return tween(untrack(() => shown), value, (v) => (shown = v));
+  });
+
+  const display = $derived(typeof value === 'number' ? format(Math.round(shown)) : value);
 
   const pct = $derived(delta == null ? null : Math.round(delta * 100));
   const dir = $derived(pct == null ? null : pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat');
@@ -16,7 +35,7 @@
 </script>
 
 <div class="stat glass">
-  <span class="value" class:compact>{value}</span>
+  <span class="value" class:compact>{display}</span>
   <span class="label">{label}</span>
   {#if dir}<span class="delta {dir}" aria-label={aria}>{text} vs. previous</span>{/if}
   {#if sub}<span class="sub">{sub}</span>{/if}

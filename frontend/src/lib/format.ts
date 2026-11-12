@@ -59,8 +59,10 @@ export function formatLongDate(iso: string, timeZone: string | null): string {
   }).format(instant);
 }
 
-export function durationStat(listens: number, seconds: number): { value: string; sub?: string } {
+export function durationStat(
+  listens: number, seconds: number
+): { value: string | number; format?: (n: number) => string; sub?: string } {
   return seconds === 0 && listens > 0
     ? { value: '–', sub: 'resolving durations…' }
-    : { value: formatDuration(seconds) };
+    : { value: seconds, format: formatDuration };
 }

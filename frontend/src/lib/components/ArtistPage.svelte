@@ -71,7 +71,7 @@
       query={detail.artist}
       image={detail.image_url}
       stats={[
-        { label: 'Listens', value: formatCount(detail.listens) },
+        { label: 'Listens', value: detail.listens },
         { label: 'Time listened', ...durationStat(detail.listens, detail.seconds) },
         { label: 'Rank', value: detail.rank == null ? '–' : `#${formatCount(detail.rank)}` },
         { label: 'First listen', value: formatLongDate(detail.first_listen, tz), compact: true },

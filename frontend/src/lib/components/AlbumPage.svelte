@@ -6,7 +6,7 @@
   import { auth } from '$lib/stores/auth';
   import { loadDetail } from '$lib/detailLoader';
   import { rangeQuery } from '$lib/stores/range';
-  import { formatCount, durationStat, formatLongDate } from '$lib/format';
+  import { durationStat, formatLongDate } from '$lib/format';
   import { artistHref } from '$lib/links';
   import { trackItems, type ListItem } from '$lib/listItems';
   import DetailHeader from './DetailHeader.svelte';
@@ -67,7 +67,7 @@
       query={`${detail.artist} ${detail.album}`}
       image={detail.image_url}
       stats={[
-        { label: 'Listens', value: formatCount(detail.listens) },
+        { label: 'Listens', value: detail.listens },
         { label: 'Time listened', ...durationStat(detail.listens, detail.seconds) },
         { label: 'First listen', value: formatLongDate(detail.first_listen, tz), compact: true },
         { label: 'Last listen', value: formatLongDate(detail.last_listen, tz), compact: true }

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { weekdayName, formatRelative, formatLocalDate, formatLongDate, formatDateTime } from './format';
+import {
+  weekdayName, formatRelative, formatLocalDate, formatLongDate, formatDateTime,
+  durationStat, formatDuration
+} from './format';
 
 describe('weekdayName', () => {
   it('maps index 0 to Monday and 6 to Sunday', () => {
@@ -56,5 +59,16 @@ describe('owner wall time', () => {
     expect(formatDateTime('2024-11-07T23:30:00Z', 'Europe/Berlin')).toMatch(/8 Nov.*00:30|Nov 8.*(12:30 AM|00:30)/);
     expect(formatDateTime('2024-11-07T23:30:00Z', 'UTC')).toMatch(/7 Nov.*23:30|Nov 7.*(11:30 PM|23:30)/);
     expect(formatDateTime(berlin, null)).toMatch(/8 Nov.*00:30|Nov 8.*(12:30 AM|00:30)/);
+  });
+});
+
+describe('durationStat', () => {
+  it('hands the seconds over as a number with the duration format', () => {
+    expect(durationStat(3, 7200)).toEqual({ value: 7200, format: formatDuration });
+    expect(durationStat(0, 0)).toEqual({ value: 0, format: formatDuration });
+  });
+
+  it('shows a dash while durations are still being resolved', () => {
+    expect(durationStat(3, 0)).toEqual({ value: '–', sub: 'resolving durations…' });
   });
 });
