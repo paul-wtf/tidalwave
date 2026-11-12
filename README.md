@@ -18,8 +18,8 @@ for the detail pages and Insights.
   time, the listening clock, weekdays, top lists and recent listens.
 - A page for every artist, album and track, with album covers and search
   links to Spotify, Tidal, Apple Music, YouTube Music and Deezer.
-- Insights: on this day, streaks and records, a listening heatmap, a weekday
-  by hour grid and discoveries.
+- Insights: on this day, streaks and records, milestones, a listening
+  heatmap, a weekday by hour grid and discoveries.
 - Rolling, calendar and custom ranges, resolved in each user's timezone.
 - Read-only share links, optionally limited to a range and revocable from a
   list.

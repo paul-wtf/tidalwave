@@ -178,6 +178,13 @@ def make_stats_router(scope_dep) -> APIRouter:
     ) -> dict:
         return await insights.records(session, scope)
 
+    @router.get("/milestones")
+    async def milestones(
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await insights.milestones(session, scope)
+
     @router.get("/heatmap")
     async def heatmap(
         scope: Scope = Depends(scope_dep),

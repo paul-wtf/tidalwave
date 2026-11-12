@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.auth.session import COOKIE_NAME, SessionCodec
@@ -132,6 +132,29 @@ async def test_hour_weekday_uses_user_timezone(api, db_session):
     assert len(grid) == 7
     assert grid[0][0] == 1
     assert sum(map(sum, grid)) == 1
+
+
+async def test_milestones_report_the_1000th_listen_for_any_selected_range(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "ms_user", "sk_ms", mode="open", allowlist=[])
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="A", track_title=f"t{i}", album=None, played_at=start + timedelta(hours=i))
+        for i in range(1, 1003)
+    ])
+    cookie = SessionCodec("test-secret").encode(user.id)
+    resp = await client.get(
+        "/stats/milestones?since=2030-01-01T00:00:00Z", headers={"Cookie": f"{COOKIE_NAME}={cookie}"}
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "total": 1002,
+        "reached": [{
+            "count": 1000, "played_at": (start + timedelta(hours=1000)).isoformat(),
+            "track": "t1000", "artist": "A", "album": None,
+        }],
+        "next": {"count": 5000, "remaining": 3998},
+    }
 
 
 async def test_limit_capped_at_500(api, db_session):

@@ -272,6 +272,8 @@ CLAMP_CASES = {
                           lambda b: sum(p["listens"] for p in b) == 2),
     "metrics-over-time-track": ("metrics-over-time?track=T-after", lambda b: b == []),
     "recent-filtered": ("recent?artist=Ana", lambda b: sorted(r["track"] for r in b) == ["T-in1", "T-in2"]),
+    "milestones": ("milestones", lambda b: b == {
+        "total": 2, "reached": [], "next": {"count": 1000, "remaining": 998}}),
     "hour-weekday": ("hour-weekday", lambda b: b[1][13] == 1 and b[3][0] == 1
                      and sum(map(sum, b)) == 2),
     "clock": ("clock", lambda b: b[13] == 1 and b[0] == 1 and sum(b) == 2),

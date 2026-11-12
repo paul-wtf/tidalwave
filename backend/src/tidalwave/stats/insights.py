@@ -14,6 +14,7 @@ REDISCOVERY_GAP = timedelta(days=180)
 ON_THIS_DAY_TRACKS = 3
 SESSION_GAP = timedelta(minutes=30)
 HEATMAP_DAYS = 365
+MILESTONES = (1_000, 5_000, 10_000, 25_000, 50_000, 100_000)
 
 
 def _first_seen(scope: Scope, *columns):
@@ -257,4 +258,32 @@ async def heatmap(
         "start": start.isoformat(),
         "end": end.isoformat(),
         "days": [{"date": r.day.isoformat(), "listens": r.n} for r in rows],
+    }
+
+
+async def milestones(
+    session: AsyncSession, scope: Scope, *, thresholds: tuple[int, ...] = MILESTONES
+) -> dict:
+    total = (await session.execute(
+        bounded(select(func.count()).select_from(Listen), scope)
+    )).scalar_one()
+    numbered = bounded(
+        select(
+            Listen.played_at, Listen.track_title, Listen.artist, Listen.album,
+            func.row_number().over(order_by=(Listen.played_at, Listen.id)).label("n"),
+        ),
+        scope,
+    ).subquery()
+    rows = (await session.execute(
+        select(numbered).where(numbered.c.n.in_(thresholds)).order_by(numbered.c.n)
+    )).all()
+    upcoming = next((count for count in thresholds if count > total), None)
+    return {
+        "total": total,
+        "reached": [
+            {"count": r.n, "played_at": iso_in(r.played_at, scope.tz), "track": r.track_title,
+             "artist": r.artist, "album": r.album}
+            for r in rows
+        ],
+        "next": None if upcoming is None else {"count": upcoming, "remaining": upcoming - total},
     }

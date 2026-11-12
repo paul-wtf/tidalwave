@@ -6,7 +6,7 @@ from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.ingest.repository import upsert_listens
 from tidalwave.models.db import Listen
 from tidalwave.models.domain import Scrobble
-from tidalwave.stats.insights import discoveries, heatmap, on_this_day, records
+from tidalwave.stats.insights import discoveries, heatmap, milestones, on_this_day, records
 from tidalwave.stats.scope import Scope
 
 
@@ -294,3 +294,51 @@ async def test_rediscovery_previous_listen_carries_the_owner_offset(db_session):
         db_session, _scope(user, tz="Europe/Berlin", since=since, until=_d(2024, 8, 1))
     )
     assert d["rediscoveries"][0]["previous_listen"] == "2023-12-02T00:30:00+01:00"
+
+
+async def test_milestones_name_the_listen_that_reached_each_count(db_session):
+    user = await _user(db_session)
+    await upsert_listens(db_session, user.id, [
+        _s("A", f"t{i}", _d(2024, 1, 1) + timedelta(days=i), album="Rec" if i == 1 else None)
+        for i in range(6)
+    ])
+    m = await milestones(db_session, _scope(user), thresholds=(2, 5, 10))
+    assert m == {
+        "total": 6,
+        "reached": [
+            {"count": 2, "played_at": _d(2024, 1, 2).isoformat(), "track": "t1", "artist": "A",
+             "album": "Rec"},
+            {"count": 5, "played_at": _d(2024, 1, 5).isoformat(), "track": "t4", "artist": "A",
+             "album": None},
+        ],
+        "next": {"count": 10, "remaining": 4},
+    }
+
+
+async def test_milestones_ignore_the_selected_range_and_use_the_owner_offset(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [_d(2024, 1, 10, 23, 30), _d(2024, 7, 10, 23, 30)])
+    scope = _scope(user, tz="Europe/Berlin", since=_d(2024, 7, 1), until=_d(2024, 8, 1))
+    m = await milestones(db_session, scope, thresholds=(1, 2))
+    assert m["total"] == 2
+    assert [r["played_at"] for r in m["reached"]] == [
+        "2024-01-11T00:30:00+01:00", "2024-07-11T01:30:00+02:00",
+    ]
+    assert m["next"] is None
+
+
+async def test_milestones_in_a_share_count_only_inside_the_share_range(db_session):
+    user = await _user(db_session)
+    await _seed(db_session, user, [_d(2024, 6, day, 12) for day in range(1, 11)])
+    scope = _scope(user, floor=_d(2024, 6, 4), ceiling=_d(2024, 6, 8), shared=True)
+    m = await milestones(db_session, scope, thresholds=(2, 5))
+    assert m["total"] == 4
+    assert [(r["count"], r["track"]) for r in m["reached"]] == [(2, "t4")]
+    assert m["next"] == {"count": 5, "remaining": 1}
+
+
+async def test_milestones_empty_user(db_session):
+    user = await _user(db_session)
+    assert await milestones(db_session, _scope(user)) == {
+        "total": 0, "reached": [], "next": {"count": 1000, "remaining": 1000},
+    }
