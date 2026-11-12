@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from tidalwave.auth.registration import RegistrationDenied
 from tidalwave.auth.service import delete_account, upsert_user_from_session
 from tidalwave.auth.session import COOKIE_NAME, SessionCodec, current_user
-from tidalwave.models.db import Listen, User
+from tidalwave.models.db import ArtistMerge, Listen, User
 from tidalwave.config import Settings
 from tidalwave.deps import get_lastfm_client, get_session, get_settings
 from tidalwave.ingest.poller import ingest_user_now
@@ -198,6 +198,7 @@ _EXPORT_FIELDS = (
     "played_at", "artist", "track", "album", "track_mbid", "artist_mbid", "album_mbid",
     "duration_sec", "artist_raw", "source",
 )
+_MERGE_FIELDS = ("variant", "canonical", "merged_at")
 
 
 async def _export_batches(session: AsyncSession, user_id: int) -> AsyncIterator[list[tuple]]:
@@ -234,24 +235,51 @@ async def _export_csv(session: AsyncSession, user_id: int) -> AsyncIterator[str]
         yield buffer.getvalue()
 
 
+async def _merges(session: AsyncSession, user_id: int) -> list[tuple[str, str, str]]:
+    rows = (await session.execute(
+        select(ArtistMerge.variant, ArtistMerge.canonical, ArtistMerge.created_at)
+        .where(ArtistMerge.user_id == user_id)
+        .order_by(ArtistMerge.canonical, ArtistMerge.variant)
+    )).all()
+    return [(variant, canonical, at.astimezone(UTC).isoformat()) for variant, canonical, at in rows]
+
+
 async def _export_json(session: AsyncSession, user_id: int) -> AsyncIterator[str]:
-    separator = "[\n"
+    yield '{"listens": ['
+    separator = "\n"
     async for batch in _export_batches(session, user_id):
         yield separator + ",\n".join(
             json.dumps(dict(zip(_EXPORT_FIELDS, row)), ensure_ascii=False) for row in batch
         )
         separator = ",\n"
-    yield "[]\n" if separator == "[\n" else "\n]\n"
+    merges = [dict(zip(_MERGE_FIELDS, row)) for row in await _merges(session, user_id)]
+    yield f'\n], "merges": {json.dumps(merges, ensure_ascii=False)}}}\n'
+
+
+async def _export_merges_csv(session: AsyncSession, user_id: int) -> AsyncIterator[str]:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(_MERGE_FIELDS)
+    writer.writerows(await _merges(session, user_id))
+    yield buffer.getvalue()
 
 
 @router.get("/export")
 async def export(
     format: Literal["csv", "json"],
+    part: Literal["listens", "merges"] = "listens",
     user: User = Depends(current_user),
     session: AsyncSession = Depends(get_session),
 ) -> StreamingResponse:
+    if part == "merges" and format != "csv":
+        raise HTTPException(status_code=422, detail="The JSON export already holds the merges")
     name = re.sub(r"[^A-Za-z0-9_.-]", "_", user.lastfm_username)
-    body = _export_csv(session, user.id) if format == "csv" else _export_json(session, user.id)
+    if part == "merges":
+        body, name = _export_merges_csv(session, user.id), f"{name}-merges"
+    elif format == "csv":
+        body = _export_csv(session, user.id)
+    else:
+        body = _export_json(session, user.id)
     return StreamingResponse(
         body,
         media_type="text/csv; charset=utf-8" if format == "csv" else "application/json",

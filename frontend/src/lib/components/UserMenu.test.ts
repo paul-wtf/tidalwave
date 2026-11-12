@@ -97,6 +97,9 @@ describe('UserMenu', () => {
     expect(csv).toHaveAttribute('href', '/auth/export?format=csv');
     expect(csv).toHaveAttribute('download');
     expect(screen.getByRole('link', { name: 'JSON' })).toHaveAttribute('href', '/auth/export?format=json');
+    const merges = screen.getByRole('link', { name: 'Merges CSV' });
+    expect(merges).toHaveAttribute('href', '/auth/export?format=csv&part=merges');
+    expect(merges).toHaveAttribute('download');
   });
 
   it('links to the spellings and import pages', async () => {

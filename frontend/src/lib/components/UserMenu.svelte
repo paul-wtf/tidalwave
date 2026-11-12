@@ -185,6 +185,7 @@
           <span>Export my data</span>
           <a href={api.exportUrl('csv')} download>CSV</a>
           <a href={api.exportUrl('json')} download>JSON</a>
+          <a href={api.exportUrl('csv', 'merges')} download>Merges CSV</a>
         </div>
         <div class="report">
           <span class="heading">Weekly report on Discord</span>

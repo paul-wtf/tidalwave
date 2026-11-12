@@ -82,7 +82,7 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `DELETE` | `/auth/me/webhook` | Session | Clears the webhook. Returns the same body as `GET /auth/me`. |
 | `POST` | `/auth/me/webhook/test` | Session | Posts a short test message to the saved webhook. 204 on success, 409 without a webhook, 502 when Discord refuses it or cannot be reached. |
 | `DELETE` | `/auth/me` | Session | Deletes the user with their listens, shares, comparisons, invites and sync state, and clears the session cookie. The shared `album_art` and `track_durations` caches stay. |
-| `GET` | `/auth/export` | Session | Streams every listen of the user as a download. `format=csv` or `format=json`; fields: `played_at` (ISO-8601, UTC), `artist`, `track`, `album`, `track_mbid`, `artist_mbid`, `album_mbid`, `duration_sec`, `artist_raw` (the spelling the listen arrived with; `artist` is the name it is merged into) and `source` (`lastfm`, `spotify` or `listenbrainz`). |
+| `GET` | `/auth/export` | Session | Streams every listen of the user as a download. `format=csv` or `format=json`. The CSV has one row per listen; the JSON is `{"listens": [...], "merges": [...]}`. `format=csv&part=merges` downloads the merged spellings as a file of their own (`tidalwave-<user>-merges.csv`); `part=merges` with JSON is a 422. Merges have `variant`, `canonical` and `merged_at` (ISO-8601, UTC). Listen fields: `played_at` (ISO-8601, UTC), `artist`, `track`, `album`, `track_mbid`, `artist_mbid`, `album_mbid`, `duration_sec`, `artist_raw` (the spelling the listen arrived with; `artist` is the name it is merged into) and `source` (`lastfm`, `spotify` or `listenbrainz`). |
 
 ### Stats (session-gated, requires a valid session cookie)
 

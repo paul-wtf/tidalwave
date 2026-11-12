@@ -1699,6 +1699,7 @@ export interface operations {
         parameters: {
             query: {
                 format: "csv" | "json";
+                part?: "listens" | "merges";
             };
             header?: never;
             path?: never;
