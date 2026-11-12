@@ -294,6 +294,11 @@ CLAMP_CASES = {
         "genre": "pop", "listens": 2, "seconds": 0, "artists": 1}),
     "decades": ("decades", lambda b: b == {
         "decades": [{"decade": 1990, "listens": 2}], "known": 2, "unknown": 0, "pending": 0}),
+    "artist-race": ("artist-race", lambda b: b == {
+        "bucket": "day", "periods": ["2026-03-10T00:00:00", "2026-04-16T00:00:00"],
+        "artists": [{"artist": "Ana", "image_url": None, "totals": [1, 2]}]}),
+    "artist-race-month": ("artist-race?bucket=month&since=2025-01-01T00:00:00Z",
+                          lambda b: [a["totals"] for a in b["artists"]] == [[1, 2]]),
     "top-artists-genre": ("top-artists?genre=pop",
                           lambda b: [(a["artist"], a["count"]) for a in b] == [("Ana", 2)]),
     "top-artists-other-genre": ("top-artists?genre=ghostcore", lambda b: b == []),

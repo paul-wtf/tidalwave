@@ -363,6 +363,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stats/artist-race": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Artist Race */
+        get: operations["artist_race_stats_artist_race_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/stats/album-runs": {
         parameters: {
             query?: never;
@@ -763,6 +780,23 @@ export interface paths {
         };
         /** Genre Detail */
         get: operations["genre_detail_shared__token__genre_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shared/{token}/artist-race": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Artist Race */
+        get: operations["artist_race_shared__token__artist_race_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1772,6 +1806,44 @@ export interface operations {
             };
         };
     };
+    artist_race_stats_artist_race_get: {
+        parameters: {
+            query?: {
+                bucket?: ("day" | "week" | "month") | null;
+                limit?: number;
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     album_runs_stats_album_runs_get: {
         parameters: {
             query?: {
@@ -2659,6 +2731,46 @@ export interface operations {
         parameters: {
             query: {
                 genre: string;
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    artist_race_shared__token__artist_race_get: {
+        parameters: {
+            query?: {
+                bucket?: ("day" | "week" | "month") | null;
+                limit?: number;
                 since?: string | null;
                 until?: string | null;
                 start?: string | null;

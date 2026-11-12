@@ -341,3 +341,34 @@ async def test_album_runs_endpoint(api, db_session):
     assert [r["album"] for r in ranged.json()["runs"]] == ["OutRun"]
     assert (await client.get("/stats/album-runs?limit=0", headers=headers)).status_code == 422
     assert (await client.get("/stats/album-runs")).status_code == 401
+
+
+async def test_artist_race_endpoint(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "race_user", "sk_race", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="A", track_title="a", album=None, played_at=datetime(2024, 6, 1, 10, tzinfo=UTC)),
+        Scrobble(artist="B", track_title="b", album=None, played_at=datetime(2024, 6, 2, 10, tzinfo=UTC)),
+        Scrobble(artist="B", track_title="b", album=None, played_at=datetime(2024, 6, 2, 11, tzinfo=UTC)),
+    ])
+    headers = {"Cookie": f"{COOKIE_NAME}={SessionCodec('test-secret').encode(user.id)}"}
+
+    resp = await client.get("/stats/artist-race?bucket=day", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "bucket": "day",
+        "periods": ["2024-06-01T00:00:00", "2024-06-02T00:00:00"],
+        "artists": [
+            {"artist": "B", "image_url": None, "totals": [0, 2]},
+            {"artist": "A", "image_url": None, "totals": [1, 1]},
+        ],
+    }
+    top = await client.get("/stats/artist-race?bucket=month&limit=1", headers=headers)
+    assert top.json() == {
+        "bucket": "month", "periods": ["2024-06-01T00:00:00"],
+        "artists": [{"artist": "B", "image_url": None, "totals": [2]}],
+    }
+    assert (await client.get("/stats/artist-race", headers=headers)).json()["bucket"] == "day"
+    assert (await client.get("/stats/artist-race?bucket=hour", headers=headers)).status_code == 422
+    assert (await client.get("/stats/artist-race?limit=51", headers=headers)).status_code == 422
+    assert (await client.get("/stats/artist-race")).status_code == 401

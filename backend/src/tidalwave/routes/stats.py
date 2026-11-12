@@ -13,6 +13,7 @@ from tidalwave.stats import details, insights, queries
 from tidalwave.stats import album_runs as album_run_queries
 from tidalwave.stats import decades as decade_queries
 from tidalwave.stats import genres as genre_queries
+from tidalwave.stats import race as race_queries
 from tidalwave.stats import search as search_queries
 from tidalwave.stats.now_playing import now_playing as fetch_now_playing
 from tidalwave.stats.scope import Scope, previous_range
@@ -183,6 +184,15 @@ def make_stats_router(scope_dep) -> APIRouter:
         session: AsyncSession = Depends(get_session),
     ) -> dict:
         return _found(await genre_queries.genre_detail(session, scope, genre))
+
+    @router.get("/artist-race")
+    async def artist_race(
+        bucket: Literal["day", "week", "month"] | None = None,
+        limit: int = Query(10, ge=1, le=50),
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await race_queries.artist_race(session, scope, bucket=bucket, limit=limit)
 
     @router.get("/album-runs")
     async def album_runs(
