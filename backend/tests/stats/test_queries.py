@@ -6,6 +6,7 @@ from tidalwave.models.db import AlbumArt
 from tidalwave.models.domain import Scrobble
 from tidalwave.stats.queries import (
     listening_clock,
+    listening_hour_weekday,
     recent_listens,
     listening_weekday,
     listens_over_time,
@@ -254,3 +255,29 @@ async def test_recent_listens_carry_the_owner_offset(db_session):
     ])
     scope = Scope(user_id=user.id, tz="Europe/Berlin", since=None, until=None)
     assert (await recent_listens(db_session, scope))[0]["played_at"] == "2024-07-11T01:30:00+02:00"
+
+
+async def test_hour_weekday_grid_uses_local_weekday_and_hour(db_session):
+    user = await upsert_user_from_session(db_session, "grid", "sk", mode="open", allowlist=[])
+    sunday_late = datetime(2024, 6, 16, 23, 30, tzinfo=UTC)
+    monday_noon = datetime(2024, 6, 17, 12, tzinfo=UTC)
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="A", track_title="late", album=None, played_at=sunday_late),
+        Scrobble(artist="A", track_title="noon1", album=None, played_at=monday_noon),
+        Scrobble(artist="A", track_title="noon2", album=None,
+                 played_at=monday_noon.replace(minute=5)),
+    ])
+    utc = await listening_hour_weekday(db_session, _scope(user))
+    assert [len(row) for row in utc] == [24] * 7
+    assert (utc[6][23], utc[0][12]) == (1, 2)
+    assert sum(map(sum, utc)) == 3
+    berlin = await listening_hour_weekday(
+        db_session, Scope(user_id=user.id, tz="Europe/Berlin", since=None, until=None)
+    )
+    assert (berlin[0][1], berlin[0][14]) == (1, 2)
+    assert sum(map(sum, berlin)) == 3
+
+
+async def test_hour_weekday_grid_is_all_zero_without_listens(db_session):
+    user = await upsert_user_from_session(db_session, "empty", "sk", mode="open", allowlist=[])
+    assert await listening_hour_weekday(db_session, _scope(user)) == [[0] * 24] * 7

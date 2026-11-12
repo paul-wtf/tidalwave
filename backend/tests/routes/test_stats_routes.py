@@ -116,6 +116,24 @@ async def test_clock_uses_user_timezone(api, db_session):
     assert resp.json()[12] == 1
 
 
+async def test_hour_weekday_uses_user_timezone(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "grid_user", "sk_grid", mode="open", allowlist=[])
+    user.timezone = "Europe/Berlin"
+    await db_session.flush()
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="A", track_title="t", album=None,
+                 played_at=datetime(2026, 7, 5, 22, 30, tzinfo=UTC)),
+    ])
+    cookie = SessionCodec("test-secret").encode(user.id)
+    resp = await client.get("/stats/hour-weekday", headers={"Cookie": f"{COOKIE_NAME}={cookie}"})
+    assert resp.status_code == 200
+    grid = resp.json()
+    assert len(grid) == 7
+    assert grid[0][0] == 1
+    assert sum(map(sum, grid)) == 1
+
+
 async def test_limit_capped_at_500(api, db_session):
     client, app = api
     user = await upsert_user_from_session(db_session, "cap_user", "sk_cap", mode="open", allowlist=[])

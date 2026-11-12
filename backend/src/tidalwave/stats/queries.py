@@ -205,6 +205,18 @@ async def listening_weekday(session: AsyncSession, scope: Scope) -> list[int]:
     return [counts.get(d, 0) for d in range(1, 8)]
 
 
+async def listening_hour_weekday(session: AsyncSession, scope: Scope) -> list[list[int]]:
+    """Returns 7 rows (Monday .. Sunday) of 24 local hour-of-day counts."""
+    local = func.timezone(scope.tz, Listen.played_at)
+    dow = cast(func.extract("isodow", local), Integer)
+    hour = cast(func.extract("hour", local), Integer)
+    stmt = _scope(select(dow, hour, func.count()), scope).group_by(dow, hour)
+    grid = [[0] * 24 for _ in range(7)]
+    for d, h, c in (await session.execute(stmt)).all():
+        grid[int(d) - 1][int(h)] = int(c)
+    return grid
+
+
 async def listens_over_time(session: AsyncSession, scope: Scope, *, bucket: str = "day") -> list[dict]:
     """Listens grouped by calendar period. `bucket` is one of day|week|month.
 

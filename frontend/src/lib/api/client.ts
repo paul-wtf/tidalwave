@@ -107,6 +107,7 @@ export interface StatsApi {
   topAlbums(limit: number, p?: StatsParams): Promise<AlbumCount[]>;
   clock(p?: StatsParams): Promise<number[]>;
   weekday(p?: StatsParams): Promise<number[]>;
+  hourWeekday(p?: StatsParams): Promise<number[][]>;
   history(bucket: Bucket, p?: StatsParams): Promise<HistoryPoint[]>;
   metricsOverTime(bucket: Bucket, p?: StatsParams): Promise<MetricPoint[]>;
   recent(limit: number, p?: StatsParams): Promise<RecentItem[]>;
@@ -130,6 +131,7 @@ export function statsApi(token?: string): StatsApi {
     topAlbums: (limit, p) => get('/top-albums', { limit, ...p }),
     clock: (p) => get('/clock', { ...p }),
     weekday: (p) => get('/weekday', { ...p }),
+    hourWeekday: (p) => get('/hour-weekday', { ...p }),
     history: (bucket, p) => get('/history', { bucket, ...p }),
     metricsOverTime: (bucket, p) => get('/metrics-over-time', { bucket, ...p }),
     recent: (limit, p) => get('/recent', { limit, ...p }),

@@ -13,6 +13,7 @@ const routes = (prefix: string) => ({
     busiest_day: { date: '2026-10-05', listens: 8 }, longest_session: null
   },
   [`${prefix}/heatmap`]: { start: '2026-11-01', end: '2026-11-03', days: [{ date: '2026-11-02', listens: 2 }] },
+  [`${prefix}/hour-weekday`]: Array.from({ length: 7 }, () => new Array(24).fill(1)),
   [`${prefix}/discoveries`]: {
     new_artists: [], new_tracks_count: 0, new_tracks: [], rediscoveries: []
   }
@@ -22,19 +23,22 @@ const headings = () => screen.getAllByRole('heading', { level: 2 }).map((h) => h
 describe('InsightsPage', () => {
   beforeEach(() => range.set({ kind: 'rolling', key: '30d' }));
 
-  it('shows the four sections in order', async () => {
+  it('shows the sections in order', async () => {
     mockApi(routes('/stats'));
     render(InsightsPage);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Discoveries' })).toBeInTheDocument());
-    expect(headings()).toEqual(['On this day', 'Streaks and records', 'Listening heatmap', 'Discoveries']);
+    expect(headings()).toEqual([
+      'On this day', 'Streaks and records', 'Listening heatmap',
+      'By weekday and hour (UTC)', 'Discoveries'
+    ]);
   });
 
   it('sends the selected range to range-bound endpoints but not to on-this-day', async () => {
     const { calls } = mockApi(routes('/stats'));
     render(InsightsPage);
-    await waitFor(() => expect(calls.length).toBe(4));
+    await waitFor(() => expect(calls.length).toBe(5));
     expect(calls.find((c) => c.startsWith('/stats/on-this-day'))).toBe('/stats/on-this-day');
-    for (const p of ['records', 'heatmap', 'discoveries']) {
+    for (const p of ['records', 'heatmap', 'hour-weekday', 'discoveries']) {
       expect(calls.find((c) => c.startsWith(`/stats/${p}?`))).toContain('since=');
     }
   });
@@ -61,7 +65,7 @@ describe('InsightsPage', () => {
     render(InsightsPage, { token: 'tok' });
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Discoveries' })).toBeInTheDocument());
     expect(calls.sort()).toEqual([
-      '/shared/tok/discoveries', '/shared/tok/heatmap',
+      '/shared/tok/discoveries', '/shared/tok/heatmap', '/shared/tok/hour-weekday',
       '/shared/tok/on-this-day', '/shared/tok/records'
     ]);
   });

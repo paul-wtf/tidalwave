@@ -175,6 +175,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stats/hour-weekday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hour Weekday */
+        get: operations["hour_weekday_stats_hour_weekday_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/stats/history": {
         parameters: {
             query?: never;
@@ -439,6 +456,23 @@ export interface paths {
         };
         /** Weekday */
         get: operations["weekday_shared__token__weekday_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shared/{token}/hour-weekday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hour Weekday */
+        get: operations["hour_weekday_shared__token__hour_weekday_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1053,6 +1087,40 @@ export interface operations {
             };
         };
     };
+    hour_weekday_stats_hour_weekday_get: {
+        parameters: {
+            query?: {
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number[][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     history_stats_history_get: {
         parameters: {
             query?: {
@@ -1648,6 +1716,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": number[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    hour_weekday_shared__token__hour_weekday_get: {
+        parameters: {
+            query?: {
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number[][];
                 };
             };
             /** @description Validation Error */
