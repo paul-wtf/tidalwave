@@ -24,6 +24,20 @@ describe('AreaTrend', () => {
     expect(onBucketChange).toHaveBeenCalledWith('week');
   });
 
+  it('keeps the title, the bucket selector and the empty note outside the image', () => {
+    render(AreaTrend, { props: {
+      title: 'Over time', points: [{ period: '2024-06-01T00:00:00', value: 3 }],
+      bucket: 'day', onBucketChange: vi.fn()
+    } });
+    expect(screen.getByRole('combobox', { name: /bucket/i }).closest('[role="img"]')).toBeNull();
+    expect(screen.getByText('Over time').closest('[role="img"]')).toBeNull();
+  });
+
+  it('says so in text when there is nothing to draw', () => {
+    render(AreaTrend, { props: { title: 'Over time', points: [] } });
+    expect(screen.getByText('No data yet.').closest('[role="img"]')).toBeNull();
+  });
+
   const points = (values: number[]) =>
     values.map((value, i) => ({ period: `2024-06-0${i + 1}T00:00:00`, value }));
 

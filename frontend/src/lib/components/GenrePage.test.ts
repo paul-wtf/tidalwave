@@ -36,7 +36,7 @@ describe('GenrePage', () => {
     const list = within(screen.getByRole('heading', { name: 'Top Artists' }).closest('section')!);
     expect(list.getByRole('link', { name: 'Daft Punk' })).toHaveAttribute('href', '/artist?artist=Daft+Punk');
     expect(list.getByText('Justice')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Listens over time' })).toBeInTheDocument();
+    expect(screen.getByText('Listens over time').closest('figure')).toBeInTheDocument();
   });
 
   it('asks every endpoint for the genre inside the selected range', async () => {

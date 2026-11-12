@@ -48,7 +48,7 @@
   }
 </script>
 
-<figure class="glass" role="img" aria-label={title}>
+<figure class="glass">
   <figcaption class="head">
     <span class="title">{title}</span>
     {#if bucket && onBucketChange}
@@ -66,7 +66,7 @@
   {#if points.length === 0}
     <p class="empty">No data yet.</p>
   {:else}
-    <div class="plot">
+    <div class="plot" role="img" aria-label={title}>
       <div class="yaxis" aria-hidden="true">
         <span>{formatValue(max)}</span><span>{formatValue(Math.round(max / 2))}</span><span>{formatValue(0)}</span>
       </div>
