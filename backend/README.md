@@ -267,7 +267,7 @@ tidalwave-backfill-years
 tidalwave-weekly-report
 ```
 
-The week is the one that has ended in each user's timezone when the command runs. Run on Monday at 08:00 in Berlin, that is the week just past nearly everywhere, but in Los Angeles and further west it is still Sunday, so those users get the week before. There is no report by mail, since tidalwave has no SMTP configuration.
+The command is meant to run every hour. A run only posts for users whose local time is Monday, 08:00 or later, and who have not had the report for the week that has just ended; `users.weekly_report_week` holds the Monday of the last week a report went out for, and it is set once Discord has accepted the post. A failed post is tried again by the next run that Monday. Each user so gets every week once, at the first run after 08:00 on their Monday, whatever their timezone. A user whose whole Monday passes without a run gets no report for that week. There is no report by mail, since tidalwave has no SMTP configuration.
 
 All commands read configuration from the same `TIDALWAVE_*` environment variables as the server.
 

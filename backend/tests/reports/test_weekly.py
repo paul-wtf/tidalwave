@@ -1,7 +1,8 @@
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import httpx
+import pytest
 import respx
 
 from tidalwave.auth.service import upsert_user_from_session
@@ -139,13 +140,117 @@ async def test_reports_go_to_every_webhook_and_one_failure_stops_nobody(db_sessi
 
     async with httpx.AsyncClient() as http:
         report = await send_weekly_reports(
-            db_session, http, now=MONDAY_8_BERLIN, base_url=BASE
+            db_session, http, now=MONDAY_8_BERLIN + timedelta(hours=2), base_url=BASE
         )
 
     assert report == {"bob": "failed", "alice": "sent", "carol": "empty"}
     assert failing.called and sent.called and not empty.called
+    assert users["alice"].weekly_report_week == date(2026, 11, 2)
+    assert users["bob"].weekly_report_week is None
+    assert users["carol"].weekly_report_week is None
     body = json.loads(sent.calls.last.request.content)
     assert body["embeds"][0]["fields"][1] == {
         "name": "Listens", "value": "1 (none the week before)", "inline": True,
     }
     assert body["embeds"][0]["fields"][3]["value"] == "Nightcall by Kavinsky, 1 listen"
+
+
+HOOK = "https://discord.com/api/webhooks/1/token1"
+
+
+async def _subscriber(db_session, tz: str, *listens: datetime):
+    alice = await upsert_user_from_session(db_session, "alice", "sk", mode="open", allowlist=[])
+    alice.timezone = tz
+    alice.discord_webhook_url = HOOK
+    await upsert_listens(db_session, alice.id, [
+        Scrobble(artist="Kavinsky", track_title="Nightcall", album=None, played_at=at)
+        for at in listens
+    ])
+    await db_session.flush()
+    return alice
+
+
+async def _run(db_session, now: datetime) -> dict[str, str]:
+    async with httpx.AsyncClient() as http:
+        return await send_weekly_reports(db_session, http, now=now, base_url=BASE)
+
+
+@respx.mock
+@pytest.mark.parametrize(("tz", "seven_on_monday", "sunday_evening", "monday", "label"), [
+    ("Pacific/Honolulu", datetime(2026, 11, 9, 17, tzinfo=UTC),
+     datetime(2026, 11, 9, 6, tzinfo=UTC), date(2026, 11, 2), "Nov 2 – 8, 2026"),
+    ("UTC", datetime(2026, 11, 9, 7, tzinfo=UTC),
+     datetime(2026, 11, 8, 20, tzinfo=UTC), date(2026, 11, 2), "Nov 2 – 8, 2026"),
+    ("Pacific/Kiritimati", datetime(2026, 11, 8, 17, tzinfo=UTC),
+     datetime(2026, 11, 8, 6, tzinfo=UTC), date(2026, 11, 2), "Nov 2 – 8, 2026"),
+    # Berlin's clocks went back on Sunday, 25 October.
+    ("Europe/Berlin", datetime(2026, 10, 26, 6, tzinfo=UTC),
+     datetime(2026, 10, 25, 22, 30, tzinfo=UTC), date(2026, 10, 19), "Oct 19 – 25, 2026"),
+], ids=["utc-10", "utc+0", "utc+14", "dst-change"])
+async def test_the_report_goes_out_from_eight_on_the_users_monday_for_the_week_just_ended(
+    db_session, tz, seven_on_monday, sunday_evening, monday, label
+):
+    alice = await _subscriber(db_session, tz, sunday_evening)
+    hook = respx.post(HOOK).respond(204)
+
+    assert await _run(db_session, seven_on_monday + timedelta(minutes=59)) == {}
+    assert not hook.called
+    assert alice.weekly_report_week is None
+
+    assert await _run(db_session, seven_on_monday + timedelta(hours=1)) == {"alice": "sent"}
+    embed = json.loads(hook.calls.last.request.content)["embeds"][0]
+    assert embed["description"] == label
+    assert {f["name"]: f["value"] for f in embed["fields"]}["Listens"] == (
+        "1 (none the week before)"
+    )
+    assert alice.weekly_report_week == monday
+
+
+@respx.mock
+async def test_a_run_hours_late_still_sends_once_that_monday(db_session):
+    alice = await _subscriber(db_session, "Europe/Berlin", datetime(2026, 11, 8, 12, tzinfo=UTC))
+    hook = respx.post(HOOK).respond(204)
+
+    assert await _run(db_session, datetime(2026, 11, 9, 12, 5, tzinfo=UTC)) == {"alice": "sent"}
+    for hour in (13, 14, 22):
+        assert await _run(db_session, datetime(2026, 11, 9, hour, 5, tzinfo=UTC)) == {}
+    assert hook.call_count == 1
+    assert alice.weekly_report_week == date(2026, 11, 2)
+
+
+@respx.mock
+async def test_two_runs_in_the_same_hour_send_once(db_session):
+    await _subscriber(db_session, "Europe/Berlin", datetime(2026, 11, 8, 12, tzinfo=UTC))
+    hook = respx.post(HOOK).respond(204)
+
+    assert await _run(db_session, datetime(2026, 11, 9, 7, 5, tzinfo=UTC)) == {"alice": "sent"}
+    assert await _run(db_session, datetime(2026, 11, 9, 7, 40, tzinfo=UTC)) == {}
+    assert hook.call_count == 1
+
+
+@respx.mock
+async def test_a_post_discord_refused_is_tried_again_the_next_hour(db_session):
+    alice = await _subscriber(db_session, "UTC", datetime(2026, 11, 8, 12, tzinfo=UTC))
+    hook = respx.post(HOOK).mock(side_effect=[httpx.Response(500), httpx.Response(204)])
+
+    assert await _run(db_session, datetime(2026, 11, 9, 8, 5, tzinfo=UTC)) == {"alice": "failed"}
+    assert alice.weekly_report_week is None
+    assert await _run(db_session, datetime(2026, 11, 9, 9, 5, tzinfo=UTC)) == {"alice": "sent"}
+    assert hook.call_count == 2
+    assert alice.weekly_report_week == date(2026, 11, 2)
+
+
+@respx.mock
+async def test_only_mondays_send_and_the_next_monday_sends_the_next_week(db_session):
+    alice = await _subscriber(
+        db_session, "UTC",
+        datetime(2026, 11, 8, 12, tzinfo=UTC), datetime(2026, 11, 15, 12, tzinfo=UTC),
+    )
+    hook = respx.post(HOOK).respond(204)
+
+    assert await _run(db_session, datetime(2026, 11, 10, 9, 5, tzinfo=UTC)) == {}
+    assert await _run(db_session, datetime(2026, 11, 15, 9, 5, tzinfo=UTC)) == {}
+    assert not hook.called
+
+    assert await _run(db_session, datetime(2026, 11, 16, 8, 5, tzinfo=UTC)) == {"alice": "sent"}
+    assert alice.weekly_report_week == date(2026, 11, 9)

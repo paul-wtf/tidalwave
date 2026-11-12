@@ -45,7 +45,7 @@ for the detail pages and Insights.
   them played. Either side can end it.
 - A weekly report to Discord: each user can save a webhook and gets
   last week's listening, top artist, top track and new artists every
-  Monday.
+  Monday from 08:00 in their own timezone.
 - A year in review at `/year/<yyyy>`: totals, top artists, tracks and
   albums, month by month, the busiest day, the first and last listen, new
   artists, genres, decades, the longest streak and albums played through.
@@ -160,14 +160,18 @@ as Last.fm. `--set poller.releaseYearBudget=0` turns that off, and
 `poller.musicbrainzUrl` points it at a mirror.
 
 **Weekly report** is off by default. `--set weeklyReport.enabled=true` adds a
-CronJob that runs `tidalwave-weekly-report` on the backend image every Monday
-at 08:00 Europe/Berlin (`weeklyReport.schedule`, `weeklyReport.timeZone`; the
-`timeZone` field needs Kubernetes 1.27). It posts to the Discord webhooks
-users saved, so the job needs to reach `discord.com` and `discordapp.com`,
-and so does the backend, which sends the test message from the user menu.
-Users in Los Angeles and further west get the week before last, because
-their week has not ended yet when the job runs. There is no report by mail:
-tidalwave has no SMTP configuration.
+CronJob that runs `tidalwave-weekly-report` on the backend image every hour,
+at minute 7 (`weeklyReport.schedule`, `weeklyReport.timeZone`, UTC by
+default; the `timeZone` field needs Kubernetes 1.27). A run sends the report
+of every user whose Monday has reached 08:00 in their own timezone and who
+has not had that week's report yet, so each user gets the week that has just
+ended, once, wherever they live. A run that fails or is missed is made up
+by the next one, as long as it is still Monday for that user. Keep the
+schedule hourly; a daily or weekly one misses most timezones. The job
+posts to the Discord webhooks users saved, so it needs to reach
+`discord.com` and `discordapp.com`, and so does the backend, which sends
+the test message from the user menu. There is no report by mail: tidalwave
+has no SMTP configuration.
 
 **Registration** follows `config.registrationMode`. In `allowlist` mode the
 names in `config.registrationAllowlist` may sign up, plus the names an admin
