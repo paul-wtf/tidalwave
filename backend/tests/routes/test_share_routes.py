@@ -6,7 +6,7 @@ import pytest
 from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.auth.session import COOKIE_NAME, SessionCodec
 from tidalwave.ingest.repository import upsert_listens
-from tidalwave.models.db import ArtistTags, Share
+from tidalwave.models.db import AlbumYear, ArtistTags, Share
 from tidalwave.models.domain import Scrobble
 
 
@@ -247,6 +247,8 @@ async def _clamped_share(api, db_session) -> str:
     db_session.add_all([
         ArtistTags(artist="Ana", tags=["pop"]),
         ArtistTags(artist="Ghost", tags=["ghostcore"]),
+        AlbumYear(artist="Ana", album="Rec", year=1994),
+        AlbumYear(artist="Ghost", album="Boo", year=1966),
     ])
     db_session.add(Share(
         share_token="clamped", user_id=user.id,
@@ -258,7 +260,7 @@ async def _clamped_share(api, db_session) -> str:
 
 
 LEAKS = ("T-before", "T-after", "G-before", "G-after", "Ghost", "2026-02-28", "2026-05-01", "2026-01-05", "2026-07-05",
-         "ghostcore")
+         "ghostcore", "1960")
 
 CLAMP_CASES = {
     "artist": ("artist?artist=Ana", lambda b: b["listens"] == 2),
@@ -290,6 +292,8 @@ CLAMP_CASES = {
         "genres": [{"genre": "pop", "listens": 2, "artists": 1}], "artists": 1, "tagged_artists": 1}),
     "genre": ("genre?genre=pop", lambda b: b == {
         "genre": "pop", "listens": 2, "seconds": 0, "artists": 1}),
+    "decades": ("decades", lambda b: b == {
+        "decades": [{"decade": 1990, "listens": 2}], "known": 2, "unknown": 0, "pending": 0}),
     "top-artists-genre": ("top-artists?genre=pop",
                           lambda b: [(a["artist"], a["count"]) for a in b] == [("Ana", 2)]),
     "top-artists-other-genre": ("top-artists?genre=ghostcore", lambda b: b == []),

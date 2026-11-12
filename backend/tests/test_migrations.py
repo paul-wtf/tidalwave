@@ -68,9 +68,9 @@ async def test_head_upgrades_a_database_at_the_previous_revision(scratch):
 
     assert await conn.fetchval("SELECT version_num FROM alembic_version") == head
     assert await conn.fetchval("SELECT count(*) FROM listens") == 1
-    await conn.execute("INSERT INTO artist_tags (artist, tags) VALUES ('Kavinsky', '{}')")
-    row = await conn.fetchrow("SELECT * FROM artist_tags")
-    assert row["tags"] == []
+    await conn.execute("INSERT INTO album_years (artist, album) VALUES ('Kavinsky', 'OutRun')")
+    row = await conn.fetchrow("SELECT * FROM album_years")
+    assert row["year"] is None
     assert row["fetched_at"] is not None
 
 

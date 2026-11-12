@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     # carries the tags and forwards to /?share=<token>.
     frontend_url: str = ""
 
+    # Release years are looked up here, at most this many albums per poll run.
+    # MusicBrainz allows one request per second, so the budget bounds how long
+    # a run takes. 0 turns the lookups off.
+    musicbrainz_url: str = "https://musicbrainz.org/ws/2"
+    musicbrainz_budget: int = Field(default=30, ge=0)
+
     registration_mode: Literal["open", "allowlist"] = "allowlist"
     registration_allowlist: Annotated[list[str], NoDecode] = Field(default_factory=list)
 

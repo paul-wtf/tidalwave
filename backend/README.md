@@ -40,6 +40,8 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `TIDALWAVE_REGISTRATION_ALLOWLIST` | *(empty)* | Comma-separated list of Last.fm usernames permitted to register when `REGISTRATION_MODE=allowlist`. Example: `alice,bob`. |
 | `TIDALWAVE_SESSION_SECRET` | `dev-insecure-change-me` | Secret used to sign the session cookie with itsdangerous. **Must be set to a strong random value in production.** |
 | `TIDALWAVE_FRONTEND_URL` | *(empty)* | Base URL the backend fetches the frontend's `index.html` from, to serve `/s/<token>` with link-preview tags. Needs the ingress to route `/s/` to the backend. Empty: `/s/<token>` on the backend answers with a small page that carries the tags and forwards to `/?share=<token>`. |
+| `TIDALWAVE_MUSICBRAINZ_URL` | `https://musicbrainz.org/ws/2` | Base URL of the MusicBrainz API, which the poll asks for album release years. Point it at a mirror if you run one. |
+| `TIDALWAVE_MUSICBRAINZ_BUDGET` | `30` | Albums whose release year one poll run looks up. MusicBrainz allows one request per second and an album takes one or two, so 30 albums add up to a minute to a run. `0` turns the lookups off. |
 | `TIDALWAVE_LOG_LEVEL` | `INFO` | Python logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
 
 ---
@@ -99,6 +101,7 @@ Hours, weekdays, days and period buckets are computed in the user's timezone
 | `GET` | `/stats/artist` | `artist` | Detail for one artist: listens, seconds, rank, first and last listen, cover. 404 without any listen. |
 | `GET` | `/stats/album` | `artist`, `album` | Detail for one album. |
 | `GET` | `/stats/track` | `artist`, `track` | Detail for one track, with its most-listened album. |
+| `GET` | `/stats/decades` | | Listens by the decade their album first came out: `{"decades": [{"decade": 1990, "listens": N}], "known": N, "unknown": N, "pending": N}`. Decades between the first and the last one are listed even when empty. `unknown` counts the listens without a known year, and `pending` the part of them that carries a MusicBrainz id and has not been looked up yet. |
 | `GET` | `/stats/discoveries` | `limit` | New artists, new tracks and rediscoveries in the range. |
 | `GET` | `/stats/genres` | `limit` | Genres ranked by the listens of their artists: `{"genres": [{"genre", "listens", "artists"}], "artists": N, "tagged_artists": M}`. An artist's listens count in full for each of its first three tags. `artists` is the number of artists in the range and `tagged_artists` how many of them have been looked up on Last.fm, so a client can tell when the ranking is still filling in. |
 | `GET` | `/stats/genre` | `genre` | Totals for one genre in the range: listens, seconds and artists. 404 when no artist the user has listened to carries the tag among its first three. |
@@ -177,6 +180,12 @@ tidalwave-backfill-covers
 
 ```bash
 tidalwave-backfill-tags
+```
+
+**Release years**: the poll looks up the release year of up to `TIDALWAVE_MUSICBRAINZ_BUDGET` albums per run on MusicBrainz, using the album and track ids Last.fm sends with a scrobble. Albums whose scrobbles carry neither id stay without a year. This works through every album that has not been asked for yet, at one request per second:
+
+```bash
+tidalwave-backfill-years
 ```
 
 All commands read configuration from the same `TIDALWAVE_*` environment variables as the server.

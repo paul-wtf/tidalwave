@@ -20,3 +20,16 @@ def test_invalid_registration_mode_rejected(monkeypatch):
     monkeypatch.setenv("TIDALWAVE_REGISTRATION_MODE", "nonsense")
     with pytest.raises(ValueError):
         Settings()
+
+
+def test_musicbrainz_defaults_and_overrides(monkeypatch):
+    s = Settings()
+    assert s.musicbrainz_url == "https://musicbrainz.org/ws/2"
+    assert s.musicbrainz_budget == 30
+    monkeypatch.setenv("TIDALWAVE_MUSICBRAINZ_URL", "http://mirror.test/ws/2")
+    monkeypatch.setenv("TIDALWAVE_MUSICBRAINZ_BUDGET", "0")
+    s = Settings()
+    assert (s.musicbrainz_url, s.musicbrainz_budget) == ("http://mirror.test/ws/2", 0)
+    monkeypatch.setenv("TIDALWAVE_MUSICBRAINZ_BUDGET", "-1")
+    with pytest.raises(ValueError):
+        Settings()

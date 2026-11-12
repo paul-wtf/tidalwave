@@ -363,6 +363,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stats/decades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Decades */
+        get: operations["decades_stats_decades_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/stats/discoveries": {
         parameters: {
             query?: never;
@@ -729,6 +746,23 @@ export interface paths {
         };
         /** Genre Detail */
         get: operations["genre_detail_shared__token__genre_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shared/{token}/decades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Decades */
+        get: operations["decades_shared__token__decades_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1704,6 +1738,42 @@ export interface operations {
             };
         };
     };
+    decades_stats_decades_get: {
+        parameters: {
+            query?: {
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     discoveries_stats_discoveries_get: {
         parameters: {
             query?: {
@@ -2516,6 +2586,44 @@ export interface operations {
         parameters: {
             query: {
                 genre: string;
+                since?: string | null;
+                until?: string | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decades_shared__token__decades_get: {
+        parameters: {
+            query?: {
                 since?: string | null;
                 until?: string | null;
                 start?: string | null;

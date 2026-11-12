@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from tidalwave.auth.service import upsert_user_from_session
 from tidalwave.auth.session import COOKIE_NAME, SessionCodec
 from tidalwave.ingest.repository import upsert_listens
-from tidalwave.models.db import ArtistTags
+from tidalwave.models.db import AlbumYear, ArtistTags
 from tidalwave.models.domain import Scrobble
 
 
@@ -284,3 +284,24 @@ async def test_genres_and_genre_page_endpoints(api, db_session):
     )
     assert [p["listens"] for p in metrics.json()] == [2]
     assert (await client.get("/stats/genres")).status_code == 401
+
+
+async def test_decades_endpoint(api, db_session):
+    client, app = api
+    user = await upsert_user_from_session(db_session, "decade_user", "sk_d", mode="open", allowlist=[])
+    await upsert_listens(db_session, user.id, [
+        Scrobble(artist="Morcheeba", track_title="a", album="Big Calm", played_at=datetime(2024, 6, 1, tzinfo=UTC)),
+        Scrobble(artist="Morcheeba", track_title="b", album=None, played_at=datetime(2024, 6, 2, tzinfo=UTC)),
+    ])
+    db_session.add(AlbumYear(artist="Morcheeba", album="Big Calm", year=1998))
+    await db_session.flush()
+    headers = {"Cookie": f"{COOKIE_NAME}={SessionCodec('test-secret').encode(user.id)}"}
+
+    resp = await client.get("/stats/decades", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "decades": [{"decade": 1990, "listens": 1}], "known": 1, "unknown": 1, "pending": 0,
+    }
+    later = await client.get("/stats/decades?since=2024-06-01T12:00:00Z", headers=headers)
+    assert later.json() == {"decades": [], "known": 0, "unknown": 1, "pending": 0}
+    assert (await client.get("/stats/decades")).status_code == 401

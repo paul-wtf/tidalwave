@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from tidalwave.deps import get_lastfm_client, get_session
 from tidalwave.lastfm.client import LastfmClient
 from tidalwave.stats import details, insights, queries
+from tidalwave.stats import decades as decade_queries
 from tidalwave.stats import genres as genre_queries
 from tidalwave.stats import search as search_queries
 from tidalwave.stats.now_playing import now_playing as fetch_now_playing
@@ -181,6 +182,13 @@ def make_stats_router(scope_dep) -> APIRouter:
         session: AsyncSession = Depends(get_session),
     ) -> dict:
         return _found(await genre_queries.genre_detail(session, scope, genre))
+
+    @router.get("/decades")
+    async def decades(
+        scope: Scope = Depends(scope_dep),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        return await decade_queries.decades(session, scope)
 
     @router.get("/discoveries")
     async def discoveries(
