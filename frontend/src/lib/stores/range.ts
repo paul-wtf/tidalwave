@@ -93,6 +93,32 @@ export function rangeLabel(sel: RangeSel): string {
   return list.find((r) => r.key === sel.key)?.label ?? '';
 }
 
+export type MovingKey =
+  | 'rolling_7d' | 'rolling_30d' | 'rolling_365d' | 'this_week' | 'this_month' | 'this_year';
+
+const MOVING: Record<MovingKey, RangeSel> = {
+  rolling_7d: { kind: 'rolling', key: '7d' },
+  rolling_30d: { kind: 'rolling', key: '30d' },
+  rolling_365d: { kind: 'rolling', key: '365d' },
+  this_week: { kind: 'calendar', key: 'this_week' },
+  this_month: { kind: 'calendar', key: 'this_month' },
+  this_year: { kind: 'calendar', key: 'this_year' }
+};
+
+/** The symbol a share can store to follow this selection, if it has one. */
+export function movingKey(sel: RangeSel): MovingKey | null {
+  if (sel.kind === 'custom') return null;
+  const found = (Object.keys(MOVING) as MovingKey[]).find((k) => {
+    const m = MOVING[k];
+    return m.kind === sel.kind && 'key' in m && m.key === sel.key;
+  });
+  return found ?? null;
+}
+
+export function movingLabel(key: string): string {
+  return Object.hasOwn(MOVING, key) ? rangeLabel(MOVING[key as MovingKey]) : key;
+}
+
 type Ymd = [number, number, number];
 
 function parseYmd(s: string): Ymd {

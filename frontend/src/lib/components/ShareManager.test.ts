@@ -166,4 +166,54 @@ describe('ShareManager', () => {
     range.set({ kind: 'rolling', key: 'all' });
     await waitFor(() => expect(screen.getByLabelText('All time')).toBeChecked());
   });
+
+  it.each([
+    [{ kind: 'rolling', key: '7d' }, 'Last 7 days, keeps moving', 'rolling_7d'],
+    [{ kind: 'rolling', key: '30d' }, 'Last 30 days, keeps moving', 'rolling_30d'],
+    [{ kind: 'rolling', key: '365d' }, 'Last 365 days, keeps moving', 'rolling_365d'],
+    [{ kind: 'calendar', key: 'this_week' }, 'This week, keeps moving', 'this_week'],
+    [{ kind: 'calendar', key: 'this_month' }, 'This month, keeps moving', 'this_month'],
+    [{ kind: 'calendar', key: 'this_year' }, 'This year, keeps moving', 'this_year']
+  ] as const)('offers a moving share for %o', async (sel, label, key) => {
+    range.set(sel);
+    const m = mockApi({ '/shares': [], 'POST /shares': share('NEW', { range_key: key }) });
+    render(ShareManager);
+    await openPopover();
+    await screen.findByText('No active links');
+    await userEvent.click(screen.getByLabelText(label));
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await screen.findByText(/\/s\/NEW$/);
+    expect(JSON.parse(m.bodies['POST /shares'])).toEqual({ range_key: key });
+  });
+
+  it.each([
+    [{ kind: 'rolling', key: '24h' }],
+    [{ kind: 'rolling', key: 'all' }],
+    [{ kind: 'calendar', key: 'last_month' }],
+    [{ kind: 'custom', from: '2026-10-01', to: '2026-10-31' }]
+  ] as const)('offers no moving share for %o', async (sel) => {
+    range.set(sel);
+    mockApi({ '/shares': [] });
+    render(ShareManager);
+    await openPopover();
+    await screen.findByText('No active links');
+    expect(screen.queryByLabelText(/keeps moving/)).not.toBeInTheDocument();
+  });
+
+  it('falls back to a fixed choice when the selection can no longer move', async () => {
+    mockApi({ '/shares': [] });
+    render(ShareManager);
+    await openPopover();
+    await screen.findByText('No active links');
+    await userEvent.click(screen.getByLabelText('Last 30 days, keeps moving'));
+    range.set({ kind: 'calendar', key: 'last_month' });
+    await waitFor(() => expect(screen.getByLabelText(/Current range/)).toBeChecked());
+  });
+
+  it('names the moving range of a share in the list', async () => {
+    mockApi({ '/shares': [share('AAA', { label: 'Live', range_key: 'this_month' })] });
+    render(ShareManager);
+    await openPopover();
+    expect(await screen.findByText('This month, keeps moving')).toBeInTheDocument();
+  });
 });

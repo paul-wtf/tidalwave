@@ -41,6 +41,7 @@ export interface Share {
   label: string | null;
   range_from: string | null;
   range_to: string | null;
+  range_key?: string | null;
   created_at: string;
 }
 export interface ShareCreate {
@@ -49,6 +50,7 @@ export interface ShareCreate {
   range_to?: string | null;
   start?: string | null;
   end?: string | null;
+  range_key?: string | null;
 }
 export interface ArtistDetail {
   artist: string; listens: number; seconds: number; rank: number | null;
