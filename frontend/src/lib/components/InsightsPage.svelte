@@ -1,7 +1,8 @@
 <script lang="ts">
   import {
     statsApi,
-    type Discoveries as DiscoveriesData, type Genres as GenresData, type Heatmap as HeatmapData,
+    type Decades as DecadesData, type Discoveries as DiscoveriesData, type Genres as GenresData,
+    type Heatmap as HeatmapData,
     type Milestones as MilestonesData,
     type OnThisDayYear, type Records as RecordsData
   } from '$lib/api/client';
@@ -15,6 +16,7 @@
   import HourWeekdayGrid from './HourWeekdayGrid.svelte';
   import Discoveries from './Discoveries.svelte';
   import Genres from './Genres.svelte';
+  import Decades from './Decades.svelte';
 
   let { token }: { token?: string } = $props();
 
@@ -29,6 +31,7 @@
   let hourWeekday = $state<number[][]>([]);
   let discoveries = $state<DiscoveriesData | null>(null);
   let genres = $state<GenresData | null>(null);
+  let decades = $state<DecadesData | null>(null);
   let error = $state(false);
 
   $effect(() => {
@@ -45,11 +48,12 @@
         client.heatmap(params),
         client.hourWeekday(params),
         skipDiscoveries ? Promise.resolve(null) : client.discoveries(params),
-        client.genres(10, params)
+        client.genres(10, params),
+        client.decades(params)
       ]),
-      ([o, r, m, h, g, d, ge]) => {
+      ([o, r, m, h, g, d, ge, de]) => {
         onThisDay = o; records = r; milestones = m; heatmap = h; hourWeekday = g; discoveries = d;
-        genres = ge;
+        genres = ge; decades = de;
       },
       (st) => (error = st !== 'ok')
     );
@@ -65,7 +69,12 @@
     {#if milestones}<Milestones {milestones} {base} {tz} />{/if}
     <Heatmap {heatmap} />
     <HourWeekdayGrid grid={hourWeekday} {tz} />
-    {#if genres}<Genres {genres} {base} />{/if}
+    {#if genres && decades}
+      <div class="row charts">
+        <Genres {genres} {base} />
+        <Decades {decades} />
+      </div>
+    {/if}
     {#if allTime}
       <section class="glass">
         <h2>Discoveries</h2>

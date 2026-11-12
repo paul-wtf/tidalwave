@@ -96,6 +96,12 @@ export interface Genres {
   artists: number;
   tagged_artists: number;
 }
+export interface Decades {
+  decades: { decade: number; listens: number }[];
+  known: number;
+  unknown: number;
+  pending: number;
+}
 export interface GenreDetail { genre: string; listens: number; seconds: number; artists: number; }
 export interface NowPlaying {
   track: string; artist: string; album: string | null; image_url: string | null;
@@ -137,6 +143,7 @@ export interface StatsApi {
   track(artist: string, track: string, p?: StatsParams): Promise<TrackDetail>;
   genres(limit: number, p?: StatsParams): Promise<Genres>;
   genre(name: string, p?: StatsParams): Promise<GenreDetail>;
+  decades(p?: StatsParams): Promise<Decades>;
   discoveries(p?: StatsParams): Promise<Discoveries>;
   onThisDay(): Promise<OnThisDayYear[]>;
   records(p?: StatsParams): Promise<Records>;
@@ -166,6 +173,7 @@ export function statsApi(token?: string): StatsApi {
     track: (artist, track, p) => get('/track', { artist, track, ...p }),
     genres: (limit, p) => get('/genres', { limit, ...p }),
     genre: (name, p) => get('/genre', { genre: name, ...p }),
+    decades: (p) => get('/decades', { ...p }),
     discoveries: (p) => get('/discoveries', { ...p }),
     onThisDay: () => get('/on-this-day', {}),
     records: (p) => get('/records', { ...p }),
