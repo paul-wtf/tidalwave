@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     # carries the tags and forwards to /?share=<token>.
     frontend_url: str = ""
 
+    # Base URL of a linkhop instance. When set, the frontend offers a link that
+    # searches an item on every streaming service at once.
+    linkhop_url: str = ""
+
     # Release years are looked up here, at most this many albums per poll run.
     # MusicBrainz allows one request per second, so the budget bounds how long
     # a run takes. 0 turns the lookups off.
@@ -47,4 +51,12 @@ class Settings(BaseSettings):
     def _split_csv(cls, v: object) -> object:
         if isinstance(v, str):
             return [s.strip() for s in v.split(",") if s.strip()]
+        return v
+
+    @field_validator("linkhop_url")
+    @classmethod
+    def _web_address(cls, v: str) -> str:
+        v = v.strip().rstrip("/")
+        if v and not v.startswith(("http://", "https://")):
+            raise ValueError("linkhop_url must start with http:// or https://")
         return v

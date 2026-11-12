@@ -176,3 +176,20 @@ async def test_patch_me_rejects_nul_in_timezone_without_a_server_error(api, db_s
         assert resp.status_code == 422, tz
     await db_session.refresh(user)
     assert user.timezone is None
+
+
+async def test_config_is_public_and_empty_by_default(api):
+    client, app = api
+    resp = await client.get("/auth/config")
+    assert resp.status_code == 200
+    assert resp.json() == {"linkhop_url": None}
+
+
+async def test_config_reports_the_linkhop_url_without_a_trailing_slash(api, monkeypatch):
+    from tidalwave.deps import get_settings
+
+    client, app = api
+    monkeypatch.setenv("TIDALWAVE_LINKHOP_URL", "https://linkhop.example/")
+    get_settings.cache_clear()
+    resp = await client.get("/auth/config")
+    assert resp.json() == {"linkhop_url": "https://linkhop.example"}

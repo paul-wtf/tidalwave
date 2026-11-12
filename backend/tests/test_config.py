@@ -33,3 +33,12 @@ def test_musicbrainz_defaults_and_overrides(monkeypatch):
     monkeypatch.setenv("TIDALWAVE_MUSICBRAINZ_BUDGET", "-1")
     with pytest.raises(ValueError):
         Settings()
+
+
+def test_linkhop_url_is_empty_by_default_and_must_be_a_web_address(monkeypatch):
+    assert Settings().linkhop_url == ""
+    monkeypatch.setenv("TIDALWAVE_LINKHOP_URL", "https://linkhop.example/app/")
+    assert Settings().linkhop_url == "https://linkhop.example/app"
+    monkeypatch.setenv("TIDALWAVE_LINKHOP_URL", "javascript:alert(1)")
+    with pytest.raises(ValueError):
+        Settings()

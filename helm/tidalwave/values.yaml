@@ -61,6 +61,10 @@ config:
   # (owner, range, listens, top artist, cover). Routes /s/ to the backend,
   # which wraps the frontend's index.html.
   sharePreviews: true
+  # -- Base URL of a linkhop instance, e.g. https://linkhop.example. When set,
+  # every item gets a link that opens it as a search there, next to the
+  # links to the single services.
+  linkhopUrl: ""
 
 # -- Sensitive credentials
 secrets:

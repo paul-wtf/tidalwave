@@ -80,6 +80,13 @@ async def logout() -> Response:
     return resp
 
 
+@router.get("/config")
+async def config(settings: Settings = Depends(get_settings)) -> dict:
+    """Settings the static frontend needs, readable without a session so that
+    share views get them too."""
+    return {"linkhop_url": settings.linkhop_url or None}
+
+
 class MeUpdate(BaseModel):
     timezone: str
 

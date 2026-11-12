@@ -40,6 +40,7 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `TIDALWAVE_REGISTRATION_ALLOWLIST` | *(empty)* | Comma-separated list of Last.fm usernames permitted to register when `REGISTRATION_MODE=allowlist`. Example: `alice,bob`. |
 | `TIDALWAVE_SESSION_SECRET` | `dev-insecure-change-me` | Secret used to sign the session cookie with itsdangerous. **Must be set to a strong random value in production.** |
 | `TIDALWAVE_FRONTEND_URL` | *(empty)* | Base URL the backend fetches the frontend's `index.html` from, to serve `/s/<token>` with link-preview tags. Needs the ingress to route `/s/` to the backend. Empty: `/s/<token>` on the backend answers with a small page that carries the tags and forwards to `/?share=<token>`. |
+| `TIDALWAVE_LINKHOP_URL` | *(empty)* | Base URL of a [linkhop](https://github.com/paul-wtf/linkhop) instance, `http://` or `https://`. When set, the frontend shows one more icon next to the platform links, which opens `<url>/?q=<artist title>` there. Empty: no icon. |
 | `TIDALWAVE_MUSICBRAINZ_URL` | `https://musicbrainz.org/ws/2` | Base URL of the MusicBrainz API, which the poll asks for album release years. Point it at a mirror if you run one. |
 | `TIDALWAVE_MUSICBRAINZ_BUDGET` | `30` | Albums whose release year one poll run looks up. MusicBrainz allows one request per second and an album takes one or two, so 30 albums add up to a minute to a run. `0` turns the lookups off. |
 | `TIDALWAVE_LOG_LEVEL` | `INFO` | Python logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
@@ -72,6 +73,7 @@ All settings are read from environment variables prefixed with `TIDALWAVE_` (or 
 | `GET` | `/auth/login` | None | Redirects to Last.fm authorization page. |
 | `GET` | `/auth/callback` | None | Receives Last.fm token, creates/logs in user, sets session cookie. |
 | `POST` | `/auth/logout` | None | Clears session cookie. |
+| `GET` | `/auth/config` | None | Settings the static frontend reads at start, also in share views: `{"linkhop_url": <url or null>}`. |
 | `GET` | `/auth/me` | Session | Username, admin flag, timezone, `disconnected`, `last_synced_at` and `last_played_at`. |
 | `PATCH` | `/auth/me` | Session | Sets the timezone: `{"timezone": "<IANA name>"}`, 422 for an unknown name. |
 | `DELETE` | `/auth/me` | Session | Deletes the user with their listens, shares and sync state, and clears the session cookie. The shared `album_art` and `track_durations` caches stay. |
