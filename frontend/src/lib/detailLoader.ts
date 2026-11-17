@@ -1,5 +1,5 @@
-import { ApiError } from '$lib/api/client';
-import { loadMe } from '$lib/stores/auth';
+import { ApiError } from '#lib/api/client.ts';
+import { loadMe } from '#lib/stores/auth.ts';
 
 export type DetailState = 'ok' | 'notFound' | 'error';
 

@@ -1,10 +1,10 @@
 <!-- frontend/src/lib/components/ShareManager.svelte -->
 <script lang="ts">
   import { onDestroy, tick } from 'svelte';
-  import { api, type Share, type ShareCreate } from '$lib/api/client';
-  import { auth } from '$lib/stores/auth';
-  import { range, rangeLabel, toParams, movingKey, movingLabel } from '$lib/stores/range';
-  import { compactHeader, shareOpen } from '$lib/stores/header';
+  import { api, type Share, type ShareCreate } from '#lib/api/client.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import { range, rangeLabel, toParams, movingKey, movingLabel } from '#lib/stores/range.ts';
+  import { compactHeader, shareOpen } from '#lib/stores/header.ts';
 
   let busy = $state(false);
   let loaded = $state(false);

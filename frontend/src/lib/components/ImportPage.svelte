@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { api, ApiError, type ImportJob } from '$lib/api/client';
-  import { auth } from '$lib/stores/auth';
-  import { formatCount, formatLongDate, formatLongDateTime } from '$lib/format';
+  import { api, ApiError, type ImportJob } from '#lib/api/client.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import { formatCount, formatLongDate, formatLongDateTime } from '#lib/format.ts';
 
   let { pollMs = 1500 }: { pollMs?: number } = $props();
 

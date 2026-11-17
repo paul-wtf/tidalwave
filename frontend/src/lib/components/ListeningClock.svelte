@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { formatCount } from '$lib/format';
-  import { dialPoint, dialSector } from '$lib/dial';
+  import { formatCount } from '#lib/format.ts';
+  import { dialPoint, dialSector } from '#lib/dial.ts';
 
   let { hours, tz = 'UTC' }: { hours: number[]; tz?: string | null } = $props();
 

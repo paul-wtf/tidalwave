@@ -2,13 +2,13 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import ShareManager from './ShareManager.svelte';
-import { mockApi } from '$lib/test/mockApi';
-import { range } from '$lib/stores/range';
-import { api } from '$lib/api/client';
-import { auth } from '$lib/stores/auth';
+import { mockApi } from '#lib/test/mockApi.ts';
+import { range } from '#lib/stores/range.ts';
+import { api } from '#lib/api/client.ts';
+import { auth } from '#lib/stores/auth.ts';
 import { get } from 'svelte/store';
-import { shareOpen } from '$lib/stores/header';
-import { compactHeaderOn } from '$lib/test/compactHeader';
+import { shareOpen } from '#lib/stores/header.ts';
+import { compactHeaderOn } from '#lib/test/compactHeader.ts';
 
 const share = (token: string, extra: Record<string, unknown> = {}) => ({
   share_token: token,

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
-import { mockApi } from '$lib/test/mockApi';
+import { mockApi } from '#lib/test/mockApi.ts';
 import { config, loadConfig } from './config';
 
 describe('config store', () => {

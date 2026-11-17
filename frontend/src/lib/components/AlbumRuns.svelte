@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { AlbumRuns } from '$lib/api/client';
-  import { formatCount, formatDuration, formatLocalDate, formatLongDateTime } from '$lib/format';
-  import { albumHref, artistHref } from '$lib/links';
+  import type { AlbumRuns } from '#lib/api/client.ts';
+  import { formatCount, formatDuration, formatLocalDate, formatLongDateTime } from '#lib/format.ts';
+  import { albumHref, artistHref } from '#lib/links.ts';
   import Cover from './Cover.svelte';
 
   // `single`: the runs of one album, for its own page. The heading carries the

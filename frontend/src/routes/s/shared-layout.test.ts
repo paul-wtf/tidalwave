@@ -1,11 +1,8 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
-import { stubFetch } from '$lib/test/stubFetch';
+import { stubFetch } from '#lib/test/stubFetch.ts';
 
-vi.mock('$app/stores', async () => {
-  const { readable } = await import('svelte/store');
-  return { page: readable({ url: new URL('http://localhost/s/tok') }) };
-});
+vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/s/tok') } }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 import SharedLayout from './[token]/+layout.svelte';

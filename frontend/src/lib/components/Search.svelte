@@ -1,8 +1,8 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { statsApi, type SearchResults } from '$lib/api/client';
-  import { rangeQuery } from '$lib/stores/range';
-  import { artistHref, albumHref, trackHref } from '$lib/links';
+  import { statsApi, type SearchResults } from '#lib/api/client.ts';
+  import { rangeQuery } from '#lib/stores/range.ts';
+  import { artistHref, albumHref, trackHref } from '#lib/links.ts';
   import Cover from './Cover.svelte';
 
   let { token }: { token?: string } = $props();

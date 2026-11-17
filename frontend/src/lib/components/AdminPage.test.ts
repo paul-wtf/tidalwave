@@ -2,9 +2,9 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import AdminPage from './AdminPage.svelte';
-import { auth } from '$lib/stores/auth';
-import type { AdminUser, Allowlist } from '$lib/api/client';
-import { stubFetch, type Handler } from '$lib/test/stubFetch';
+import { auth } from '#lib/stores/auth.ts';
+import type { AdminUser, Allowlist } from '#lib/api/client.ts';
+import { stubFetch, type Handler } from '#lib/test/stubFetch.ts';
 
 const users: AdminUser[] = [
   { id: 1, username: 'paul', is_admin: true, disconnected: false, created_at: '2026-06-17T10:00:00Z',

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { api, statsApi, ApiError, type YearCount, type YearReview } from '$lib/api/client';
-  import { auth } from '$lib/stores/auth';
-  import { formatCount, formatLongDate, formatLongDateTime } from '$lib/format';
-  import { albumHref, artistHref, trackHref } from '$lib/links';
-  import { reveal } from '$lib/reveal';
+  import { api, statsApi, ApiError, type YearCount, type YearReview } from '#lib/api/client.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import { formatCount, formatLongDate, formatLongDateTime } from '#lib/format.ts';
+  import { albumHref, artistHref, trackHref } from '#lib/links.ts';
+  import { reveal } from '#lib/reveal.ts';
   import Cover from './Cover.svelte';
   import Genres from './Genres.svelte';
   import Decades from './Decades.svelte';

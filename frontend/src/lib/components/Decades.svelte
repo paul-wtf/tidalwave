@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Decades } from '$lib/api/client';
-  import { formatCount } from '$lib/format';
+  import type { Decades } from '#lib/api/client.ts';
+  import { formatCount } from '#lib/format.ts';
 
   let { decades }: { decades: Decades } = $props();
 

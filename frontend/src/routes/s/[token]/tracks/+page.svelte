@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TopPage from '$lib/components/TopPage.svelte';
+  import TopPage from '#lib/components/TopPage.svelte';
   let { data }: { data: { token: string } } = $props();
 </script>
 

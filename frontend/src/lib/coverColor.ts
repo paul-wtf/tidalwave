@@ -1,4 +1,4 @@
-import type { Theme } from '$lib/stores/theme';
+import type { Theme } from '#lib/stores/theme.ts';
 
 /** A colour's direction in OKLCH: hue in degrees and chroma. */
 export interface CoverColor {

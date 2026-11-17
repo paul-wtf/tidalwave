@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
 
   const DEFAULT_LINKS = [
     { href: '/', label: 'Overview' },
@@ -18,7 +18,7 @@
     path === link.href || (link.section === true && path.startsWith(`${link.href}/`));
 
   const shown = $derived(admin ? [...links, { href: '/admin', label: 'Admin' }] : links);
-  const here = $derived(shown.find((link) => current(link, $page.url.pathname)));
+  const here = $derived(shown.find((link) => current(link, page.url.pathname)));
 
   const uid = $props.id();
   const listId = `${uid}-sections`;
@@ -57,7 +57,7 @@
     {#each shown as link (link.href)}
       <a
         href={link.href}
-        aria-current={current(link, $page.url.pathname) ? 'page' : undefined}
+        aria-current={current(link, page.url.pathname) ? 'page' : undefined}
         onclick={() => (open = false)}
       >
         {link.label}

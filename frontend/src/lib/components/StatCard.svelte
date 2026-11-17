@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { formatCount } from '$lib/format';
-  import { prefersReducedMotion, tween } from '$lib/motion';
+  import { formatCount } from '#lib/format.ts';
+  import { prefersReducedMotion, tween } from '#lib/motion.ts';
 
   let { label, value, format = formatCount, sub, delta, compact = false }: {
     label: string;

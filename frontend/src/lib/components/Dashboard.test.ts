@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
 import Dashboard from './Dashboard.svelte';
-import { mockApi } from '$lib/test/mockApi';
-import { auth } from '$lib/stores/auth';
+import { mockApi } from '#lib/test/mockApi.ts';
+import { auth } from '#lib/stores/auth.ts';
 
 describe('Dashboard', () => {
   it('loads and renders the headline stats and top lists', async () => {

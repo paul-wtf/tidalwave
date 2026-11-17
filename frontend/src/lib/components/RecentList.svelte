@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { formatDateTime } from '$lib/format';
-  import type { RecentItem } from '$lib/api/client';
-  import { artistHref, trackHref } from '$lib/links';
+  import { formatDateTime } from '#lib/format.ts';
+  import type { RecentItem } from '#lib/api/client.ts';
+  import { artistHref, trackHref } from '#lib/links.ts';
   import Cover from './Cover.svelte';
   let { items, initial = 6, base = '', tz = 'UTC' }:
     { items: RecentItem[]; initial?: number; base?: string; tz?: string | null } = $props();

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Heatmap } from '$lib/api/client';
-  import { formatCount, formatLongDate } from '$lib/format';
+  import type { Heatmap } from '#lib/api/client.ts';
+  import { formatCount, formatLongDate } from '#lib/format.ts';
 
   let { heatmap }: { heatmap: Heatmap } = $props();
 

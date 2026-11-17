@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { api, ApiError, type InviteInfo } from '$lib/api/client';
+  import { api, ApiError, type InviteInfo } from '#lib/api/client.ts';
 
   let { token }: { token: string } = $props();
 

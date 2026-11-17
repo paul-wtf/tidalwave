@@ -1,6 +1,6 @@
 import { render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import { wavePaths } from '$lib/wave';
+import { wavePaths } from '#lib/wave.ts';
 import TrendWave from './TrendWave.svelte';
 
 describe('TrendWave', () => {

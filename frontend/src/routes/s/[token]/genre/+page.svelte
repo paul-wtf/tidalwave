@@ -1,5 +1,5 @@
 <script lang="ts">
-  import GenrePage from '$lib/components/GenrePage.svelte';
+  import GenrePage from '#lib/components/GenrePage.svelte';
   let { data }: { data: { token: string } } = $props();
 </script>
 

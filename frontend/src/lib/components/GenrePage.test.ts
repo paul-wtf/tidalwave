@@ -1,13 +1,10 @@
 import { render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mockApi } from '$lib/test/mockApi';
-import { range } from '$lib/stores/range';
+import { setUrl } from '#lib/test/pageState.ts';
+import { mockApi } from '#lib/test/mockApi.ts';
+import { range } from '#lib/stores/range.ts';
 
-const pageStore = vi.hoisted(() => {
-  const { writable } = require('svelte/store');
-  return writable({ url: new URL('http://localhost/genre?genre=french+house') });
-});
-vi.mock('$app/stores', () => ({ page: pageStore }));
+vi.mock('$app/state', () => import('#lib/test/pageState.ts'));
 
 import GenrePage from './GenrePage.svelte';
 
@@ -24,7 +21,7 @@ const heading = () => screen.getByRole('heading', { level: 1 });
 describe('GenrePage', () => {
   beforeEach(() => {
     range.set({ kind: 'rolling', key: '30d' });
-    pageStore.set({ url: new URL('http://localhost/genre?genre=french+house') });
+    setUrl(new URL('http://localhost/genre?genre=french+house'));
   });
 
   it('shows the totals and the top artists of the genre', async () => {

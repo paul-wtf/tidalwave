@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import {
     statsApi, type AlbumDetail, type AlbumRuns as AlbumRunsData, type MetricPoint
-  } from '$lib/api/client';
-  import { auth } from '$lib/stores/auth';
-  import { loadDetail } from '$lib/detailLoader';
-  import { rangeQuery } from '$lib/stores/range';
-  import { durationStat, formatLongDate } from '$lib/format';
-  import { artistHref } from '$lib/links';
-  import { trackItems, type ListItem } from '$lib/listItems';
+  } from '#lib/api/client.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import { loadDetail } from '#lib/detailLoader.ts';
+  import { rangeQuery } from '#lib/stores/range.ts';
+  import { durationStat, formatLongDate } from '#lib/format.ts';
+  import { artistHref } from '#lib/links.ts';
+  import { trackItems, type ListItem } from '#lib/listItems.ts';
   import DetailHeader from './DetailHeader.svelte';
   import AreaTrend from './AreaTrend.svelte';
   import TopList from './TopList.svelte';
@@ -17,8 +17,8 @@
   let { token }: { token?: string } = $props();
 
   const base = $derived(token ? `/s/${token}` : '');
-  const artistName = $derived($page.url.searchParams.get('artist') ?? '');
-  const albumName = $derived($page.url.searchParams.get('album') ?? '');
+  const artistName = $derived(page.url.searchParams.get('artist') ?? '');
+  const albumName = $derived(page.url.searchParams.get('album') ?? '');
   const tz = $derived(token ? null : ($auth.user?.timezone ?? 'UTC'));
 
   let detail = $state<AlbumDetail | null>(null);

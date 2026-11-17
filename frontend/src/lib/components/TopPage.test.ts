@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import TopPage from './TopPage.svelte';
-import { mockApi } from '$lib/test/mockApi';
+import { mockApi } from '#lib/test/mockApi.ts';
 
 describe('TopPage', () => {
   it('labels tracks with their artist so same-titled songs are distinguishable', async () => {

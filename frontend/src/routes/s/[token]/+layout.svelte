@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { statsApi } from '$lib/api/client';
-  import Header from '$lib/components/Header.svelte';
-  import Nav from '$lib/components/Nav.svelte';
-  import Search from '$lib/components/Search.svelte';
+  import { statsApi } from '#lib/api/client.ts';
+  import Header from '#lib/components/Header.svelte';
+  import Nav from '#lib/components/Nav.svelte';
+  import Search from '#lib/components/Search.svelte';
 
   let { data, children }: { data: { token: string }; children?: Snippet } = $props();
 

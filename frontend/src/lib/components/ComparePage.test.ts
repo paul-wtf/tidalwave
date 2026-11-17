@@ -2,9 +2,9 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ComparePage from './ComparePage.svelte';
-import { auth } from '$lib/stores/auth';
-import { stubFetch } from '$lib/test/stubFetch';
-import type { Comparisons } from '$lib/api/client';
+import { auth } from '#lib/stores/auth.ts';
+import { stubFetch } from '#lib/test/stubFetch.ts';
+import type { Comparisons } from '#lib/api/client.ts';
 
 const TOKEN = 'T'.repeat(43);
 const overview: Comparisons = {

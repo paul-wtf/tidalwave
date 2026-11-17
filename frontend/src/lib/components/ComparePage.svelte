@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { api, type ComparePair, type CompareInvite } from '$lib/api/client';
-  import { auth } from '$lib/stores/auth';
-  import { formatLongDate } from '$lib/format';
+  import { api, type ComparePair, type CompareInvite } from '#lib/api/client.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import { formatLongDate } from '#lib/format.ts';
 
   let pairs = $state<ComparePair[]>([]);
   let invites = $state<CompareInvite[]>([]);

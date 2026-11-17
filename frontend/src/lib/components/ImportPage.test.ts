@@ -2,9 +2,9 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ImportPage from './ImportPage.svelte';
-import { auth } from '$lib/stores/auth';
-import type { ImportJob } from '$lib/api/client';
-import { stubFetch, type Handler } from '$lib/test/stubFetch';
+import { auth } from '#lib/stores/auth.ts';
+import type { ImportJob } from '#lib/api/client.ts';
+import { stubFetch, type Handler } from '#lib/test/stubFetch.ts';
 
 const job = (over: Partial<ImportJob> = {}): ImportJob => ({
   id: 7, filename: 'Streaming_History_Audio_2019-2021_0.json', source: 'spotify', status: 'done',

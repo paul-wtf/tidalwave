@@ -6,10 +6,10 @@ const goto = vi.fn();
 vi.mock('$app/navigation', () => ({ goto: (...a: unknown[]) => goto(...a) }));
 
 import CompareView from './CompareView.svelte';
-import { auth } from '$lib/stores/auth';
-import { range } from '$lib/stores/range';
-import { stubFetch } from '$lib/test/stubFetch';
-import type { Comparison } from '$lib/api/client';
+import { auth } from '#lib/stores/auth.ts';
+import { range } from '#lib/stores/range.ts';
+import { stubFetch } from '#lib/test/stubFetch.ts';
+import type { Comparison } from '#lib/api/client.ts';
 
 const data: Comparison = {
   id: 3, partner: 'bob', created_at: '2026-11-01T10:00:00Z',

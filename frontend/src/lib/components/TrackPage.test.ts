@@ -1,13 +1,10 @@
 import { render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mockApi } from '$lib/test/mockApi';
-import { stubDeferredFetch } from '$lib/test/deferredFetch';
+import { setUrl } from '#lib/test/pageState.ts';
+import { mockApi } from '#lib/test/mockApi.ts';
+import { stubDeferredFetch } from '#lib/test/deferredFetch.ts';
 
-const pageStore = vi.hoisted(() => {
-  const { writable } = require('svelte/store');
-  return writable({ url: new URL('http://localhost/track?artist=Daft+Punk&track=Aerodynamic') });
-});
-vi.mock('$app/stores', () => ({ page: pageStore }));
+vi.mock('$app/state', () => import('#lib/test/pageState.ts'));
 
 import TrackPage from './TrackPage.svelte';
 
@@ -31,7 +28,7 @@ const section = (title: string) => within(screen.getByRole('heading', { name: ti
 const heading = () => screen.getByRole('heading', { level: 1 });
 
 describe('TrackPage', () => {
-  beforeEach(() => pageStore.set({ url: url('Aerodynamic') }));
+  beforeEach(() => setUrl(url('Aerodynamic')));
 
   it('renders the header stats from the detail response', async () => {
     mockApi(routes('/stats'));
@@ -100,7 +97,7 @@ describe('TrackPage', () => {
     const { calls } = mockApi(routes('/stats'));
     render(TrackPage);
     await waitFor(() => expect(heading()).toBeInTheDocument());
-    pageStore.set({ url: url('Other') });
+    setUrl(url('Other'));
     await waitFor(() =>
       expect(calls.some((c) => c.startsWith('/stats/track?') && c.includes('track=Other'))).toBe(true)
     );
@@ -121,9 +118,9 @@ describe('TrackPage', () => {
       },
       (u) => u.searchParams.get('track') === 'Slow'
     );
-    pageStore.set({ url: url('Slow') });
+    setUrl(url('Slow'));
     render(TrackPage);
-    pageStore.set({ url: url('Fast') });
+    setUrl(url('Fast'));
     await waitFor(() => expect(heading()).toHaveTextContent('Fast'));
     release();
     await new Promise((r) => setTimeout(r, 50));

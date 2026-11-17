@@ -1,9 +1,9 @@
 <script lang="ts">
   import '@fontsource-variable/jetbrains-mono';
   import '@fontsource-variable/jetbrains-mono/wght-italic.css';
-  import '$lib/theme/tokens.css';
+  import '#lib/theme/tokens.css';
   import { onMount } from 'svelte';
-  import { loadConfig } from '$lib/stores/config';
+  import { loadConfig } from '#lib/stores/config.ts';
   let { children } = $props();
 
   onMount(() => {

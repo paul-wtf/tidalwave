@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formatCount, weekdayName } from '$lib/format';
+  import { formatCount, weekdayName } from '#lib/format.ts';
 
   let { grid, tz = 'UTC' }: { grid: number[][]; tz?: string | null } = $props();
 

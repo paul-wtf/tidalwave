@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Records } from '$lib/api/client';
-  import { formatCount, formatDuration, formatLocalDate } from '$lib/format';
+  import type { Records } from '#lib/api/client.ts';
+  import { formatCount, formatDuration, formatLocalDate } from '#lib/format.ts';
 
   let { records, tz = 'UTC' }: { records: Records; tz?: string | null } = $props();
 

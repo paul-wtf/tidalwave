@@ -1,5 +1,5 @@
 <script lang="ts">
-  import YearReview from '$lib/components/YearReview.svelte';
+  import YearReview from '#lib/components/YearReview.svelte';
   let { data }: { data: { year: number } } = $props();
 </script>
 

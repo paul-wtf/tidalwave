@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { coverAccent, extractCoverColor, type CoverColor } from '$lib/coverColor';
-  import { theme } from '$lib/stores/theme';
+  import { coverAccent, extractCoverColor, type CoverColor } from '#lib/coverColor.ts';
+  import { theme } from '#lib/stores/theme.ts';
   import Cover from './Cover.svelte';
   import PlatformLinks from './PlatformLinks.svelte';
   import StatCard from './StatCard.svelte';

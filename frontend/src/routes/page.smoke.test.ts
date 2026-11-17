@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
-import Landing from '$lib/components/Landing.svelte';
+import Landing from '#lib/components/Landing.svelte';
 
 describe('landing', () => {
   it('shows the headline and the connect CTA when logged out', () => {

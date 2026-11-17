@@ -1,4 +1,4 @@
-import type { RaceArtist } from '$lib/api/client';
+import type { RaceArtist } from '#lib/api/client.ts';
 
 export const RACE_SIZE = 10;
 

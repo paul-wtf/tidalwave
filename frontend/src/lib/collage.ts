@@ -1,4 +1,4 @@
-import type { AlbumCount } from '$lib/api/client';
+import type { AlbumCount } from '#lib/api/client.ts';
 
 /** Edge of one tile in canvas pixels: the size Last.fm serves covers in. */
 export const TILE = 300;

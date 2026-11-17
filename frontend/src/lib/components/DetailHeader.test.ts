@@ -1,12 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { coverAccent, extractCoverColor } from '$lib/coverColor';
-import { theme } from '$lib/stores/theme';
+import { coverAccent, extractCoverColor } from '#lib/coverColor.ts';
+import { theme } from '#lib/stores/theme.ts';
 import DetailHeader from './DetailHeader.svelte';
 
-vi.mock('$lib/coverColor', async (original) => ({
-  ...(await original<typeof import('$lib/coverColor')>()),
+vi.mock('#lib/coverColor.ts', async (original) => ({
+  ...(await original<typeof import('#lib/coverColor.ts')>()),
   extractCoverColor: vi.fn()
 }));
 

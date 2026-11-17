@@ -3,11 +3,11 @@
     statsApi, ApiError,
     type Summary, type MetricPoint, type RecentItem,
     type ArtistCount, type TrackCount, type AlbumCount, type Sources
-  } from '$lib/api/client';
-  import { auth, loadMe } from '$lib/stores/auth';
-  import { rangeQuery } from '$lib/stores/range';
-  import { formatCount, formatDuration, formatLongDate } from '$lib/format';
-  import { artistItems, trackItems, albumItems, type ListItem } from '$lib/listItems';
+  } from '#lib/api/client.ts';
+  import { auth, loadMe } from '#lib/stores/auth.ts';
+  import { rangeQuery } from '#lib/stores/range.ts';
+  import { formatCount, formatDuration, formatLongDate } from '#lib/format.ts';
+  import { artistItems, trackItems, albumItems, type ListItem } from '#lib/listItems.ts';
   import StatCard from './StatCard.svelte';
   import AreaTrend from './AreaTrend.svelte';
   import TopList from './TopList.svelte';

@@ -2,10 +2,10 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Search from './Search.svelte';
-import { mockApi } from '$lib/test/mockApi';
-import { stubDeferredFetch } from '$lib/test/deferredFetch';
-import { auth } from '$lib/stores/auth';
-import { range } from '$lib/stores/range';
+import { mockApi } from '#lib/test/mockApi.ts';
+import { stubDeferredFetch } from '#lib/test/deferredFetch.ts';
+import { auth } from '#lib/stores/auth.ts';
+import { range } from '#lib/stores/range.ts';
 import { goto } from '$app/navigation';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));

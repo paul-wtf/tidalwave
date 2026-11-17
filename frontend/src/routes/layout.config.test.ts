@@ -1,8 +1,8 @@
 import { render, waitFor } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
-import { mockApi } from '$lib/test/mockApi';
-import { config } from '$lib/stores/config';
+import { mockApi } from '#lib/test/mockApi.ts';
+import { config } from '#lib/stores/config.ts';
 import Layout from './+layout.svelte';
 
 describe('root layout', () => {

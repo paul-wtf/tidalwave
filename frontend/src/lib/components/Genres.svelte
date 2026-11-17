@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Genres } from '$lib/api/client';
-  import { formatCount } from '$lib/format';
-  import { genreHref } from '$lib/links';
+  import type { Genres } from '#lib/api/client.ts';
+  import { formatCount } from '#lib/format.ts';
+  import { genreHref } from '#lib/links.ts';
 
   let { genres, base = '' }: { genres: Genres; base?: string } = $props();
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { statsApi, type NowPlaying } from '$lib/api/client';
-  import { artistHref, trackHref } from '$lib/links';
+  import { statsApi, type NowPlaying } from '#lib/api/client.ts';
+  import { artistHref, trackHref } from '#lib/links.ts';
   import Cover from './Cover.svelte';
 
   // The backend caches Last.fm's answer for 15 seconds, so asking more often

@@ -1,6 +1,6 @@
 import { derived, writable } from 'svelte/store';
-import { browser } from '$app/environment';
-import type { Bucket, StatsParams } from '$lib/api/client';
+import { browser } from '$app/env';
+import type { Bucket, StatsParams } from '#lib/api/client.ts';
 import { auth } from './auth';
 
 export type RollingKey = '24h' | '7d' | '30d' | '365d' | 'all';
