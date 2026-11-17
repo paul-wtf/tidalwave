@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mockApi } from '$lib/test/mockApi';
-import { range } from '$lib/stores/range';
+import { mockApi } from '#lib/test/mockApi.ts';
+import { range } from '#lib/stores/range.ts';
 import InsightsPage from './InsightsPage.svelte';
 
 const routes = (prefix: string) => ({

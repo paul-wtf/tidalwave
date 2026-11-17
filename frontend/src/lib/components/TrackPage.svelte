@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import {
     statsApi,
     type TrackDetail, type MetricPoint, type RecentItem
-  } from '$lib/api/client';
-  import { auth } from '$lib/stores/auth';
-  import { loadDetail } from '$lib/detailLoader';
-  import { rangeQuery } from '$lib/stores/range';
-  import { durationStat, formatLongDate } from '$lib/format';
-  import { artistHref, albumHref } from '$lib/links';
+  } from '#lib/api/client.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import { loadDetail } from '#lib/detailLoader.ts';
+  import { rangeQuery } from '#lib/stores/range.ts';
+  import { durationStat, formatLongDate } from '#lib/format.ts';
+  import { artistHref, albumHref } from '#lib/links.ts';
   import DetailHeader from './DetailHeader.svelte';
   import AreaTrend from './AreaTrend.svelte';
   import RecentList from './RecentList.svelte';
@@ -16,8 +16,8 @@
   let { token }: { token?: string } = $props();
 
   const base = $derived(token ? `/s/${token}` : '');
-  const artistName = $derived($page.url.searchParams.get('artist') ?? '');
-  const trackName = $derived($page.url.searchParams.get('track') ?? '');
+  const artistName = $derived(page.url.searchParams.get('artist') ?? '');
+  const trackName = $derived(page.url.searchParams.get('track') ?? '');
   const tz = $derived(token ? null : ($auth.user?.timezone ?? 'UTC'));
 
   let detail = $state<TrackDetail | null>(null);

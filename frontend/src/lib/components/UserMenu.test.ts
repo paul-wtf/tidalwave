@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { get } from 'svelte/store';
 import UserMenu from './UserMenu.svelte';
-import { auth } from '$lib/stores/auth';
-import { mockApi } from '$lib/test/mockApi';
-import type { Me } from '$lib/api/client';
-import { stubFetch } from '$lib/test/stubFetch';
-import { compactHeaderOn } from '$lib/test/compactHeader';
-import { shareOpen } from '$lib/stores/header';
-import { theme } from '$lib/stores/theme';
+import { auth } from '#lib/stores/auth.ts';
+import { mockApi } from '#lib/test/mockApi.ts';
+import type { Me } from '#lib/api/client.ts';
+import { stubFetch } from '#lib/test/stubFetch.ts';
+import { compactHeaderOn } from '#lib/test/compactHeader.ts';
+import { shareOpen } from '#lib/stores/header.ts';
+import { theme } from '#lib/stores/theme.ts';
 
 const me = (over: Partial<Me> = {}): Me => ({
   username: 'paul', is_admin: false, timezone: 'UTC', disconnected: false,

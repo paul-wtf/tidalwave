@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { formatDate } from '$lib/format';
-  import type { Bucket } from '$lib/api/client';
+  import { formatDate } from '#lib/format.ts';
+  import type { Bucket } from '#lib/api/client.ts';
 
   let {
     title,

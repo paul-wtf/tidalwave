@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { statsApi, type ArtistRace } from '$lib/api/client';
-  import { loadDetail } from '$lib/detailLoader';
-  import { formatCount, formatPeriod } from '$lib/format';
-  import { artistHref } from '$lib/links';
-  import { prefersReducedMotion } from '$lib/motion';
-  import { RACE_SIZE, standings, stepMs } from '$lib/race';
-  import { rangeQuery } from '$lib/stores/range';
+  import { statsApi, type ArtistRace } from '#lib/api/client.ts';
+  import { loadDetail } from '#lib/detailLoader.ts';
+  import { formatCount, formatPeriod } from '#lib/format.ts';
+  import { artistHref } from '#lib/links.ts';
+  import { prefersReducedMotion } from '#lib/motion.ts';
+  import { RACE_SIZE, standings, stepMs } from '#lib/race.ts';
+  import { rangeQuery } from '#lib/stores/range.ts';
   import Cover from './Cover.svelte';
 
   let { token }: { token?: string } = $props();

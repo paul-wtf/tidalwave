@@ -1,6 +1,6 @@
 <script lang="ts">
   import ThemeToggle from './ThemeToggle.svelte';
-  import { compactHeader } from '$lib/stores/header';
+  import { compactHeader } from '#lib/stores/header.ts';
   import type { Snippet } from 'svelte';
   let { nav, children, foldTheme = false }: { nav?: Snippet; children?: Snippet; foldTheme?: boolean } =
     $props();

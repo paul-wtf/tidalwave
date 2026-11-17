@@ -2,9 +2,9 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach } from 'vitest';
 import YearReview from './YearReview.svelte';
-import { auth } from '$lib/stores/auth';
-import type { YearReview as Review } from '$lib/api/client';
-import { stubFetch, type Handler } from '$lib/test/stubFetch';
+import { auth } from '#lib/stores/auth.ts';
+import type { YearReview as Review } from '#lib/api/client.ts';
+import { stubFetch, type Handler } from '#lib/test/stubFetch.ts';
 
 const summary = (total: number, seconds = 0) => ({
   total_listens: total, distinct_artists: 312, distinct_tracks: 2410, distinct_albums: 640,

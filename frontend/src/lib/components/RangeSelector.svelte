@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { range, ROLLING, CALENDAR, type RangeSel } from '$lib/stores/range';
+  import { range, ROLLING, CALENDAR, type RangeSel } from '#lib/stores/range.ts';
 
   const CUSTOM = 'custom';
   const CURRENT = 'custom:current';

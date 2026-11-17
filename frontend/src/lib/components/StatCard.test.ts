@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { formatDuration } from '$lib/format';
+import { formatDuration } from '#lib/format.ts';
 import StatCard from './StatCard.svelte';
 
 describe('StatCard delta', () => {

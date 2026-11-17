@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import {
     statsApi,
     type ArtistDetail, type MetricPoint, type RecentItem
-  } from '$lib/api/client';
-  import { auth } from '$lib/stores/auth';
-  import { loadDetail } from '$lib/detailLoader';
-  import { rangeQuery } from '$lib/stores/range';
-  import { formatCount, durationStat, formatLongDate } from '$lib/format';
-  import { trackItems, albumItems, type ListItem } from '$lib/listItems';
+  } from '#lib/api/client.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import { loadDetail } from '#lib/detailLoader.ts';
+  import { rangeQuery } from '#lib/stores/range.ts';
+  import { formatCount, durationStat, formatLongDate } from '#lib/format.ts';
+  import { trackItems, albumItems, type ListItem } from '#lib/listItems.ts';
   import DetailHeader from './DetailHeader.svelte';
   import AreaTrend from './AreaTrend.svelte';
   import TopList from './TopList.svelte';
@@ -17,7 +17,7 @@
   let { token }: { token?: string } = $props();
 
   const base = $derived(token ? `/s/${token}` : '');
-  const name = $derived($page.url.searchParams.get('artist') ?? '');
+  const name = $derived(page.url.searchParams.get('artist') ?? '');
   const tz = $derived(token ? null : ($auth.user?.timezone ?? 'UTC'));
 
   let detail = $state<ArtistDetail | null>(null);

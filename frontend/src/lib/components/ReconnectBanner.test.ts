@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
 import ReconnectBanner from './ReconnectBanner.svelte';
-import { auth } from '$lib/stores/auth';
-import type { Me } from '$lib/api/client';
+import { auth } from '#lib/stores/auth.ts';
+import type { Me } from '#lib/api/client.ts';
 
 const me = (disconnected: boolean): Me => ({
   username: 'paul', is_admin: false, timezone: 'UTC', disconnected,

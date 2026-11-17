@@ -5,10 +5,10 @@
     type Heatmap as HeatmapData,
     type Milestones as MilestonesData,
     type OnThisDayYear, type Records as RecordsData
-  } from '$lib/api/client';
-  import { auth } from '$lib/stores/auth';
-  import { loadDetail } from '$lib/detailLoader';
-  import { range, rangeQuery } from '$lib/stores/range';
+  } from '#lib/api/client.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import { loadDetail } from '#lib/detailLoader.ts';
+  import { range, rangeQuery } from '#lib/stores/range.ts';
   import OnThisDay from './OnThisDay.svelte';
   import Records from './Records.svelte';
   import Milestones from './Milestones.svelte';

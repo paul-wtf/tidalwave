@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { PlatformId } from '$lib/platforms';
+  import type { PlatformId } from '#lib/platforms.ts';
 
   let { id }: { id: PlatformId | 'linkhop' } = $props();
 

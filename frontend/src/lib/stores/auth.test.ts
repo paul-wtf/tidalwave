@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
 import { auth, loadMe } from './auth';
-import { api } from '$lib/api/client';
+import { api } from '#lib/api/client.ts';
 
 const ME = {
   username: 'alice', is_admin: true, timezone: null, disconnected: false,

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
 import SharedPage from './[token]/+page.svelte';
-import { mockApi } from '$lib/test/mockApi';
+import { mockApi } from '#lib/test/mockApi.ts';
 
 describe('shared dashboard page', () => {
   it('renders shared stats for a valid token', async () => {

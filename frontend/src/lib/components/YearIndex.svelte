@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { statsApi } from '$lib/api/client';
+  import { statsApi } from '#lib/api/client.ts';
 
   let { token }: { token?: string } = $props();
 
@@ -12,7 +12,7 @@
       .years()
       .then((years) => {
         if (years.length === 0) status = 'empty';
-        else void goto(`${base}/year/${years[0].year}`, { replaceState: true });
+        else void goto(`${base}/year/${years[0].year}`, { replace: true });
       })
       .catch(() => (status = 'error'));
   });

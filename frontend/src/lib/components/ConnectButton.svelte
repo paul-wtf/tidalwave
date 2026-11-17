@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api } from '$lib/api/client';
+  import { api } from '#lib/api/client.ts';
 </script>
 
 <a class="connect" href={api.loginUrl()}>Connect with Last.fm</a>

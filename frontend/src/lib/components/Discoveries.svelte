@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Discoveries } from '$lib/api/client';
-  import { formatCount, formatLocalDate } from '$lib/format';
-  import { artistHref, trackHref } from '$lib/links';
+  import type { Discoveries } from '#lib/api/client.ts';
+  import { formatCount, formatLocalDate } from '#lib/format.ts';
+  import { artistHref, trackHref } from '#lib/links.ts';
   import Cover from './Cover.svelte';
 
   let { discoveries, base = '', tz = 'UTC' }:

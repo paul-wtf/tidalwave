@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { compactHeaderOn } from '$lib/test/compactHeader';
+import { compactHeaderOn } from '#lib/test/compactHeader.ts';
 import Header from './Header.svelte';
 
 describe('Header', () => {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { weekdayName } from '$lib/format';
+  import { weekdayName } from '#lib/format.ts';
   let { days }: { days: number[] } = $props();
   const total = $derived(days.reduce((a, b) => a + b, 0));
   const max = $derived(Math.max(1, ...days));

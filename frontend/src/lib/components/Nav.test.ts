@@ -2,10 +2,7 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('$app/stores', async () => {
-  const { readable } = await import('svelte/store');
-  return { page: readable({ url: new URL('http://localhost/insights') }) };
-});
+vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/insights') } }));
 
 import Nav from './Nav.svelte';
 

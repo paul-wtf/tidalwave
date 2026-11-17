@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { statsApi, ApiError, type AlbumCount, type MetricPoint } from '$lib/api/client';
-  import { loadMe } from '$lib/stores/auth';
-  import { rangeQuery } from '$lib/stores/range';
-  import { artistItems, trackItems, albumItems, type ListItem } from '$lib/listItems';
+  import { statsApi, ApiError, type AlbumCount, type MetricPoint } from '#lib/api/client.ts';
+  import { loadMe } from '#lib/stores/auth.ts';
+  import { rangeQuery } from '#lib/stores/range.ts';
+  import { artistItems, trackItems, albumItems, type ListItem } from '#lib/listItems.ts';
   import TopList from './TopList.svelte';
   import AreaTrend from './AreaTrend.svelte';
   import CollageDialog from './CollageDialog.svelte';

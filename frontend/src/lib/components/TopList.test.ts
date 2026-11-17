@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
-import { PLATFORMS } from '$lib/platforms';
+import { PLATFORMS } from '#lib/platforms.ts';
 import TopList from './TopList.svelte';
 
 describe('TopList', () => {

@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { goto } from '$app/navigation';
 import YearIndex from './YearIndex.svelte';
-import { stubFetch } from '$lib/test/stubFetch';
+import { stubFetch } from '#lib/test/stubFetch.ts';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
@@ -14,7 +14,7 @@ describe('YearIndex', () => {
       url === '/stats/years' ? Response.json([{ year: 2026, listens: 4 }, { year: 2025, listens: 9 }]) : undefined
     );
     render(YearIndex);
-    await vi.waitFor(() => expect(goto).toHaveBeenCalledWith('/year/2026', { replaceState: true }));
+    await vi.waitFor(() => expect(goto).toHaveBeenCalledWith('/year/2026', { replace: true }));
   });
 
   it('stays inside a share', async () => {
@@ -22,7 +22,7 @@ describe('YearIndex', () => {
       url === '/shared/tok/years' ? Response.json([{ year: 2025, listens: 9 }]) : undefined
     );
     render(YearIndex, { token: 'tok' });
-    await vi.waitFor(() => expect(goto).toHaveBeenCalledWith('/s/tok/year/2025', { replaceState: true }));
+    await vi.waitFor(() => expect(goto).toHaveBeenCalledWith('/s/tok/year/2025', { replace: true }));
   });
 
   it('says when there is no year to show', async () => {

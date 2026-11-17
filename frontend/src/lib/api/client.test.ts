@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { api, statsApi } from './client';
-import { mockApi } from '$lib/test/mockApi';
+import { mockApi } from '#lib/test/mockApi.ts';
 
 const ME = {
   username: 'alice', is_admin: true, timezone: 'Europe/Berlin', disconnected: false,

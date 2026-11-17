@@ -1,13 +1,10 @@
 import { render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mockApi } from '$lib/test/mockApi';
-import { stubDeferredFetch } from '$lib/test/deferredFetch';
+import { setUrl } from '#lib/test/pageState.ts';
+import { mockApi } from '#lib/test/mockApi.ts';
+import { stubDeferredFetch } from '#lib/test/deferredFetch.ts';
 
-const pageStore = vi.hoisted(() => {
-  const { writable } = require('svelte/store');
-  return writable({ url: new URL('http://localhost/album?artist=Daft+Punk&album=Discovery') });
-});
-vi.mock('$app/stores', () => ({ page: pageStore }));
+vi.mock('$app/state', () => import('#lib/test/pageState.ts'));
 
 import AlbumPage from './AlbumPage.svelte';
 
@@ -32,7 +29,7 @@ const section = (title: string) => within(screen.getByRole('heading', { name: ti
 const heading = () => screen.getByRole('heading', { level: 1 });
 
 describe('AlbumPage', () => {
-  beforeEach(() => pageStore.set({ url: url('Discovery') }));
+  beforeEach(() => setUrl(url('Discovery')));
 
   it('renders the header stats from the detail response', async () => {
     mockApi(routes('/stats'));
@@ -121,7 +118,7 @@ describe('AlbumPage', () => {
     const { calls } = mockApi(routes('/stats'));
     render(AlbumPage);
     await waitFor(() => expect(heading()).toBeInTheDocument());
-    pageStore.set({ url: url('Other') });
+    setUrl(url('Other'));
     await waitFor(() =>
       expect(calls.some((c) => c.startsWith('/stats/album?') && c.includes('album=Other'))).toBe(true)
     );
@@ -143,9 +140,9 @@ describe('AlbumPage', () => {
       },
       (u) => u.searchParams.get('album') === 'Slow'
     );
-    pageStore.set({ url: url('Slow') });
+    setUrl(url('Slow'));
     render(AlbumPage);
-    pageStore.set({ url: url('Fast') });
+    setUrl(url('Fast'));
     await waitFor(() => expect(heading()).toHaveTextContent('Fast'));
     release();
     await new Promise((r) => setTimeout(r, 50));

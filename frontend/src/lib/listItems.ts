@@ -1,5 +1,5 @@
-import type { ArtistCount, AlbumCount, TrackCount } from '$lib/api/client';
-import { artistHref, albumHref, trackHref } from '$lib/links';
+import type { ArtistCount, AlbumCount, TrackCount } from '#lib/api/client.ts';
+import { artistHref, albumHref, trackHref } from '#lib/links.ts';
 
 export type ListItem = {
   label: string;

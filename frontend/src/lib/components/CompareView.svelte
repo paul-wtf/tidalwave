@@ -1,9 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { api, ApiError, type Comparison } from '$lib/api/client';
-  import { range, rangeLabel, rangeQuery } from '$lib/stores/range';
-  import { formatCount } from '$lib/format';
-  import { artistHref } from '$lib/links';
+  import { api, ApiError, type Comparison } from '#lib/api/client.ts';
+  import { range, rangeLabel, rangeQuery } from '#lib/stores/range.ts';
+  import { formatCount } from '#lib/format.ts';
+  import { artistHref } from '#lib/links.ts';
 
   let { id }: { id: number } = $props();
 

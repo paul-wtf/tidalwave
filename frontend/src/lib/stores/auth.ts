@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { api, type Me } from '$lib/api/client';
+import { api, type Me } from '#lib/api/client.ts';
 
 export interface AuthState { user: Me | null; loading: boolean; }
 

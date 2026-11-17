@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { api, ApiError } from '$lib/api/client';
-  import { auth } from '$lib/stores/auth';
-  import { formatRelative } from '$lib/format';
-  import { compactHeader, shareOpen } from '$lib/stores/header';
-  import { theme, toggleTheme } from '$lib/stores/theme';
+  import { api, ApiError } from '#lib/api/client.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import { formatRelative } from '#lib/format.ts';
+  import { compactHeader, shareOpen } from '#lib/stores/header.ts';
+  import { theme, toggleTheme } from '#lib/stores/theme.ts';
 
   let open = $state(false);
   let busy = $state(false);

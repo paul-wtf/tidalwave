@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
 import RangeSelector from './RangeSelector.svelte';
-import { range } from '$lib/stores/range';
+import { range } from '#lib/stores/range.ts';
 
 const select = () => screen.getByLabelText<HTMLSelectElement>('Time range');
 const shown = () => select().selectedOptions[0].textContent?.trim();

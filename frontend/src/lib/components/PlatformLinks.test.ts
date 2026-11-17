@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PLATFORMS } from '$lib/platforms';
-import { config } from '$lib/stores/config';
+import { PLATFORMS } from '#lib/platforms.ts';
+import { config } from '#lib/stores/config.ts';
 import PlatformLinks from './PlatformLinks.svelte';
 
 describe('PlatformLinks', () => {

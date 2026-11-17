@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import CollageDialog from './CollageDialog.svelte';
-import { TILE } from '$lib/collage';
+import { TILE } from '#lib/collage.ts';
 
 const albums = Array.from({ length: 30 }, (_, i) => ({
   album: `Album ${i}`, artist: `Artist ${i}`, count: 100 - i,

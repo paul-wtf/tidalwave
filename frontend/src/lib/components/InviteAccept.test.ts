@@ -6,7 +6,7 @@ const goto = vi.fn();
 vi.mock('$app/navigation', () => ({ goto: (...a: unknown[]) => goto(...a) }));
 
 import InviteAccept from './InviteAccept.svelte';
-import { stubFetch } from '$lib/test/stubFetch';
+import { stubFetch } from '#lib/test/stubFetch.ts';
 
 describe('InviteAccept', () => {
   it('names the inviter and what both will see', async () => {

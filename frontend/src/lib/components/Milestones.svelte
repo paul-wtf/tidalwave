@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Milestones } from '$lib/api/client';
-  import { formatCount, formatLongDate } from '$lib/format';
-  import { artistHref, trackHref } from '$lib/links';
+  import type { Milestones } from '#lib/api/client.ts';
+  import { formatCount, formatLongDate } from '#lib/format.ts';
+  import { artistHref, trackHref } from '#lib/links.ts';
 
   let { milestones, base = '', tz = 'UTC' }:
     { milestones: Milestones; base?: string; tz?: string | null } = $props();

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { WAVE_HEIGHT, WAVE_WIDTH, wavePaths } from '$lib/wave';
+  import { WAVE_HEIGHT, WAVE_WIDTH, wavePaths } from '#lib/wave.ts';
 
   let { values }: { values: number[] } = $props();
 

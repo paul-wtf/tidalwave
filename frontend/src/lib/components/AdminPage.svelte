@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { api, ApiError, type AdminUser, type Allowlist } from '$lib/api/client';
-  import { auth } from '$lib/stores/auth';
-  import { formatCount, formatLongDate, formatRelative } from '$lib/format';
+  import { api, ApiError, type AdminUser, type Allowlist } from '#lib/api/client.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import { formatCount, formatLongDate, formatRelative } from '#lib/format.ts';
 
   let users = $state<AdminUser[]>([]);
   let allowlist = $state<Allowlist | null>(null);

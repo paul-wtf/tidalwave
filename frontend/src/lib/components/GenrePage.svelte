@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { page } from '$app/stores';
-  import { statsApi, type GenreDetail, type MetricPoint } from '$lib/api/client';
-  import { loadDetail } from '$lib/detailLoader';
-  import { rangeQuery } from '$lib/stores/range';
-  import { durationStat } from '$lib/format';
-  import { artistItems, type ListItem } from '$lib/listItems';
+  import { page } from '$app/state';
+  import { statsApi, type GenreDetail, type MetricPoint } from '#lib/api/client.ts';
+  import { loadDetail } from '#lib/detailLoader.ts';
+  import { rangeQuery } from '#lib/stores/range.ts';
+  import { durationStat } from '#lib/format.ts';
+  import { artistItems, type ListItem } from '#lib/listItems.ts';
   import StatCard from './StatCard.svelte';
   import AreaTrend from './AreaTrend.svelte';
   import TopList from './TopList.svelte';
@@ -12,7 +12,7 @@
   let { token }: { token?: string } = $props();
 
   const base = $derived(token ? `/s/${token}` : '');
-  const name = $derived($page.url.searchParams.get('genre') ?? '');
+  const name = $derived(page.url.searchParams.get('genre') ?? '');
 
   let detail = $state<GenreDetail | null>(null);
   let metrics = $state<MetricPoint[]>([]);

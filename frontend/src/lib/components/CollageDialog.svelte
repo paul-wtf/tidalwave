@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { AlbumCount } from '$lib/api/client';
+  import type { AlbumCount } from '#lib/api/client.ts';
   import {
     COLLAGE_SIZES, TILE, collageAlbums, collageColors, drawCollage, loadCover,
     type CollageSize
-  } from '$lib/collage';
+  } from '#lib/collage.ts';
 
   let { albums, onclose }: { albums: AlbumCount[]; onclose: () => void } = $props();
 

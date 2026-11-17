@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { api, type Spellings, type SpellingSuggestion } from '$lib/api/client';
-  import { formatCount } from '$lib/format';
+  import { api, type Spellings, type SpellingSuggestion } from '#lib/api/client.ts';
+  import { formatCount } from '#lib/format.ts';
 
   let data = $state<Spellings | null>(null);
   let status = $state<'loading' | 'ok' | 'error'>('loading');

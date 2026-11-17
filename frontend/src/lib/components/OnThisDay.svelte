@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { OnThisDayYear } from '$lib/api/client';
-  import { formatCount } from '$lib/format';
-  import { artistHref, trackHref } from '$lib/links';
+  import type { OnThisDayYear } from '#lib/api/client.ts';
+  import { formatCount } from '#lib/format.ts';
+  import { artistHref, trackHref } from '#lib/links.ts';
 
   let { years, base = '' }: { years: OnThisDayYear[]; base?: string } = $props();
 </script>

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { LINKHOP_BRAND, PLATFORMS, linkhopSearch } from '$lib/platforms';
-  import { config } from '$lib/stores/config';
+  import { LINKHOP_BRAND, PLATFORMS, linkhopSearch } from '#lib/platforms.ts';
+  import { config } from '#lib/stores/config.ts';
   import PlatformIcon from './PlatformIcon.svelte';
 
   // `query` is the search text (e.g. "Daft Punk Around the World"). Each icon

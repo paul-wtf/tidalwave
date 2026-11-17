@@ -1,7 +1,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mockApi } from '$lib/test/mockApi';
-import { range } from '$lib/stores/range';
+import { mockApi } from '#lib/test/mockApi.ts';
+import { range } from '#lib/stores/range.ts';
 import ArtistRace from './ArtistRace.svelte';
 
 const race = {

@@ -1,28 +1,28 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { page } from '$app/stores';
-  import { auth, loadMe } from '$lib/stores/auth';
-  import { afterLogin } from '$lib/afterLogin';
-  import Header from '$lib/components/Header.svelte';
-  import Nav from '$lib/components/Nav.svelte';
-  import Search from '$lib/components/Search.svelte';
-  import RangeSelector from '$lib/components/RangeSelector.svelte';
-  import ShareManager from '$lib/components/ShareManager.svelte';
-  import UserMenu from '$lib/components/UserMenu.svelte';
-  import ReconnectBanner from '$lib/components/ReconnectBanner.svelte';
-  import Landing from '$lib/components/Landing.svelte';
+  import { page } from '$app/state';
+  import { auth, loadMe } from '#lib/stores/auth.ts';
+  import { afterLogin } from '#lib/afterLogin.ts';
+  import Header from '#lib/components/Header.svelte';
+  import Nav from '#lib/components/Nav.svelte';
+  import Search from '#lib/components/Search.svelte';
+  import RangeSelector from '#lib/components/RangeSelector.svelte';
+  import ShareManager from '#lib/components/ShareManager.svelte';
+  import UserMenu from '#lib/components/UserMenu.svelte';
+  import ReconnectBanner from '#lib/components/ReconnectBanner.svelte';
+  import Landing from '#lib/components/Landing.svelte';
   import type { Snippet } from 'svelte';
 
   let { children }: { children?: Snippet } = $props();
 
   onMount(loadMe);
 
-  const invited = $derived($page.url.pathname.startsWith('/compare/invite/'));
+  const invited = $derived(page.url.pathname.startsWith('/compare/invite/'));
 
   $effect(() => {
     if ($auth.loading) return;
-    const next = afterLogin($page.url.pathname, $auth.user != null, () => sessionStorage);
+    const next = afterLogin(page.url.pathname, $auth.user != null, () => sessionStorage);
     if (next) void goto(next);
   });
 </script>

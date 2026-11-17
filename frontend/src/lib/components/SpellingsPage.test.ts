@@ -2,8 +2,8 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import SpellingsPage from './SpellingsPage.svelte';
-import type { Spellings } from '$lib/api/client';
-import { stubFetch, type Handler } from '$lib/test/stubFetch';
+import type { Spellings } from '#lib/api/client.ts';
+import { stubFetch, type Handler } from '#lib/test/stubFetch.ts';
 
 const overview: Spellings = {
   suggestions: [

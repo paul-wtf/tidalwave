@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { COMPACT_HEADER } from '$lib/stores/header';
+import { COMPACT_HEADER } from '#lib/stores/header.ts';
 
 export function compactHeaderOn() {
   vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
